@@ -304,6 +304,19 @@ export class TextAreaProperty extends EditableProperty<Text> {
 		return rowTextArea
 	}
 
+	public disabled(disabled = true): void {
+		this.input.disabled = disabled
+		this.placeholderCheckBox.disabled = disabled
+		this.hyphenationCheckBox.disabled = disabled
+		this.alignCenter.disabled = disabled
+		this.alignLeft.disabled = disabled
+		this.alignRight.disabled = disabled
+		this.alignJustify.disabled = disabled
+		this.justifyStart.disabled = disabled
+		this.justifyCenter.disabled = disabled
+		this.justifyEnd.disabled = disabled
+	}
+
 	private update() {
 		let data: Text = {
 			text: this.input.value,

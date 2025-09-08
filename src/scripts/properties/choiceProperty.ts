@@ -56,6 +56,10 @@ export class ChoiceProperty<T extends ChoiceEntry> extends EditableProperty<T> {
 		row.appendChild(col)
 		return row
 	}
+
+	public disabled(disabled = true): void {
+		this.selectElement.disabled = disabled
+	}
 	public updateHTML(): void {
 		if (this.selectElement) {
 			for (const optionElement of this.selectElement.children) {

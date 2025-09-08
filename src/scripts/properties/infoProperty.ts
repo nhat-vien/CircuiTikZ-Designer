@@ -35,6 +35,7 @@ export class InfoProperty extends EditableProperty<string> {
 
 		return row
 	}
+	public disabled(disabled?: boolean): void {}
 	public eq(first: string, second: string): boolean {
 		return first == second
 	}

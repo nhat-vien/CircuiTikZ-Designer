@@ -42,20 +42,10 @@ export abstract class EditableProperty<T> {
 	public abstract eq(first: T, second: T): boolean
 
 	/**
-	 *
-	 * @param enable
+	 * set this property to be disabled or not
+	 * @param disabled
 	 */
-	public enable(enable = true): void {
-		if (this.element) {
-			for (const element of this.element.getElementsByClassName("disableable")) {
-				if (enable) {
-					element.classList.remove("disabled")
-				} else {
-					element.classList.add("disabled")
-				}
-			}
-		}
-	}
+	public abstract disabled(disabled?: boolean): void
 
 	public getHTMLElement(): HTMLElement {
 		if (!this.element) {

@@ -76,6 +76,11 @@ export class ColorProperty extends EditableProperty<SVG.Color | null> {
 		return row
 	}
 
+	public disabled(disabled = true): void {
+		this.input.disabled = disabled
+		this.enabler.disabled = disabled
+	}
+
 	public updateHTML(): void {
 		if (this.value) {
 			this.input.value = this.value.toString()

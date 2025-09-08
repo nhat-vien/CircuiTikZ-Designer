@@ -64,6 +64,10 @@ export class TextProperty extends EditableProperty<string> {
 		return row
 	}
 
+	public disabled(disabled = true): void {
+		this.input.disabled = disabled
+	}
+
 	private changeInvalidStatus(msg: string) {
 		if (this.invalidDiv) {
 			if (msg === "") {

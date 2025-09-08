@@ -127,6 +127,11 @@ export class SliderProperty extends EditableProperty<SVG.Number> {
 		return row
 	}
 
+	public disabled(disabled = true): void {
+		this.sliderInput.disabled = disabled
+		this.numberInput.disabled = disabled
+	}
+
 	private updateNumberInput() {
 		this.numberInput.value = this.value.value.toString()
 		if (this.unitLabel) {

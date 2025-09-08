@@ -42,6 +42,11 @@ export class BooleanProperty extends EditableProperty<boolean> {
 		row.appendChild(col)
 		return row
 	}
+
+	public disabled(disabled = true): void {
+		this.checkBox.disabled = disabled
+	}
+
 	public updateHTML(): void {
 		if (this.checkBox) {
 			this.checkBox.checked = this.value

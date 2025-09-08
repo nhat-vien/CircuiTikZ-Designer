@@ -52,6 +52,10 @@ export class MathJaxProperty extends EditableProperty<string> {
 		row.appendChild(col)
 		return row
 	}
+
+	public disabled(disabled = true): void {
+		this.input.disabled = disabled
+	}
 	public updateHTML(): void {
 		if (this.input) {
 			this.input.value = this.value

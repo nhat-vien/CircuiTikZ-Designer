@@ -6,6 +6,7 @@ export class ButtonGridProperty extends EditableProperty<never> {
 	private callbacks: ((ev: Event) => void)[]
 	private materialSymbols: boolean
 	private tooltips: string[]
+	private buttons: HTMLButtonElement[]
 
 	public constructor(
 		buttonsPerRow: 1 | 2 | 3 | 4 | 6 | 12,
@@ -23,6 +24,7 @@ export class ButtonGridProperty extends EditableProperty<never> {
 		this.callbacks = callbacks
 		this.materialSymbols = materialSymbols
 		this.tooltips = tooltips
+		this.buttons = []
 	}
 
 	public eq(first: never, second: never): boolean {
@@ -78,10 +80,15 @@ export class ButtonGridProperty extends EditableProperty<never> {
 				button.appendChild(spanMat)
 			}
 			button.addEventListener("click", callback)
+			this.buttons.push(button)
 			col.appendChild(button)
 			row.appendChild(col)
 		}
 		return row
+	}
+
+	public disabled(disabled = true): void {
+		this.buttons.forEach((button) => (button.disabled = disabled))
 	}
 	public updateHTML(): void {}
 }
