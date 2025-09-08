@@ -90,7 +90,10 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				currentDirectionChoices,
 				defaultCurrentDirectionChoice
 			)
-			this.currentDirection.addChangeListener((ev) => this.updateCurrentRender())
+			this.currentDirection.addChangeListener((ev) => {
+				this.setPositionEnableStatus()
+				this.updateCurrentRender()
+			})
 			this.properties.add(PropertyCategories.current, this.currentDirection)
 
 			this.currentLabelPosition = new ChoiceProperty(
@@ -99,13 +102,17 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				defaultCurrentLabelPositionChoice
 			)
 			this.currentLabelPosition.addChangeListener((ev) => {
-				console.log("test")
-
+				this.setPositionEnableStatus()
 				this.updateCurrentRender()
 			})
 			this.properties.add(PropertyCategories.current, this.currentLabelPosition)
 
-			this.currentPosition = new ChoiceProperty("Position", currentPositionChoices, defaultCurrentPositionChoice)
+			this.currentPosition = new ChoiceProperty(
+				"Position",
+				currentPositionChoices,
+				defaultCurrentPositionChoice,
+				"Only enabled if the direction and label are explicitly set."
+			)
 			this.currentPosition.addChangeListener((ev) => this.updateCurrentRender())
 			this.properties.add(PropertyCategories.current, this.currentPosition)
 
@@ -120,6 +127,13 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 			)
 			this.currentDistance.addChangeListener((ev) => this.updateCurrentRender())
 			this.properties.add(PropertyCategories.current, this.currentDistance)
+		}
+
+		private setPositionEnableStatus() {
+			this.currentPosition.disabled(
+				this.currentDirection.value.key == defaultCurrentDirectionChoice.key ||
+					this.currentLabelPosition.value.key == defaultCurrentLabelPositionChoice.key
+			)
 		}
 
 		protected generateCurrentRender(): void {
@@ -158,7 +172,6 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 			if (this.currentLabelPosition.value.key != defaultCurrentLabelPositionChoice.key) {
 				labelPositionBelow = this.currentLabelPosition.value.key == "_"
 
-				//TODO inform user that the position can only be set if the label position and direction are set explicitely. Probably by implementing something like a disable for editableProperties
 				if (this.currentDirection.value.key != defaultCurrentDirectionChoice.key) {
 					if (this.currentPosition.value.key != defaultCurrentPositionChoice.key) {
 						positionStart = this.currentPosition.value.key == "start"
@@ -252,6 +265,8 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 					this.currentPosition.value = currentPositionChoices.find(
 						(value) => value.key == saveObject.current.pos
 					)
+				} else {
+					this.currentPosition.buildHTML()
 				}
 				if (saveObject.current.labPos) {
 					this.currentLabelPosition.value = currentLabelPositionChoices.find(
@@ -259,6 +274,7 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 					)
 				}
 				this.generateCurrentRender()
+				this.setPositionEnableStatus() // TODO this doesn't work for initial state
 			}
 		}
 
