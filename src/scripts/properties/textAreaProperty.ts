@@ -304,7 +304,7 @@ export class TextAreaProperty extends EditableProperty<Text> {
 		return rowTextArea
 	}
 
-	public disabled(disabled = true): void {
+	protected disable(disabled = true): void {
 		this.input.disabled = disabled
 		this.placeholderCheckBox.disabled = disabled
 		this.hyphenationCheckBox.disabled = disabled

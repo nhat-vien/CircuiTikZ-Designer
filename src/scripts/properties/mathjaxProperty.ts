@@ -53,7 +53,7 @@ export class MathJaxProperty extends EditableProperty<string> {
 		return row
 	}
 
-	public disabled(disabled = true): void {
+	protected disable(disabled = true): void {
 		this.input.disabled = disabled
 	}
 	public updateHTML(): void {

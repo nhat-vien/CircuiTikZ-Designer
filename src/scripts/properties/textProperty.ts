@@ -64,7 +64,7 @@ export class TextProperty extends EditableProperty<string> {
 		return row
 	}
 
-	public disabled(disabled = true): void {
+	protected disable(disabled = true): void {
 		this.input.disabled = disabled
 	}
 

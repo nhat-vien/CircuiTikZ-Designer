@@ -43,7 +43,7 @@ export class BooleanProperty extends EditableProperty<boolean> {
 		return row
 	}
 
-	public disabled(disabled = true): void {
+	protected disable(disabled = true): void {
 		this.checkBox.disabled = disabled
 	}
 

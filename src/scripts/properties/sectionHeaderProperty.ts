@@ -15,7 +15,7 @@ export class SectionHeaderProperty extends EditableProperty<string> {
 		row.appendChild(this.labelElement)
 		return row
 	}
-	public disabled(disabled?: boolean): void {}
+	protected disable(disabled?: boolean): void {}
 	public updateHTML(): void {
 		if (this.labelElement) {
 			this.labelElement.innerHTML = this.value

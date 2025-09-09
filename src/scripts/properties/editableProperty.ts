@@ -9,6 +9,16 @@ export abstract class EditableProperty<T> {
 	private tooltip: string
 	protected element: HTMLElement
 
+	private _disabled: boolean
+	public get disabled(): boolean {
+		return this._disabled
+	}
+	public set disabled(value: boolean) {
+		this.getHTMLElement() // build component if not already done, otherwise disabling might not work sometimes
+		this._disabled = value
+		this.disable(value)
+	}
+
 	private _value: T
 	public get value(): T {
 		return this._value
@@ -42,10 +52,10 @@ export abstract class EditableProperty<T> {
 	public abstract eq(first: T, second: T): boolean
 
 	/**
-	 * set this property to be disabled or not
+	 * override this to implement how this component can be disabled
 	 * @param disabled
 	 */
-	public abstract disabled(disabled?: boolean): void
+	protected abstract disable(disabled?: boolean): void
 
 	public getHTMLElement(): HTMLElement {
 		if (!this.element) {

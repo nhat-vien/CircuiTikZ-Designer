@@ -76,7 +76,7 @@ export class ColorProperty extends EditableProperty<SVG.Color | null> {
 		return row
 	}
 
-	public disabled(disabled = true): void {
+	protected disable(disabled = true): void {
 		this.input.disabled = disabled
 		this.enabler.disabled = disabled
 	}

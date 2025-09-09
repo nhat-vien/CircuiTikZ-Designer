@@ -87,7 +87,7 @@ export class ButtonGridProperty extends EditableProperty<never> {
 		return row
 	}
 
-	public disabled(disabled = true): void {
+	protected disable(disabled = true): void {
 		this.buttons.forEach((button) => (button.disabled = disabled))
 	}
 	public updateHTML(): void {}

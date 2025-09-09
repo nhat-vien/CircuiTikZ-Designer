@@ -57,7 +57,7 @@ export class ChoiceProperty<T extends ChoiceEntry> extends EditableProperty<T> {
 		return row
 	}
 
-	public disabled(disabled = true): void {
+	protected disable(disabled = true): void {
 		this.selectElement.disabled = disabled
 	}
 	public updateHTML(): void {

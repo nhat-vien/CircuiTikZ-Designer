@@ -130,10 +130,9 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 		}
 
 		private setPositionEnableStatus() {
-			this.currentPosition.disabled(
+			this.currentPosition.disabled =
 				this.currentDirection.value.key == defaultCurrentDirectionChoice.key ||
-					this.currentLabelPosition.value.key == defaultCurrentLabelPositionChoice.key
-			)
+				this.currentLabelPosition.value.key == defaultCurrentLabelPositionChoice.key
 		}
 
 		protected generateCurrentRender(): void {
@@ -274,7 +273,7 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 					)
 				}
 				this.generateCurrentRender()
-				this.setPositionEnableStatus() // TODO this doesn't work for initial state
+				this.setPositionEnableStatus()
 			}
 		}
 
