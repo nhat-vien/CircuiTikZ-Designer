@@ -63,7 +63,16 @@ export class NodeSymbolComponent extends NodeComponent {
 		this.optionEnumProperties = new Map()
 
 		this.scaleState = new SVG.Point(1, 1)
-		this.scaleProperty = new SliderProperty("Scale", 0.1, 10, 0.01, new SVG.Number(1), true)
+		this.scaleProperty = new SliderProperty(
+			"Scale",
+			0.1,
+			10,
+			0.01,
+			new SVG.Number(1),
+			true,
+			undefined,
+			"manipulation:scale"
+		)
 		this.scaleProperty.addChangeListener((ev) => {
 			this.scaleState = new SVG.Point(
 				Math.sign(this.scaleState.x) * ev.value.value,
@@ -75,9 +84,17 @@ export class NodeSymbolComponent extends NodeComponent {
 
 		// initialize UI for options handling
 		if (symbol.possibleOptions.length > 0 || symbol.possibleEnumOptions.length > 0) {
-			this.properties.add(PropertyCategories.options, new SectionHeaderProperty("Options"))
+			this.properties.add(
+				PropertyCategories.options,
+				new SectionHeaderProperty("Options", undefined, "options:header")
+			)
 			for (const option of symbol.possibleOptions) {
-				const property = new BooleanProperty(option.displayName ?? option.name, false)
+				const property = new BooleanProperty(
+					option.displayName ?? option.name,
+					false,
+					undefined,
+					"options:option" + option.name
+				)
 				property.addChangeListener((ev) => {
 					this.updateOptions()
 				})
@@ -89,7 +106,13 @@ export class NodeSymbolComponent extends NodeComponent {
 				enumOption.options.forEach((option) => {
 					choices.push({ key: option.name, name: option.displayName ?? option.name })
 				})
-				const property = new ChoiceProperty(enumOption.displayName, choices, choices[0])
+				const property = new ChoiceProperty(
+					enumOption.displayName,
+					choices,
+					choices[0],
+					undefined,
+					"options:enum_" + enumOption.displayName
+				)
 
 				property.addChangeListener((ev) => {
 					this.updateOptions()
@@ -140,9 +163,12 @@ export class NodeSymbolComponent extends NodeComponent {
 	}
 
 	protected addInfo() {
-		this.properties.add(PropertyCategories.info, new SectionHeaderProperty("Info"))
+		this.properties.add(PropertyCategories.info, new SectionHeaderProperty("Info", undefined, "info:header"))
 		// the tikz id of the component. e.g. "nmos" in "\node[nmos] at (0,0){};"
-		this.properties.add(PropertyCategories.info, new InfoProperty("ID", this.referenceSymbol.tikzName))
+		this.properties.add(
+			PropertyCategories.info,
+			new InfoProperty("ID", this.referenceSymbol.tikzName, undefined, "info:ID")
+		)
 	}
 
 	protected setPropertiesFromOptions(options: SymbolOption[]) {

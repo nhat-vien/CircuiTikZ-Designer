@@ -19,6 +19,11 @@ export abstract class EditableProperty<T> {
 		this.disable(value)
 	}
 
+	private _id: string
+	public get id(): string {
+		return this._id
+	}
+
 	private _value: T
 	public get value(): T {
 		return this._value
@@ -33,7 +38,7 @@ export abstract class EditableProperty<T> {
 
 	private changeListeners: { (event: ChangeEvent<T>): void }[]
 
-	public constructor(initialValue?: T, tooltip: string = "") {
+	public constructor(initialValue?: T, tooltip: string = "", id: string = "") {
 		// make sure to be in drag_pan mode when changing any value
 		this.changeListeners = [
 			(ev) => {
@@ -43,6 +48,7 @@ export abstract class EditableProperty<T> {
 		if (initialValue !== undefined) {
 			this._value = initialValue
 		}
+		this._id = id
 		this.tooltip = tooltip
 	}
 

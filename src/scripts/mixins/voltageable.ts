@@ -94,24 +94,41 @@ export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Ba
 
 		constructor(...args: any[]) {
 			super(...args)
-			this.properties.add(PropertyCategories.voltage, new SectionHeaderProperty("Voltage label"))
+			this.properties.add(
+				PropertyCategories.voltage,
+				new SectionHeaderProperty("Voltage label", undefined, "voltage:header")
+			)
 
-			this.voltageLabel = new MathJaxProperty()
+			this.voltageLabel = new MathJaxProperty(undefined, undefined, "voltage:label")
 			this.voltageLabel.addChangeListener((ev) => this.generateVoltageRender())
 			this.properties.add(PropertyCategories.voltage, this.voltageLabel)
 
-			this.voltageStyle = new ChoiceProperty("Style", voltageStyleChoices, defaultVoltageStyleChoice)
+			this.voltageStyle = new ChoiceProperty(
+				"Style",
+				voltageStyleChoices,
+				defaultVoltageStyleChoice,
+				undefined,
+				"voltage:style"
+			)
 			this.voltageStyle.addChangeListener((ev) => this.updateVoltageRender())
 			this.properties.add(PropertyCategories.voltage, this.voltageStyle)
 
-			this.voltagePosition = new ChoiceProperty("Position", voltagePositionChoices, defaultVoltagePositionChoice)
+			this.voltagePosition = new ChoiceProperty(
+				"Position",
+				voltagePositionChoices,
+				defaultVoltagePositionChoice,
+				undefined,
+				"voltage:position"
+			)
 			this.voltagePosition.addChangeListener((ev) => this.updateVoltageRender())
 			this.properties.add(PropertyCategories.voltage, this.voltagePosition)
 
 			this.voltageDirection = new ChoiceProperty(
 				"Direction",
 				voltageDirectionChoices,
-				defaultVoltageDirectionChoice
+				defaultVoltageDirectionChoice,
+				undefined,
+				"voltage:direction"
 			)
 			this.voltageDirection.addChangeListener((ev) => this.updateVoltageRender())
 			this.properties.add(PropertyCategories.voltage, this.voltageDirection)
@@ -123,7 +140,8 @@ export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				0.1,
 				new SVG.Number(1.5, ""),
 				false,
-				"How much the voltage arrow should bump away from the component"
+				"How much the voltage arrow should bump away from the component",
+				"voltage:bump"
 			)
 			this.voltageBumpB.addChangeListener((ev) => this.updateVoltageRender())
 			this.properties.add(PropertyCategories.voltage, this.voltageBumpB)
@@ -135,12 +153,22 @@ export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				0.1,
 				new SVG.Number(0.5, ""),
 				true,
-				"How far away from the component the voltage arrow should start/end"
+				"How far away from the component the voltage arrow should start/end",
+				"voltage:distance"
 			)
 			this.voltageDistanceFromNode.addChangeListener((ev) => this.updateVoltageRender())
 			this.properties.add(PropertyCategories.voltage, this.voltageDistanceFromNode)
 
-			this.voltageShift = new SliderProperty("Voltage shift", -1, 2, 0.1, new SVG.Number(0, ""), false)
+			this.voltageShift = new SliderProperty(
+				"Voltage shift",
+				-1,
+				2,
+				0.1,
+				new SVG.Number(0, ""),
+				false,
+				undefined,
+				"voltage:shift"
+			)
 			this.voltageShift.addChangeListener((ev) => this.updateVoltageRender())
 			this.properties.add(PropertyCategories.voltage, this.voltageShift)
 		}

@@ -5,8 +5,8 @@ export class InfoProperty extends EditableProperty<string> {
 	private labelElement: HTMLElement
 	private labelString: string
 
-	public constructor(label: string, initalValue?: string, tooltip = "") {
-		super(initalValue, tooltip)
+	public constructor(label: string, initalValue?: string, tooltip = "", id: string = "") {
+		super(initalValue, tooltip, id)
 		this.labelString = label
 	}
 

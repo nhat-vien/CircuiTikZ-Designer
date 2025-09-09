@@ -67,13 +67,18 @@ export function Strokable<TBase extends AbstractConstructor<CircuitComponent>>(B
 
 			//add color property
 
-			this.properties.add(PropertyCategories.stroke, new SectionHeaderProperty("Stroke"))
+			this.properties.add(
+				PropertyCategories.stroke,
+				new SectionHeaderProperty("Stroke", undefined, "stroke:header")
+			)
 			this.strokeOpacityProperty = new SliderProperty(
 				"Opacity",
 				0,
 				100,
 				1,
-				new SVG.Number(this.strokeInfo.opacity * 100, "%")
+				new SVG.Number(this.strokeInfo.opacity * 100, "%"),
+				undefined,
+				"stroke:opacity"
 			)
 			this.strokeOpacityProperty.addChangeListener((ev) => {
 				this.strokeInfo.opacity = ev.value.value / 100
@@ -81,7 +86,7 @@ export function Strokable<TBase extends AbstractConstructor<CircuitComponent>>(B
 				this.update()
 			})
 
-			this.strokeColorProperty = new ColorProperty("Color", null)
+			this.strokeColorProperty = new ColorProperty("Color", null, undefined, "stroke:color")
 			this.strokeColorProperty.addChangeListener((ev) => {
 				if (ev.value == null) {
 					this.strokeInfo.color = "default"
@@ -93,7 +98,15 @@ export function Strokable<TBase extends AbstractConstructor<CircuitComponent>>(B
 				this.updateTheme()
 				this.update()
 			})
-			this.strokeWidthProperty = new SliderProperty("Width", 0, 10, 0.1, this.strokeInfo.width)
+			this.strokeWidthProperty = new SliderProperty(
+				"Width",
+				0,
+				10,
+				0.1,
+				this.strokeInfo.width,
+				undefined,
+				"stroke:width"
+			)
 			this.strokeWidthProperty.addChangeListener((ev) => {
 				this.strokeInfo.width = ev.value
 				this.updateTheme()
@@ -102,7 +115,9 @@ export function Strokable<TBase extends AbstractConstructor<CircuitComponent>>(B
 			this.strokeStyleProperty = new ChoiceProperty<StrokeStyle>(
 				"Style",
 				strokeStyleChoices,
-				defaultStrokeStyleChoice
+				defaultStrokeStyleChoice,
+				undefined,
+				"stroke:style"
 			)
 			this.strokeStyleProperty.addChangeListener((ev) => {
 				this.strokeInfo.style = ev.value.key

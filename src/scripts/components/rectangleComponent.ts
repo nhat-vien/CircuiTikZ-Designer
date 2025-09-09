@@ -66,14 +66,18 @@ export class RectangleComponent extends ShapeComponent {
 
 		this.visualization.add(this.dragElement)
 
-		this.properties.add(PropertyCategories.text, new SectionHeaderProperty("Text"))
-		this.textAreaProperty = new TextAreaProperty({
-			text: "",
-			align: TextAlign.LEFT,
-			justify: -1,
-			showPlaceholderText: this.createAsText,
-			useHyphenation: this.useHyphenation,
-		})
+		this.properties.add(PropertyCategories.text, new SectionHeaderProperty("Text", undefined, "text:header"))
+		this.textAreaProperty = new TextAreaProperty(
+			{
+				text: "",
+				align: TextAlign.LEFT,
+				justify: -1,
+				showPlaceholderText: this.createAsText,
+				useHyphenation: this.useHyphenation,
+			},
+			undefined,
+			"text:area"
+		)
 		if (createAsText) {
 			this.strokeStyleProperty.value = strokeStyleChoices[1]
 		}
@@ -84,19 +88,27 @@ export class RectangleComponent extends ShapeComponent {
 		})
 		this.properties.add(PropertyCategories.text, this.textAreaProperty)
 
-		this.textFontSize = new ChoiceProperty("Fontsize", fontSizes, defaultFontSize)
+		this.textFontSize = new ChoiceProperty("Fontsize", fontSizes, defaultFontSize, undefined, "text:fontsize")
 		this.textFontSize.addChangeListener((ev) => {
 			this.update()
 		})
 		this.properties.add(PropertyCategories.text, this.textFontSize)
 
-		this.textInnerSep = new SliderProperty("Inner sep", 0, 10, 0.1, new SVG.Number(5, "pt"))
+		this.textInnerSep = new SliderProperty(
+			"Inner sep",
+			0,
+			10,
+			0.1,
+			new SVG.Number(5, "pt"),
+			undefined,
+			"text:innersep"
+		)
 		this.textInnerSep.addChangeListener((ev) => {
 			this.update()
 		})
 		this.properties.add(PropertyCategories.text, this.textInnerSep)
 
-		this.textColor = new ColorProperty("Color", null)
+		this.textColor = new ColorProperty("Color", null, undefined, "text:color")
 		this.textColor.addChangeListener((ev) => {
 			this.updateText()
 		})

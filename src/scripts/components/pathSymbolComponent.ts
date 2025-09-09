@@ -87,7 +87,16 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 	constructor(symbol: ComponentSymbol) {
 		super()
 		this.scaleState = new SVG.Point(1, 1)
-		this.scaleProperty = new SliderProperty("Scale", 0.1, 10, 0.01, new SVG.Number(1), true)
+		this.scaleProperty = new SliderProperty(
+			"Scale",
+			0.1,
+			10,
+			0.01,
+			new SVG.Number(1),
+			true,
+			undefined,
+			"manipulation:scale"
+		)
 		this.scaleProperty.addChangeListener((ev) => {
 			this.scaleState = new SVG.Point(
 				Math.sign(this.scaleState.x) * ev.value.value,
@@ -101,9 +110,17 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 		this.optionEnumProperties = new Map()
 
 		if (symbol.possibleOptions.length > 0 || symbol.possibleEnumOptions.length > 0) {
-			this.properties.add(PropertyCategories.options, new SectionHeaderProperty("Options"))
+			this.properties.add(
+				PropertyCategories.options,
+				new SectionHeaderProperty("Options", undefined, "options:header")
+			)
 			for (const option of symbol.possibleOptions) {
-				const property = new BooleanProperty(option.displayName ?? option.name, false)
+				const property = new BooleanProperty(
+					option.displayName ?? option.name,
+					false,
+					undefined,
+					"options:option" + option.name
+				)
 				property.addChangeListener((ev) => {
 					this.updateOptions()
 				})
@@ -115,7 +132,13 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 				enumOption.options.forEach((option) => {
 					choices.push({ key: option.name, name: option.displayName ?? option.name })
 				})
-				const property = new ChoiceProperty(enumOption.displayName, choices, choices[0])
+				const property = new ChoiceProperty(
+					enumOption.displayName,
+					choices,
+					choices[0],
+					undefined,
+					"options:enum_" + enumOption.displayName
+				)
 
 				property.addChangeListener((ev) => {
 					this.updateOptions()
@@ -172,16 +195,19 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 		this.visualization.add(this.dragEndLine)
 		this.visualization.hide()
 
-		this.properties.add(PropertyCategories.manipulation, new SectionHeaderProperty("Symbol Orientation"))
+		this.properties.add(
+			PropertyCategories.manipulation,
+			new SectionHeaderProperty("Symbol Orientation", undefined, "manipulation:header")
+		)
 
-		this.mirror = new BooleanProperty("Mirror", false)
+		this.mirror = new BooleanProperty("Mirror", false, undefined, "manipulation:mirror")
 		this.mirror.addChangeListener((ev) => {
 			this.scaleState.y *= -1
 			this.update()
 		})
 		this.properties.add(PropertyCategories.manipulation, this.mirror)
 
-		this.invert = new BooleanProperty("Invert", false)
+		this.invert = new BooleanProperty("Invert", false, undefined, "manipulation:invert")
 		this.invert.addChangeListener((ev) => {
 			this.scaleState.x *= -1
 			this.update()
@@ -250,8 +276,11 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 	}
 
 	protected addInfo() {
-		this.properties.add(PropertyCategories.info, new SectionHeaderProperty("Info"))
-		this.properties.add(PropertyCategories.info, new InfoProperty("ID", this.referenceSymbol.tikzName))
+		this.properties.add(PropertyCategories.info, new SectionHeaderProperty("Info", undefined, "info:header"))
+		this.properties.add(
+			PropertyCategories.info,
+			new InfoProperty("ID", this.referenceSymbol.tikzName, undefined, "info:ID")
+		)
 	}
 
 	protected optionsFromProperties(): SymbolOption[] {

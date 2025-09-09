@@ -13,9 +13,10 @@ export class ButtonGridProperty extends EditableProperty<never> {
 		labels: [string, string | [string, string]][],
 		callbacks: ((ev: Event) => void)[],
 		materialSymbols = false,
-		tooltips: string[] = []
+		tooltips: string[] = [],
+		id: string = ""
 	) {
-		super()
+		super(undefined as never, "", id)
 		if (labels.length !== callbacks.length) {
 			throw new Error("every button has to have a callback and a label")
 		}

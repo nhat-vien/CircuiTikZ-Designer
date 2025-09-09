@@ -34,14 +34,16 @@ export function Fillable<TBase extends AbstractConstructor<CircuitComponent>>(Ba
 				color: "default",
 				opacity: 1,
 			}
-			this.properties.add(PropertyCategories.fill, new SectionHeaderProperty("Fill"))
+			this.properties.add(PropertyCategories.fill, new SectionHeaderProperty("Fill", undefined, "fill:header"))
 
 			this.fillOpacityProperty = new SliderProperty(
 				"Opacity",
 				0,
 				100,
 				1,
-				new SVG.Number(this.fillInfo.opacity * 100, "%")
+				new SVG.Number(this.fillInfo.opacity * 100, "%"),
+				undefined,
+				"fill:opacity"
 			)
 			this.fillOpacityProperty.addChangeListener((ev) => {
 				this.fillInfo.opacity = ev.value.value / 100
@@ -49,7 +51,7 @@ export function Fillable<TBase extends AbstractConstructor<CircuitComponent>>(Ba
 				this.update()
 			})
 
-			this.fillColorProperty = new ColorProperty("Color", null)
+			this.fillColorProperty = new ColorProperty("Color", null, undefined, "fill:color")
 			this.fillColorProperty.addChangeListener((ev) => {
 				if (ev.value == null) {
 					this.fillInfo.color = "default"

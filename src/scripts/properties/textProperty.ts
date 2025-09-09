@@ -8,8 +8,14 @@ export class TextProperty extends EditableProperty<string> {
 
 	private validator = (value: string) => ""
 
-	public constructor(label: string, initalValue?: string, tooltip = "", validator = (value: string) => "") {
-		super(initalValue, tooltip)
+	public constructor(
+		label: string,
+		initalValue?: string,
+		tooltip = "",
+		validator = (value: string) => "",
+		id: string = ""
+	) {
+		super(initalValue, tooltip, id)
 		this.label = label
 		this.validator = validator
 	}

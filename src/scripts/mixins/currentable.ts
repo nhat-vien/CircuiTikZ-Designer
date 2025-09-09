@@ -79,16 +79,21 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 
 		constructor(...args: any[]) {
 			super(...args)
-			this.properties.add(PropertyCategories.current, new SectionHeaderProperty("Current label"))
+			this.properties.add(
+				PropertyCategories.current,
+				new SectionHeaderProperty("Current label", undefined, "current:header")
+			)
 
-			this.currentLabel = new MathJaxProperty()
+			this.currentLabel = new MathJaxProperty(undefined, undefined, "current:label")
 			this.currentLabel.addChangeListener((ev) => this.generateCurrentRender())
 			this.properties.add(PropertyCategories.current, this.currentLabel)
 
 			this.currentDirection = new ChoiceProperty(
 				"Direction",
 				currentDirectionChoices,
-				defaultCurrentDirectionChoice
+				defaultCurrentDirectionChoice,
+				undefined,
+				"current:direction"
 			)
 			this.currentDirection.addChangeListener((ev) => {
 				this.setPositionEnableStatus()
@@ -99,7 +104,9 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 			this.currentLabelPosition = new ChoiceProperty(
 				"Label",
 				currentLabelPositionChoices,
-				defaultCurrentLabelPositionChoice
+				defaultCurrentLabelPositionChoice,
+				undefined,
+				"current:labelPosition"
 			)
 			this.currentLabelPosition.addChangeListener((ev) => {
 				this.setPositionEnableStatus()
@@ -111,7 +118,8 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				"Position",
 				currentPositionChoices,
 				defaultCurrentPositionChoice,
-				"Only enabled if the direction and label are explicitly set."
+				"Only enabled if the direction and label are explicitly set.",
+				"current:position"
 			)
 			this.currentPosition.addChangeListener((ev) => this.updateCurrentRender())
 			this.properties.add(PropertyCategories.current, this.currentPosition)
@@ -123,7 +131,8 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				0.1,
 				new SVG.Number(0.5, ""),
 				true,
-				"How far along the line the current arrow is."
+				"How far along the line the current arrow is.",
+				"current:distance"
 			)
 			this.currentDistance.addChangeListener((ev) => this.updateCurrentRender())
 			this.properties.add(PropertyCategories.current, this.currentDistance)

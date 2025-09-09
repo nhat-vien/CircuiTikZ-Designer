@@ -14,8 +14,8 @@ export class ChoiceProperty<T extends ChoiceEntry> extends EditableProperty<T> {
 		return this.choiceOptions
 	}
 
-	public constructor(label: string, choiceOptions: T[], initialValue?: T, tooltip = "") {
-		super(initialValue, tooltip)
+	public constructor(label: string, choiceOptions: T[], initialValue?: T, tooltip = "", id: string = "") {
+		super(initialValue, tooltip, id)
 		this.label = label
 		this.choiceOptions = choiceOptions
 	}

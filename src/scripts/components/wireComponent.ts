@@ -145,8 +145,8 @@ export class WireComponent extends Strokable(PathComponent) {
 		this.visualization.add(this.draggableWire)
 		this.snappingPoints = []
 
-		this.properties.add(PropertyCategories.options, new SectionHeaderProperty("Arrows"))
-		this.arrowStartChoice = new ChoiceProperty("Start", arrowTips, defaultArrowTip)
+		this.properties.add(PropertyCategories.options, new SectionHeaderProperty("Arrows", undefined, "arrows:header"))
+		this.arrowStartChoice = new ChoiceProperty("Start", arrowTips, defaultArrowTip, undefined, "arrows:start")
 		this.arrowStartChoice.addChangeListener((ev) => {
 			this.updateArrowTypesAndColors()
 			this.update()
@@ -156,7 +156,9 @@ export class WireComponent extends Strokable(PathComponent) {
 		this.arrowEndChoice = new ChoiceProperty(
 			"End",
 			arrowTips,
-			this.defaultArrowHead ? arrowTips[3] : defaultArrowTip
+			this.defaultArrowHead ? arrowTips[3] : defaultArrowTip,
+			undefined,
+			"arrows:end"
 		)
 		this.arrowEndChoice.addChangeListener((ev) => {
 			this.updateArrowTypesAndColors()
