@@ -72,6 +72,8 @@ export class PropertyController {
 	private propertiesEntries: HTMLDivElement
 	private propertiesTitle: HTMLElement
 
+	private cbs: { property: EditableProperty<any>; cb: (ev) => void }[] = []
+
 	private constructor() {
 		this.propertiesTitle = document.getElementById("propertiesTitle") as HTMLElement
 		this.viewProperties = document.getElementById("view-properties") as HTMLDivElement
@@ -100,8 +102,6 @@ export class PropertyController {
 	}
 
 	private setMultiForm(components: CircuitComponent[]) {
-		//TODO multicomponent edit
-
 		this.propertiesEntries.classList.remove("d-none")
 		this.propertiesTitle.innerText = "Selection"
 
@@ -240,6 +240,61 @@ export class PropertyController {
 		rows.push(distribute.buildHTML())
 
 		this.propertiesEntries.append(...rows)
+
+		const overlappingProperties: PropertiesCollection = components[0].properties
+
+		let key = Object.keys(PropertyCategories)[0]
+		PropertyCategories[key]
+		// repeat overlap detection for all possible categories
+		for (const element in PropertyCategories) {
+			if (!isNaN(Number(element))) {
+				continue
+			}
+			//@ts-ignore
+			let category: PropertyCategories = PropertyCategories[element]
+			const categoryMap: Map<string, EditableProperty<any>[]> = new Map()
+
+			// in each category, loop over all components
+			for (const component of components) {
+				const properties = component.properties.get(category)
+				if (properties == undefined) {
+					continue
+				}
+				// keep track of all properties of a given id
+				for (const property of properties) {
+					if (property.id == "") {
+						//skip empty ids
+						continue
+					}
+					if (categoryMap.has(property.id)) {
+						categoryMap.get(property.id).push(property)
+					} else {
+						categoryMap.set(property.id, [property])
+					}
+				}
+			}
+			const relevantProperties: EditableProperty<any>[] = []
+			// remove all properties, which are not present in every component, otherwise add properties
+			for (const id of categoryMap.keys()) {
+				const properties = categoryMap.get(id)
+				if (properties.length < components.length) {
+					categoryMap.set(id, [])
+				} else {
+					// just get the first property and add callbacks for the remaining properties
+					const first = properties[0]
+					for (const property of properties.slice(1)) {
+						const cb = (ev: { value: any }) => {
+							property.updateValue(ev.value, true, true)
+						}
+						first.addChangeListener(cb)
+						this.cbs.push({ property: first, cb: cb })
+					}
+					relevantProperties.push(first)
+				}
+			}
+			overlappingProperties.set(category, relevantProperties)
+		}
+		this.propertiesEntries.append(...overlappingProperties.sorted().map((property) => property.getHTMLElement()))
 	}
 
 	private setForm(component: CircuitComponent) {
@@ -292,6 +347,9 @@ export class PropertyController {
 	}
 
 	private clearForm() {
+		for (const element of this.cbs) {
+			element.property.removeChangeListener(element.cb)
+		}
 		this.propertiesTitle.innerText = "Properties"
 		this.viewProperties.classList.add("d-none")
 		this.propertiesEntries.classList.add("d-none")
