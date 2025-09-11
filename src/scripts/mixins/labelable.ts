@@ -105,6 +105,7 @@ export function PositionLabelable<TBase extends AbstractConstructor<CircuitCompo
 				0.01,
 				new SVG.Number(0.12, "cm"),
 				undefined,
+				undefined,
 				"label:gap"
 			)
 			this.labelDistance.addChangeListener((ev) => this.updatePositionedLabel())
@@ -265,19 +266,20 @@ export function PathLabelable<TBase extends AbstractConstructor<CircuitComponent
 				0.01,
 				new SVG.Number(0.12, "cm"),
 				undefined,
+				undefined,
 				"label:gap"
 			)
 			this.labelDistance.addChangeListener((ev) => this.updatePathLabel())
 			this.properties.add(PropertyCategories.label, this.labelDistance)
 
-			this.labelColor = new ColorProperty("Color", null, undefined, "label:color")
+			this.labelColor = new ColorProperty("Color", null, undefined, undefined, "label:color")
 			this.labelColor.addChangeListener((ev) => {
 				this.updateTheme()
 				this.update()
 			})
 			this.properties.add(PropertyCategories.label, this.labelColor)
 
-			this.labelSide = new BooleanProperty("Switch side", undefined, "label:side")
+			this.labelSide = new BooleanProperty("Switch side", undefined, undefined, "label:side")
 			this.labelSide.addChangeListener((ev) => this.updatePathLabel())
 			this.properties.add(PropertyCategories.label, this.labelSide)
 		}

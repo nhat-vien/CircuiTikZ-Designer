@@ -163,12 +163,9 @@ export class NodeSymbolComponent extends NodeComponent {
 	}
 
 	protected addInfo() {
-		this.properties.add(PropertyCategories.info, new SectionHeaderProperty("Info", undefined, "info:header"))
+		this.properties.add(PropertyCategories.info, new SectionHeaderProperty("Info"))
 		// the tikz id of the component. e.g. "nmos" in "\node[nmos] at (0,0){};"
-		this.properties.add(
-			PropertyCategories.info,
-			new InfoProperty("ID", this.referenceSymbol.tikzName, undefined, "info:ID")
-		)
+		this.properties.add(PropertyCategories.info, new InfoProperty("ID", this.referenceSymbol.tikzName))
 	}
 
 	protected setPropertiesFromOptions(options: SymbolOption[]) {

@@ -276,11 +276,8 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 	}
 
 	protected addInfo() {
-		this.properties.add(PropertyCategories.info, new SectionHeaderProperty("Info", undefined, "info:header"))
-		this.properties.add(
-			PropertyCategories.info,
-			new InfoProperty("ID", this.referenceSymbol.tikzName, undefined, "info:ID")
-		)
+		this.properties.add(PropertyCategories.info, new SectionHeaderProperty("Info"))
+		this.properties.add(PropertyCategories.info, new InfoProperty("ID", this.referenceSymbol.tikzName))
 	}
 
 	protected optionsFromProperties(): SymbolOption[] {

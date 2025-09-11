@@ -241,7 +241,8 @@ export class PropertyController {
 
 		this.propertiesEntries.append(...rows)
 
-		const overlappingProperties: PropertiesCollection = components[0].properties
+		const overlappingProperties: PropertiesCollection = new PropertiesCollection()
+		this.cbs = []
 
 		let key = Object.keys(PropertyCategories)[0]
 		PropertyCategories[key]

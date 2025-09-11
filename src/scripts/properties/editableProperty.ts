@@ -75,6 +75,13 @@ export abstract class EditableProperty<T> {
 		return this.element
 	}
 
+	public removeHTMLElement(): void {
+		if (this.element) {
+			this.element.remove()
+			this.element = null
+		}
+	}
+
 	/**
 	 * Override/use this
 	 */
