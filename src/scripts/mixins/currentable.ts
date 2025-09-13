@@ -11,7 +11,6 @@ import {
 	SectionHeaderProperty,
 	SliderProperty,
 	CircuitikzTo,
-	ChoiceEntry,
 	approxCompare,
 	interpolate,
 	BooleanProperty,
@@ -239,8 +238,10 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				} else {
 					// if position is end, the label position comes before the direction
 					if (this.currentDirection.value == false) {
+						// if direction is forward the label position is not required
 						dirString = ""
 						if (this.currentLabelPosition.value == false) {
+							// if the label position is default above and the direction is forward, the label position is also not required
 							labelPosString = ""
 						}
 					}
