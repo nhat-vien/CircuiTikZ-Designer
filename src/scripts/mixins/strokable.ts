@@ -78,6 +78,7 @@ export function Strokable<TBase extends AbstractConstructor<CircuitComponent>>(B
 				1,
 				new SVG.Number(this.strokeInfo.opacity * 100, "%"),
 				undefined,
+				undefined,
 				"stroke:opacity"
 			)
 			this.strokeOpacityProperty.addChangeListener((ev) => {
@@ -86,7 +87,7 @@ export function Strokable<TBase extends AbstractConstructor<CircuitComponent>>(B
 				this.update()
 			})
 
-			this.strokeColorProperty = new ColorProperty("Color", null, undefined, "stroke:color")
+			this.strokeColorProperty = new ColorProperty("Color", null, undefined, undefined, "stroke:color")
 			this.strokeColorProperty.addChangeListener((ev) => {
 				if (ev.value == null) {
 					this.strokeInfo.color = "default"
@@ -104,6 +105,7 @@ export function Strokable<TBase extends AbstractConstructor<CircuitComponent>>(B
 				10,
 				0.1,
 				this.strokeInfo.width,
+				undefined,
 				undefined,
 				"stroke:width"
 			)

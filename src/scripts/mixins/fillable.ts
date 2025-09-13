@@ -43,6 +43,7 @@ export function Fillable<TBase extends AbstractConstructor<CircuitComponent>>(Ba
 				1,
 				new SVG.Number(this.fillInfo.opacity * 100, "%"),
 				undefined,
+				undefined,
 				"fill:opacity"
 			)
 			this.fillOpacityProperty.addChangeListener((ev) => {
@@ -51,7 +52,7 @@ export function Fillable<TBase extends AbstractConstructor<CircuitComponent>>(Ba
 				this.update()
 			})
 
-			this.fillColorProperty = new ColorProperty("Color", null, undefined, "fill:color")
+			this.fillColorProperty = new ColorProperty("Color", null, undefined, undefined, "fill:color")
 			this.fillColorProperty.addChangeListener((ev) => {
 				if (ev.value == null) {
 					this.fillInfo.color = "default"

@@ -18,12 +18,11 @@ export class ColorProperty extends EditableProperty<SVG.Color | null> {
 		if ((first == null && second == null) || first === second) {
 			return true
 		}
-		if (first == null) {
+
+		if (first == null || second == null) {
 			return false
 		}
-		if (second == null) {
-			return false
-		}
+
 		let f = first.rgb()
 		let s = second.rgb()
 		return f.r == s.r && f.g == s.g && f.b == s.b
@@ -43,7 +42,7 @@ export class ColorProperty extends EditableProperty<SVG.Color | null> {
 				enablerDiv.classList.add("input-group-text")
 				this.enabler = document.createElement("input") as HTMLInputElement
 				this.enabler.classList.add("form-check-input", "mt-0")
-				this.enabler.setAttribute("type", "checkbox")
+				this.enabler.type = "checkbox"
 				this.enabler.checked = this.value !== null
 
 				this.enabler.addEventListener("change", (ev) => {
@@ -88,5 +87,27 @@ export class ColorProperty extends EditableProperty<SVG.Color | null> {
 		if (this.enabler) {
 			this.enabler.checked = this.value != null
 		}
+	}
+
+	public getMultiEditVersion(properties: ColorProperty[]): ColorProperty {
+		let allEqual = this.equivalent(properties)
+
+		const result = new ColorProperty(
+			this.label,
+			allEqual ? properties[0].value : null,
+			this.nullable,
+			this.tooltip,
+			this.id
+		)
+
+		// result.enabler.indeterminate = !allEqual
+
+		result.addChangeListener((ev) => {
+			for (const property of properties) {
+				property.updateValue(ev.value, true, true)
+			}
+		})
+		result.getHTMLElement()
+		return result
 	}
 }

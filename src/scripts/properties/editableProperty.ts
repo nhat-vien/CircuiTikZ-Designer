@@ -6,7 +6,7 @@ type ChangeEvent<T> = {
 }
 
 export abstract class EditableProperty<T> {
-	private tooltip: string
+	protected tooltip: string
 	protected element: HTMLElement
 
 	private _disabled: boolean
@@ -52,10 +52,29 @@ export abstract class EditableProperty<T> {
 		this.tooltip = tooltip
 	}
 
+	public equivalent(properties: EditableProperty<T>[]) {
+		if (properties.length < 2) {
+			return true
+		}
+		const first = properties[0]
+		for (const property of properties.slice(1)) {
+			if (!this.eq(first.value, property.value)) {
+				return false
+			}
+		}
+		return true
+	}
+
 	/**
 	 * Evaluate if two values of type T are equal
 	 */
 	public abstract eq(first: T, second: T): boolean
+
+	/**
+	 * Build this property to be able to edit multiple properties at once
+	 * @param properties
+	 */
+	public abstract getMultiEditVersion(properties: EditableProperty<T>[]): EditableProperty<T>
 
 	/**
 	 * override this to implement how this component can be disabled
@@ -126,5 +145,12 @@ export abstract class EditableProperty<T> {
 				element(changeEvent)
 			}
 		}
+	}
+
+	public remove() {
+		for (const changeListener of this.changeListeners) {
+			this.removeChangeListener(changeListener)
+		}
+		this.element?.remove()
 	}
 }

@@ -5,6 +5,8 @@ export type ChoiceEntry = {
 	name: string
 }
 
+const indeterminateChoice: ChoiceEntry = { key: "undetermined", name: "choose one" }
+
 export class ChoiceProperty<T extends ChoiceEntry> extends EditableProperty<T> {
 	private label: string
 	private selectElement: HTMLSelectElement
@@ -67,5 +69,33 @@ export class ChoiceProperty<T extends ChoiceEntry> extends EditableProperty<T> {
 					(optionElement as HTMLOptionElement).value == this.value.key
 			}
 		}
+	}
+
+	public getMultiEditVersion(properties: ChoiceProperty<T>[]): ChoiceProperty<T> {
+		let allEqual = this.equivalent(properties)
+
+		const options: ChoiceEntry[] = allEqual ? [indeterminateChoice] : []
+		options.push(...this.choiceOptions)
+
+		const result = new ChoiceProperty<T>(
+			this.label,
+			this.choiceOptions,
+			allEqual ? properties[0].value : (indeterminateChoice as T),
+			this.tooltip,
+			this.id
+		)
+
+		let removedUndeterminedChoice = false
+		result.addChangeListener((ev) => {
+			if (!removedUndeterminedChoice && ev.previousValue.key == "undetermined") {
+				removedUndeterminedChoice = true
+				this.selectElement.removeChild(this.selectElement.firstChild)
+			}
+			for (const property of properties) {
+				property.updateValue(ev.value, true, true)
+			}
+		})
+		result.getHTMLElement()
+		return result
 	}
 }

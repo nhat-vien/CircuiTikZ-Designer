@@ -21,4 +21,10 @@ export class SectionHeaderProperty extends EditableProperty<string> {
 			this.labelElement.innerHTML = this.value
 		}
 	}
+	public getMultiEditVersion(properties: SectionHeaderProperty[]): SectionHeaderProperty {
+		const result = new SectionHeaderProperty(properties[0].value, this.tooltip, this.id)
+
+		result.getHTMLElement()
+		return result
+	}
 }

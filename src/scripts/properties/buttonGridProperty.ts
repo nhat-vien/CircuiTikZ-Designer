@@ -1,7 +1,7 @@
 import { EditableProperty } from "../internal"
 
 export class ButtonGridProperty extends EditableProperty<never> {
-	private buttonsPerRow: number
+	private buttonsPerRow: 1 | 2 | 3 | 4 | 6 | 12
 	private labels: [string, string | [string, string]][]
 	private callbacks: ((ev: Event) => void)[]
 	private materialSymbols: boolean
@@ -92,4 +92,22 @@ export class ButtonGridProperty extends EditableProperty<never> {
 		this.buttons.forEach((button) => (button.disabled = disabled))
 	}
 	public updateHTML(): void {}
+
+	public getMultiEditVersion(properties: ButtonGridProperty[]): ButtonGridProperty {
+		const result = new ButtonGridProperty(
+			this.buttonsPerRow,
+			this.labels,
+			this.callbacks,
+			this.materialSymbols,
+			this.tooltips,
+			this.id
+		)
+		result.addChangeListener((ev) => {
+			for (const property of properties) {
+				property.updateValue(ev.value, true, true)
+			}
+		})
+		result.getHTMLElement()
+		return result
+	}
 }

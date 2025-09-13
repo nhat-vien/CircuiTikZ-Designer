@@ -111,7 +111,7 @@ export function PositionLabelable<TBase extends AbstractConstructor<CircuitCompo
 			this.labelDistance.addChangeListener((ev) => this.updatePositionedLabel())
 			this.properties.add(PropertyCategories.label, this.labelDistance)
 
-			this.labelColor = new ColorProperty("Color", null, undefined, "label:color")
+			this.labelColor = new ColorProperty("Color", null, undefined, undefined, "label:color")
 			this.labelColor.addChangeListener((ev) => {
 				this.updateTheme()
 				this.update()

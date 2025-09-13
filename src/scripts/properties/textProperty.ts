@@ -53,10 +53,10 @@ export class TextProperty extends EditableProperty<string> {
 		})
 		this.input.addEventListener("input", (ev) => {
 			let validationText = this.validator(this.input.value)
+			this.changeInvalidStatus(validationText)
 			if (validationText == "") {
 				this.updateValue(this.input.value)
 			}
-			this.changeInvalidStatus(validationText)
 		})
 
 		this.input.addEventListener("focusout", (ev) => {
@@ -97,5 +97,25 @@ export class TextProperty extends EditableProperty<string> {
 
 	public eq(first: string, second: string): boolean {
 		return first == second
+	}
+
+	public getMultiEditVersion(properties: TextProperty[]): TextProperty {
+		let allEqual = this.equivalent(properties)
+
+		const result = new TextProperty(this.label, allEqual ? this.value : "*", this.tooltip, this.validator, this.id)
+
+		result.addChangeListener((ev) => {
+			let invalid = false
+			for (const property of properties) {
+				property.updateValue(ev.value, true, true)
+				if (!invalid && property.validator(ev.value) != "") {
+					invalid = true
+				}
+			}
+			if (invalid) {
+				result.changeInvalidStatus("Multi-edit with invalid values! Adjust individual component fields.")
+			}
+		})
+		return result
 	}
 }

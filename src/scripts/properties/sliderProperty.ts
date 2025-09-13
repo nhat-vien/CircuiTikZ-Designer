@@ -3,6 +3,9 @@ import { CanvasController, EditableProperty, Undo } from "../internal"
 
 export class SliderProperty extends EditableProperty<SVG.Number> {
 	public eq(first: SVG.Number, second: SVG.Number): boolean {
+		if (first == null || second == null) {
+			return false
+		}
 		return first.eq(second)
 	}
 
@@ -72,13 +75,14 @@ export class SliderProperty extends EditableProperty<SVG.Number> {
 		this.sliderInput.min = this.min.toString()
 		this.sliderInput.max = this.max.toString()
 		this.sliderInput.step = this.step.toString()
-		this.sliderInput.value = this.value.value.toString()
+		this.sliderInput.value =
+			!Number.isNaN(this.value.value) ? this.value.value.toString() : ((this.max - this.min) / 2).toString()
 		col.appendChild(this.sliderInput)
 
 		this.numberInput = document.createElement("input") as HTMLInputElement
 		this.numberInput.classList.add("form-control", "fs-6")
 		this.numberInput.type = "number"
-		this.numberInput.value = this.value.value.toString()
+		this.numberInput.value = !Number.isNaN(this.value.value) ? this.value.value.toString() : "*"
 		this.numberInput.min = this.min.toString()
 		this.numberInput.max = this.max.toString()
 		this.numberInput.step = this.step.toString()
@@ -134,16 +138,16 @@ export class SliderProperty extends EditableProperty<SVG.Number> {
 	}
 
 	private updateNumberInput() {
-		this.numberInput.value = this.value.value.toString()
+		this.numberInput.value = !Number.isNaN(this.value.value) ? this.value.value.toString() : "*"
 		if (this.unitLabel) {
-			this.unitLabel.innerText = this.value.unit
+			this.unitLabel.innerText = !Number.isNaN(this.value.value) ? this.value.unit : ""
 		}
 	}
 
 	private updateSliderInput() {
-		this.sliderInput.value = this.value.value.toString()
+		this.sliderInput.value = !Number.isNaN(this.value.value) ? this.value.value.toString() : "*"
 		if (this.unitLabel) {
-			this.unitLabel.innerText = this.value.unit
+			this.unitLabel.innerText = !Number.isNaN(this.value.value) ? this.value.unit : ""
 		}
 	}
 
@@ -152,5 +156,28 @@ export class SliderProperty extends EditableProperty<SVG.Number> {
 			this.updateSliderInput()
 			this.updateNumberInput()
 		}
+	}
+
+	public getMultiEditVersion(properties: SliderProperty[]): SliderProperty {
+		let allEqual = this.equivalent(properties)
+		const first = properties[0]
+		const result = new SliderProperty(
+			this.label,
+			this.min,
+			this.max,
+			this.step,
+			allEqual ? properties[0].value : new SVG.Number(NaN, first.value.unit),
+			this.restrictToRange,
+			this.tooltip,
+			this.id
+		)
+
+		result.addChangeListener((ev) => {
+			for (const property of properties) {
+				property.updateValue(ev.value, true, true)
+			}
+		})
+		result.getHTMLElement()
+		return result
 	}
 }

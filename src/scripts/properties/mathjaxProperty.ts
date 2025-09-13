@@ -61,4 +61,18 @@ export class MathJaxProperty extends EditableProperty<string> {
 			this.input.value = this.value
 		}
 	}
+
+	public getMultiEditVersion(properties: MathJaxProperty[]): MathJaxProperty {
+		let allEqual = this.equivalent(properties)
+
+		const result = new MathJaxProperty(allEqual ? properties[0].value : "*", this.tooltip, this.id)
+
+		result.addChangeListener((ev) => {
+			for (const property of properties) {
+				property.updateValue(ev.value, true, true)
+			}
+		})
+		result.getHTMLElement()
+		return result
+	}
 }

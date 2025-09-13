@@ -72,7 +72,7 @@ export class PropertyController {
 	private propertiesEntries: HTMLDivElement
 	private propertiesTitle: HTMLElement
 
-	private cbs: { property: EditableProperty<any>; cb: (ev) => void }[] = []
+	private multies: EditableProperty<any>[] = []
 
 	private constructor() {
 		this.propertiesTitle = document.getElementById("propertiesTitle") as HTMLElement
@@ -242,7 +242,7 @@ export class PropertyController {
 		this.propertiesEntries.append(...rows)
 
 		const overlappingProperties: PropertiesCollection = new PropertiesCollection()
-		this.cbs = []
+		this.multies = []
 
 		let key = Object.keys(PropertyCategories)[0]
 		PropertyCategories[key]
@@ -281,16 +281,12 @@ export class PropertyController {
 				if (properties.length < components.length) {
 					categoryMap.set(id, [])
 				} else {
-					// just get the first property and add callbacks for the remaining properties
-					const first = properties[0]
-					for (const property of properties.slice(1)) {
-						const cb = (ev: { value: any }) => {
-							property.updateValue(ev.value, true, true)
-						}
-						first.addChangeListener(cb)
-						this.cbs.push({ property: first, cb: cb })
-					}
-					relevantProperties.push(first)
+					// get the multi edit version and save for housekeeping
+					const multi = properties[0].getMultiEditVersion(properties)
+
+					this.multies.push(multi)
+
+					relevantProperties.push(multi)
 				}
 			}
 			overlappingProperties.set(category, relevantProperties)
@@ -348,8 +344,8 @@ export class PropertyController {
 	}
 
 	private clearForm() {
-		for (const element of this.cbs) {
-			element.property.removeChangeListener(element.cb)
+		for (const element of this.multies) {
+			element.remove()
 		}
 		this.propertiesTitle.innerText = "Properties"
 		this.viewProperties.classList.add("d-none")

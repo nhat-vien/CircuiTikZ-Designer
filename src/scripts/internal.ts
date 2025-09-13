@@ -20,6 +20,7 @@ export * from "./properties/mathjaxProperty"
 export * from "./properties/sliderProperty"
 export * from "./properties/sectionHeaderProperty"
 export * from "./properties/colorProperty"
+export * from "./properties/radioButtonProperty"
 //mixins
 export * from "./mixins/fillable"
 export * from "./mixins/strokable"
