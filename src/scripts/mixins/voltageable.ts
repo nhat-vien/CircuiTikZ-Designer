@@ -245,16 +245,27 @@ export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Ba
 
 			const arrowScale = (cmtopx * defaultRlen) / (currentArrowScale / scaleFactor) + 2 * arrowStrokeWidth
 
-			const arrowOffset = defaultRlen / currentArrowScale
+			// calculate the points where the voltage arrow should start and end (flat, before rotation)
+			const arrowOffset = arrowScale / Math.abs(compStart.x - start.x)
+
 			let tmp = interpolate(start, compStart, arrowOffset)
 			let Vfrom_flat = interpolate(tmp, compStart, distanceFromNode)
 			tmp = interpolate(endTrans, compEnd, arrowOffset)
 			let Vto_flat = interpolate(tmp, compEnd, distanceFromNode)
 
+			const minYSize = 3
 			let sizing = southeastDelta
+			if (southeastDelta.y < minYSize) {
+				// set minimum size if no height is given
+				sizing = new SVG.Point(southeastDelta.x, minYSize)
+			}
 
 			if (positionAbove != mirror) {
 				sizing = northwestDelta
+				if (northwestDelta.y > -minYSize) {
+					// set minimum size if no height is given
+					sizing = new SVG.Point(northwestDelta.x, -minYSize)
+				}
 			}
 			sizing = mirror ? sizing.mul(-1) : sizing
 
@@ -351,7 +362,7 @@ export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Ba
 					labelAnchor.y = 0
 				}
 
-				labPos = mid.add(new SVG.Point(0, sizing.y + absVShift))
+				labPos = midTrans.add(new SVG.Point(0, sizing.y + absVShift))
 				Vfrom = Vfrom_flat.add(new SVG.Point(0, absVShift))
 				Vto = Vto_flat.add(new SVG.Point(0, absVShift))
 				if (isRaisedVoltage) {
