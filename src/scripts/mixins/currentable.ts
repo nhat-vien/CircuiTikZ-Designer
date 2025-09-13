@@ -11,41 +11,22 @@ import {
 	SectionHeaderProperty,
 	SliderProperty,
 	CircuitikzTo,
-	ChoiceProperty,
 	ChoiceEntry,
 	approxCompare,
 	interpolate,
+	BooleanProperty,
 } from "../internal"
 
 export type CurrentLabel = {
 	label: string
 	dist?: number
-	pos?: string
-	labPos?: string
-	dir?: string
+	start?: boolean
+	below?: boolean
+	backwards?: boolean
 }
 
-const currentDirectionChoices: ChoiceEntry[] = [
-	{ key: "", name: "default" },
-	{ key: ">", name: "forward" },
-	{ key: "<", name: "backward" },
-]
-const defaultCurrentDirectionChoice = currentDirectionChoices[0]
 let currentDirectionBackward = false
-
-const currentPositionChoices: ChoiceEntry[] = [
-	{ key: "", name: "default" },
-	{ key: "start", name: "start" },
-	{ key: "end", name: "end" },
-]
-const defaultCurrentPositionChoice = currentPositionChoices[0]
-
-const currentLabelPositionChoices: ChoiceEntry[] = [
-	{ key: "", name: "default" },
-	{ key: "_", name: "below" },
-	{ key: "^", name: "above" },
-]
-const defaultCurrentLabelPositionChoice = currentLabelPositionChoices[0]
+let currentPositionStart = false
 let currentLabelBelow = false
 
 const arrowStrokeWidth = 0.5
@@ -60,9 +41,9 @@ export interface Currentable {
 	currentRendering: SVG.Element
 
 	currentDistance: SliderProperty
-	currentPosition: ChoiceProperty<ChoiceEntry>
-	currentDirection: ChoiceProperty<ChoiceEntry>
-	currentLabelPosition: ChoiceProperty<ChoiceEntry>
+	currentPosition: BooleanProperty
+	currentDirection: BooleanProperty
+	currentLabelPosition: BooleanProperty
 }
 
 export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Base: TBase) {
@@ -73,9 +54,9 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 		protected currentRendering: SVG.Element
 
 		protected currentDistance: SliderProperty
-		protected currentPosition: ChoiceProperty<ChoiceEntry>
-		protected currentDirection: ChoiceProperty<ChoiceEntry>
-		protected currentLabelPosition: ChoiceProperty<ChoiceEntry>
+		protected currentPosition: BooleanProperty
+		protected currentDirection: BooleanProperty
+		protected currentLabelPosition: BooleanProperty
 
 		constructor(...args: any[]) {
 			super(...args)
@@ -88,39 +69,29 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 			this.currentLabel.addChangeListener((ev) => this.generateCurrentRender())
 			this.properties.add(PropertyCategories.current, this.currentLabel)
 
-			this.currentDirection = new ChoiceProperty(
-				"Direction",
-				currentDirectionChoices,
-				defaultCurrentDirectionChoice,
+			this.currentDirection = new BooleanProperty(
+				"Backwards",
+				currentDirectionBackward,
 				undefined,
-				"current:direction"
+				"current:backwards"
 			)
 			this.currentDirection.addChangeListener((ev) => {
-				this.setPositionEnableStatus()
 				this.updateCurrentRender()
 			})
 			this.properties.add(PropertyCategories.current, this.currentDirection)
 
-			this.currentLabelPosition = new ChoiceProperty(
-				"Label",
-				currentLabelPositionChoices,
-				defaultCurrentLabelPositionChoice,
+			this.currentLabelPosition = new BooleanProperty(
+				"Label below",
+				currentLabelBelow,
 				undefined,
-				"current:labelPosition"
+				"current:below"
 			)
 			this.currentLabelPosition.addChangeListener((ev) => {
-				this.setPositionEnableStatus()
 				this.updateCurrentRender()
 			})
 			this.properties.add(PropertyCategories.current, this.currentLabelPosition)
 
-			this.currentPosition = new ChoiceProperty(
-				"Position",
-				currentPositionChoices,
-				defaultCurrentPositionChoice,
-				"Only enabled if the direction and label are explicitly set.",
-				"current:position"
-			)
+			this.currentPosition = new BooleanProperty("At start", currentPositionStart, undefined, "current:start")
 			this.currentPosition.addChangeListener((ev) => this.updateCurrentRender())
 			this.properties.add(PropertyCategories.current, this.currentPosition)
 
@@ -136,12 +107,6 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 			)
 			this.currentDistance.addChangeListener((ev) => this.updateCurrentRender())
 			this.properties.add(PropertyCategories.current, this.currentDistance)
-		}
-
-		private setPositionEnableStatus() {
-			this.currentPosition.disabled =
-				this.currentDirection.value.key == defaultCurrentDirectionChoice.key ||
-				this.currentLabelPosition.value.key == defaultCurrentLabelPositionChoice.key
 		}
 
 		protected generateCurrentRender(): void {
@@ -169,23 +134,11 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 			const scaleFactor = Math.abs(scale.x)
 
 			let distance = this.currentDistance.value.value
-			let directionBackwards = currentDirectionBackward
-			let positionStart = false
-			if (this.currentDirection.value.key != defaultCurrentDirectionChoice.key) {
-				directionBackwards = this.currentDirection.value.key == "<"
-				positionStart = directionBackwards
-			}
 
-			let labelPositionBelow = currentLabelBelow
-			if (this.currentLabelPosition.value.key != defaultCurrentLabelPositionChoice.key) {
-				labelPositionBelow = this.currentLabelPosition.value.key == "_"
+			let directionBackwards = this.currentDirection.value
+			let positionStart = this.currentPosition.value
+			let labelPositionBelow = this.currentLabelPosition.value
 
-				if (this.currentDirection.value.key != defaultCurrentDirectionChoice.key) {
-					if (this.currentPosition.value.key != defaultCurrentPositionChoice.key) {
-						positionStart = this.currentPosition.value.key == "start"
-					}
-				}
-			}
 			let labelBelow = labelPositionBelow ? -1 : 1
 
 			let diff = end.sub(start)
@@ -238,18 +191,9 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				const currentLabel: CurrentLabel = { label: this.currentLabel.value }
 				currentLabel.dist =
 					this.currentDistance.value.value != 0.5 ? this.currentDistance.value.value : undefined
-				currentLabel.dir =
-					this.currentDirection.value.key != defaultCurrentDirectionChoice.key ?
-						this.currentDirection.value.key
-					:	undefined
-				currentLabel.pos =
-					this.currentPosition.value.key != defaultCurrentPositionChoice.key ?
-						this.currentPosition.value.key
-					:	undefined
-				currentLabel.labPos =
-					this.currentLabelPosition.value.key != defaultCurrentLabelPositionChoice.key ?
-						this.currentLabelPosition.value.key
-					:	undefined
+				currentLabel.backwards = this.currentDirection.value ? true : undefined
+				currentLabel.start = this.currentPosition.value ? true : undefined
+				currentLabel.below = this.currentLabelPosition.value ? true : undefined
 				data.current = currentLabel
 			}
 
@@ -264,25 +208,16 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				if (saveObject.current.dist) {
 					this.currentDistance.value = new SVG.Number(saveObject.current.dist, "")
 				}
-				if (saveObject.current.dir) {
-					this.currentDirection.value = currentDirectionChoices.find(
-						(value) => value.key == saveObject.current.dir
-					)
+				if (saveObject.current.backwards) {
+					this.currentDirection.value = true
 				}
-				if (saveObject.current.pos) {
-					this.currentPosition.value = currentPositionChoices.find(
-						(value) => value.key == saveObject.current.pos
-					)
-				} else {
-					this.currentPosition.buildHTML()
+				if (saveObject.current.start) {
+					this.currentPosition.value = true
 				}
-				if (saveObject.current.labPos) {
-					this.currentLabelPosition.value = currentLabelPositionChoices.find(
-						(value) => value.key == saveObject.current.labPos
-					)
+				if (saveObject.current.below) {
+					this.currentLabelPosition.value = true
 				}
 				this.generateCurrentRender()
-				this.setPositionEnableStatus()
 			}
 		}
 
@@ -291,15 +226,24 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				const options = to.options
 
 				let currentString = "i"
-				let labelPosString = this.currentLabelPosition.value.key
-				let dirString = this.currentDirection.value.key
-				if (labelPosString != "" && dirString != "") {
-					if (this.currentPosition.value.key == "start") {
-						currentString += dirString + labelPosString
-					} else {
-						currentString += labelPosString + dirString
+				let labelPosString = this.currentLabelPosition.value ? "_" : "^"
+				let dirString = this.currentDirection.value ? "<" : ">"
+
+				if (this.currentPosition.value) {
+					// if position is start, the label position comes after the direction and both are required, exept:
+					if (this.currentLabelPosition.value == false && this.currentDirection.value == true) {
+						// if direction is backward and the label position is default above, the label position is not required
+						labelPosString = ""
 					}
+					currentString += dirString + labelPosString
 				} else {
+					// if position is end, the label position comes before the direction
+					if (this.currentDirection.value == false) {
+						dirString = ""
+						if (this.currentLabelPosition.value == false) {
+							labelPosString = ""
+						}
+					}
 					currentString += labelPosString + dirString
 				}
 
