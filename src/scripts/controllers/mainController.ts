@@ -41,6 +41,12 @@ type TabState = {
 	settings: CanvasSettings
 }
 
+export type MessageData = {
+	type: string
+	from: number
+	payload?: any
+}
+
 export type CanvasSettings = {
 	gridVisible?: boolean
 	majorGridSizecm?: number
@@ -329,7 +335,7 @@ export class MainController {
 					CanvasController.instance.setSettings(requestedTab.settings)
 					SaveController.instance.loadFromJSON(requestedTab.data)
 					tabsObjectStore.put(requestedTab).onsuccess = (event) => {
-						MainController.instance.broadcastChannel.postMessage("update")
+						MainController.instance.sendBroadcastMessage("update")
 					}
 				} else {
 					// requested tab not found, so we create a new one
@@ -342,7 +348,7 @@ export class MainController {
 					MainController.instance.tabID = requestedID
 					tabsObjectStore.add(newEntry).onsuccess = (event) => {
 						// as soon as the tab is created and saved in the db, we can notify the other tabs
-						MainController.instance.broadcastChannel.postMessage("update")
+						MainController.instance.sendBroadcastMessage("update")
 					}
 				}
 			}
@@ -407,7 +413,7 @@ export class MainController {
 							let tabsObjectStore = db.transaction("tabs", "readwrite").objectStore("tabs")
 							tabsObjectStore.delete(tabData.id).onsuccess = function () {
 								settingsModalEl.dispatchEvent(new Event("show.bs.modal"))
-								MainController.instance.broadcastChannel.postMessage("update")
+								MainController.instance.sendBroadcastMessage("update")
 							}
 						})
 					} else {
@@ -425,7 +431,7 @@ export class MainController {
 							closeButton.innerText = "Highlight tab"
 							closeButton.addEventListener("click", () => {
 								// send a message to the broadcast channel to show the tab
-								MainController.instance.broadcastChannel.postMessage("show=" + tabData.id)
+								MainController.instance.sendBroadcastMessage("show", tabData.id)
 							})
 						}
 					}
@@ -464,6 +470,44 @@ export class MainController {
 			}
 		})
 
+		document.getElementById("probeRefresh").addEventListener("click", () => {
+			// set all open states in indexedDB to false, then send a probe message to all tabs
+			let tabsObjectStore = db.transaction("tabs", "readwrite").objectStore("tabs")
+			tabsObjectStore.getAll().onsuccess = function (event) {
+				let allTabs: TabState[] = (event.target as IDBRequest).result
+
+				let requests: IDBRequest[] = []
+				for (const tab of allTabs) {
+					if (tab.id == MainController.instance.tabID) {
+						// don't close this tab
+						continue
+					}
+					if (tab.open == "true") {
+						tab.open = "false"
+						if (tab.data.components.length > 0) {
+							requests.push(tabsObjectStore.put(tab))
+						} else {
+							// if no data is present, delete the entry (keeps the db clean)
+							requests.push(tabsObjectStore.delete(tab.id))
+						}
+					}
+				}
+				Promise.all(
+					requests.map(
+						(r) =>
+							new Promise((res, rej) => {
+								r.onsuccess = () => res(true)
+								r.onerror = () => rej()
+							})
+					)
+				).then(() => {
+					// after all tabs are closed, send a probe message to all tabs
+					// this will cause all open tabs to set their state to open=true again
+					MainController.instance.sendBroadcastMessage("probe")
+				})
+			}
+		})
+
 		const favicon = document.getElementById("favicon") as HTMLLinkElement
 		const faviconLink = favicon.href
 		const faviconAlternate = document.getElementById("faviconAlternate") as HTMLLinkElement
@@ -472,10 +516,10 @@ export class MainController {
 		faviconAlternate.disabled = true
 
 		this.broadcastChannel.onmessage = (event) => {
-			const msg = String(event.data)
+			const msg = event.data as MessageData
 
-			if (msg.startsWith("show")) {
-				const tabID = parseInt(msg.split("=")[1]) // get the tabID
+			if (msg.type == "show") {
+				const tabID = parseInt(msg.payload) // get the tabID
 				if (tabID == MainController.instance.tabID) {
 					const oldTitle = document.title
 
@@ -502,12 +546,32 @@ export class MainController {
 						}
 					})
 				}
-			} else if (msg == "update") {
+			} else if (msg.type == "update") {
 				if (settingsModalEl.classList.contains("show")) {
 					settingsModalEl.dispatchEvent(new Event("show.bs.modal"))
 				}
-			} else if (msg.startsWith("clipboard=")) {
-				CopyPaste.setClipboard(JSON.parse(msg.slice(10)))
+			} else if (msg.type == "clipboard") {
+				CopyPaste.setClipboard(msg.payload)
+			} else if (msg.type == "probe") {
+				// also respond with the orginal sender as the payload
+				this.sendBroadcastMessage("probe-response", msg.from)
+			} else if (msg.type == "probe-response") {
+				if (msg.payload != this.tabID) {
+					// only handle response if the orignal probe message came from this tab
+					return
+				}
+
+				// set the indexedDB entry with tabID msg.tabID to open=true
+				let tabsObjectStore = db.transaction("tabs", "readwrite").objectStore("tabs")
+				tabsObjectStore.get(msg.from).onsuccess = function (event) {
+					const data = (event.target as IDBRequest).result as TabState
+					if (data) {
+						data.open = "true"
+						tabsObjectStore.put(data).onsuccess = function () {
+							MainController.instance.sendBroadcastMessage("update")
+						}
+					}
+				}
 			}
 			return false
 		}
@@ -536,6 +600,17 @@ export class MainController {
 		}
 	}
 
+	public sendBroadcastMessage(type: string, payload?: any) {
+		const broadcastMessage: MessageData = {
+			type: type,
+			from: this.tabID,
+		}
+		if (payload != undefined) {
+			broadcastMessage.payload = payload
+		}
+		this.broadcastChannel.postMessage(broadcastMessage)
+	}
+
 	private saveCurrentState(db: IDBDatabase, closeTab = true) {
 		Undo.addState()
 		let tabsObjectStore = db.transaction("tabs", "readwrite").objectStore("tabs")
@@ -553,13 +628,13 @@ export class MainController {
 				data.settings.viewBox = CanvasController.instance.canvas.viewbox()
 				data.settings.viewZoom = CanvasController.instance.currentZoom
 				tabsObjectStore.put(data).onsuccess = function () {
-					MainController.instance.broadcastChannel.postMessage("update")
+					MainController.instance.sendBroadcastMessage("update")
 				}
 			} else {
 				if (closeTab) {
 					// if no data is present, delete the entry (keeps the db clean)
 					tabsObjectStore.delete(MainController.instance.tabID).onsuccess = function () {
-						MainController.instance.broadcastChannel.postMessage("update")
+						MainController.instance.sendBroadcastMessage("update")
 					}
 				}
 			}
