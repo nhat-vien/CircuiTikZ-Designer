@@ -77,6 +77,7 @@ export class PropertyController {
 	private constructor() {
 		this.propertiesTitle = document.getElementById("propertiesTitle") as HTMLElement
 		this.viewProperties = document.getElementById("view-properties") as HTMLDivElement
+		this.viewProperties.firstElementChild.prepend(MainController.instance.designName.getHTMLElement())
 		this.propertiesEntries = document.getElementById("propertiesEntries") as HTMLDivElement
 		;(document.getElementById("resetViewButton") as HTMLButtonElement).addEventListener("click", (ev) => {
 			CanvasController.instance.resetView()
@@ -302,7 +303,7 @@ export class PropertyController {
 
 	private setFormView() {
 		this.viewProperties.classList.remove("d-none")
-		this.propertiesTitle.innerText = "View settings"
+		this.propertiesTitle.innerText = "General settings"
 
 		let minorSlider = document.getElementById("minorSliderInput") as HTMLInputElement
 		minorSlider.value = CanvasController.instance.majorGridSubdivisions.toString()

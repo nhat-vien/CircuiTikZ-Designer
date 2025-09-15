@@ -32,6 +32,7 @@ import {
 	emtpySaveState,
 	currentSaveVersion,
 	loadTextConverter,
+	TextProperty,
 } from "../internal"
 
 type TabState = {
@@ -39,6 +40,7 @@ type TabState = {
 	open: string
 	data: SaveFileFormat
 	settings: CanvasSettings
+	designName?: string
 }
 
 export type MessageData = {
@@ -107,6 +109,10 @@ export class MainController {
 
 	broadcastChannel: BroadcastChannel
 
+	public designName: TextProperty
+
+	private db: IDBDatabase
+
 	/**
 	 * Init the app.
 	 */
@@ -134,6 +140,22 @@ export class MainController {
 		document.addEventListener("DOMContentLoaded", () => {
 			for (const element of document.getElementsByClassName("version")) {
 				element.textContent = "v" + version
+			}
+		})
+
+		const fileExportName = document.getElementById("exportModalFileBasename") as HTMLInputElement
+		this.designName = new TextProperty("Design Name", "")
+		this.designName.addChangeListener(() => {
+			document.title = this.designName.value + (this.designName.value ? " - " : "") + "CircuiTikZ Designer"
+			fileExportName.placeholder =
+				MainController.instance.designName.value.replace(/[^a-z0-9]/gi, "_") || "Circuit"
+
+			let tabsObjectStore = MainController.instance.db.transaction("tabs", "readwrite").objectStore("tabs")
+			tabsObjectStore.get(this.tabID).onsuccess = function (event) {
+				const data = (event.target as IDBRequest).result as TabState
+				data.designName = MainController.instance.designName.value
+				tabsObjectStore.put(data)
+				MainController.instance.sendBroadcastMessage("update")
 			}
 		})
 
@@ -278,33 +300,32 @@ export class MainController {
 
 		const defaultSettings: CanvasSettings = {}
 
-		let db: IDBDatabase
 		const IDBrequest = indexedDB.open("circuitikz-designer-db", 1)
 		IDBrequest.onerror = function (event) {
 			console.error("IndexedDB error")
 			console.error(event)
 		}
 		IDBrequest.onupgradeneeded = function (event) {
-			db = (event.target as IDBOpenDBRequest).result
-			if (!db.objectStoreNames.contains("tabs")) {
-				const objectStore = db.createObjectStore("tabs", { keyPath: "id" })
+			MainController.instance.db = (event.target as IDBOpenDBRequest).result
+			if (!MainController.instance.db.objectStoreNames.contains("tabs")) {
+				const objectStore = MainController.instance.db.createObjectStore("tabs", { keyPath: "id" })
 				objectStore.createIndex("open", "open", { unique: false })
 			}
 		}
 		IDBrequest.onsuccess = function (event) {
-			db = (event.target as IDBOpenDBRequest).result
+			MainController.instance.db = (event.target as IDBOpenDBRequest).result
 
 			window.addEventListener("visibilitychange", (ev) => {
 				if (document.visibilityState == "hidden") {
-					MainController.instance.saveCurrentState(db, false)
+					MainController.instance.saveCurrentState(false)
 				}
 			})
 
 			window.addEventListener("beforeunload", (ev) => {
-				MainController.instance.saveCurrentState(db)
+				MainController.instance.saveCurrentState()
 			})
 
-			let tabsObjectStore = db.transaction("tabs", "readwrite").objectStore("tabs")
+			let tabsObjectStore = MainController.instance.db.transaction("tabs", "readwrite").objectStore("tabs")
 
 			// the URL of the current page
 			var url = new URL(window.location.href)
@@ -332,6 +353,7 @@ export class MainController {
 					// if the requested tab is closed, open it
 					requestedTab.open = "true"
 					MainController.instance.tabID = requestedTab.id
+					MainController.instance.designName.updateValue(requestedTab.designName ?? "", true, true)
 					CanvasController.instance.setSettings(requestedTab.settings)
 					SaveController.instance.loadFromJSON(requestedTab.data)
 					tabsObjectStore.put(requestedTab).onsuccess = (event) => {
@@ -359,8 +381,8 @@ export class MainController {
 		const settingsTableBody = document.getElementById("settingsTableBody") as HTMLTableSectionElement
 
 		settingsModalEl.addEventListener("show.bs.modal", (event) => {
-			this.saveCurrentState(db, false)
-			let tabsObjectStoreRead = db.transaction("tabs").objectStore("tabs")
+			this.saveCurrentState(false)
+			let tabsObjectStoreRead = MainController.instance.db.transaction("tabs").objectStore("tabs")
 
 			tabsObjectStoreRead.getAll().onsuccess = function (event) {
 				settingsTableBody.innerHTML = ""
@@ -374,7 +396,7 @@ export class MainController {
 					let row = settingsTableBody.appendChild(document.createElement("tr"))
 					row.classList.add("text-end")
 					let cell1 = row.appendChild(document.createElement("td"))
-					cell1.innerText = "" + i
+					cell1.innerText = tabData.designName || "" + i
 					let cell2 = row.appendChild(document.createElement("td"))
 					cell2.innerText = countComponents(tabData.data.components) + ""
 					let cell3 = row.appendChild(document.createElement("td"))
@@ -410,7 +432,9 @@ export class MainController {
 						deleteButton.classList.add("btn", "btn-danger", "material-symbols-outlined")
 						deleteButton.innerText = "delete"
 						deleteButton.addEventListener("click", () => {
-							let tabsObjectStore = db.transaction("tabs", "readwrite").objectStore("tabs")
+							let tabsObjectStore = MainController.instance.db
+								.transaction("tabs", "readwrite")
+								.objectStore("tabs")
 							tabsObjectStore.delete(tabData.id).onsuccess = function () {
 								settingsModalEl.dispatchEvent(new Event("show.bs.modal"))
 								MainController.instance.sendBroadcastMessage("update")
@@ -472,7 +496,7 @@ export class MainController {
 
 		document.getElementById("probeRefresh").addEventListener("click", () => {
 			// set all open states in indexedDB to false, then send a probe message to all tabs
-			let tabsObjectStore = db.transaction("tabs", "readwrite").objectStore("tabs")
+			let tabsObjectStore = MainController.instance.db.transaction("tabs", "readwrite").objectStore("tabs")
 			tabsObjectStore.getAll().onsuccess = function (event) {
 				let allTabs: TabState[] = (event.target as IDBRequest).result
 
@@ -562,7 +586,7 @@ export class MainController {
 				}
 
 				// set the indexedDB entry with tabID msg.tabID to open=true
-				let tabsObjectStore = db.transaction("tabs", "readwrite").objectStore("tabs")
+				let tabsObjectStore = MainController.instance.db.transaction("tabs", "readwrite").objectStore("tabs")
 				tabsObjectStore.get(msg.from).onsuccess = function (event) {
 					const data = (event.target as IDBRequest).result as TabState
 					if (data) {
@@ -611,9 +635,9 @@ export class MainController {
 		this.broadcastChannel.postMessage(broadcastMessage)
 	}
 
-	private saveCurrentState(db: IDBDatabase, closeTab = true) {
+	private saveCurrentState(closeTab = true) {
 		Undo.addState()
-		let tabsObjectStore = db.transaction("tabs", "readwrite").objectStore("tabs")
+		let tabsObjectStore = MainController.instance.db.transaction("tabs", "readwrite").objectStore("tabs")
 		tabsObjectStore.get(this.tabID).onsuccess = function (event) {
 			const data = (event.target as IDBRequest).result as TabState
 			if (closeTab) {
@@ -627,6 +651,7 @@ export class MainController {
 				data.settings.majorGridSubdivisions = CanvasController.instance.majorGridSubdivisions
 				data.settings.viewBox = CanvasController.instance.canvas.viewbox()
 				data.settings.viewZoom = CanvasController.instance.currentZoom
+				data.designName = MainController.instance.designName.value || undefined
 				tabsObjectStore.put(data).onsuccess = function () {
 					MainController.instance.sendBroadcastMessage("update")
 				}

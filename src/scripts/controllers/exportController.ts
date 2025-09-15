@@ -230,9 +230,14 @@ export class ExportController {
 		}
 		// create listeners
 		const saveFile = (() => {
+			const filename =
+				(this.fileBasename.value.trim() || MainController.instance.designName.value).replace(
+					/[^a-z0-9]/gi,
+					"_"
+				) || "Circuit"
 			FileSaver.saveAs(
 				new Blob([this.exportedContent.value], { type: "text/x-tex;charset=utf-8" }),
-				(this.fileBasename.value.trim() || "Circuit") + this.fileExtension.value
+				filename + this.fileExtension.value
 			)
 		}).bind(this)
 		const hideListener = (() => {
