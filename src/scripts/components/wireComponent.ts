@@ -166,8 +166,6 @@ export class WireComponent extends Strokable(PathComponent) {
 		})
 		this.properties.add(PropertyCategories.options, this.arrowEndChoice)
 
-		this.updateTheme()
-
 		if (!WireComponent.arrowSymbols) {
 			WireComponent.arrowSymbols = new Map<string, SVGSymbolElement>()
 			for (const tip of arrowTips) {
@@ -267,6 +265,9 @@ export class WireComponent extends Strokable(PathComponent) {
 				.map((factor) => this.strokeInfo.width.times(factor).toString())
 				.join(" "),
 		})
+		if (this.finishedPlacing) {
+			this.update()
+		}
 	}
 
 	public recalculateSnappingPoints(): void {
