@@ -164,6 +164,17 @@ export function Strokable<TBase extends AbstractConstructor<CircuitComponent>>(B
 		protected applyJson(saveObject: ComponentSaveObject & { stroke?: StrokeInfo }): void {
 			super.applyJson(saveObject)
 
+			this.strokeInfo = {
+				color: "default",
+				opacity: 1,
+				width: new SVG.Number("1pt"),
+				style: defaultStrokeStyleChoice.key,
+			}
+			this.strokeWidthProperty.value = this.strokeInfo.width
+			this.strokeColorProperty.value = null
+			this.strokeOpacityProperty.value = new SVG.Number(this.strokeInfo.opacity * 100, "%")
+			this.strokeStyleProperty.value = defaultStrokeStyleChoice
+
 			if (saveObject.stroke) {
 				if (saveObject.stroke.color) {
 					this.strokeInfo.color = saveObject.stroke.color
