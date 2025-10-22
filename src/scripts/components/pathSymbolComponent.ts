@@ -545,14 +545,30 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 						const arrowLength = 15 // Shortened arrow for inline mode
 						const arrowHeadSize = 5
 
-						// Arrow position on the wire (slightly before the text position)
-						const arrowPosOnWire = start.add(pathVec.mul(0.12))
+						// Calculate component length to avoid overlap
+						const componentLength = pathVec.abs()
+						const componentMargin = 8 // Margin from component edge in pixels
+
+						// Arrow position on the wire - adjust based on invert
+						let arrowPosition: number
+						if (invertCurrent) {
+							// When inverted, arrow points backward - place near end
+							arrowPosition = 1 - (componentMargin + arrowLength) / componentLength
+						} else {
+							// Normal direction - place near start
+							arrowPosition = (componentMargin + arrowLength) / componentLength
+						}
+
+						// Clamp position to valid range
+						arrowPosition = Math.max(0.05, Math.min(0.95, arrowPosition))
+
+						const arrowPosOnWire = start.add(pathVec.mul(arrowPosition))
 
 						// Arrow direction (normal or inverted)
 						const arrowDir = invertCurrent ? pathDir.mul(-1) : pathDir
 
-						const arrowStart = arrowPosOnWire
-						const arrowEnd = arrowStart.add(arrowDir.mul(arrowLength))
+						const arrowEnd = arrowPosOnWire
+						const arrowStart = arrowEnd.sub(arrowDir.mul(arrowLength))
 
 						// Draw arrow line
 						this.currentArrowRendering.line(arrowStart.x, arrowStart.y, arrowEnd.x, arrowEnd.y).stroke({
@@ -1017,8 +1033,8 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 		let to: CircuitikzTo = { options: options, name: this.name.value }
 		this.buildTikzPathLabel(to)
 
-		// Add voltage annotation if specified
-		if (this.voltageAnnotation && this.voltageAnnotation.value) {
+		// Add voltage annotation if specified AND show is enabled
+		if (this.voltageAnnotation && this.voltageAnnotation.value && this.voltageShowProperty.value) {
 			// Determine voltage direction (use component setting or fall back to global)
 			let voltageDir =
 				this.voltageDirectionProperty.value.key === "default" ?
@@ -1035,8 +1051,8 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 			}
 		}
 
-		// Add current annotation if specified
-		if (this.currentAnnotation && this.currentAnnotation.value) {
+		// Add current annotation if specified AND show is enabled
+		if (this.currentAnnotation && this.currentAnnotation.value && this.currentShowProperty.value) {
 			// Determine current direction (use component setting or fall back to global)
 			let currentDir =
 				this.currentDirectionProperty.value.key === "default" ?

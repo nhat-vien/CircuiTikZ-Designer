@@ -137,8 +137,8 @@ export class WireComponent extends Strokable(PathComponent) {
 			"stroke-width": selectionSize,
 		})
 
-		// override default value
-		this.strokeWidthProperty.value = new SVG.Number("0.4pt")
+		// override default value - thicker wire for better visibility
+		this.strokeWidthProperty.value = new SVG.Number("0.8pt")
 		this.strokeInfo.width = this.strokeWidthProperty.value
 
 		this.visualization.add(this.wire)
