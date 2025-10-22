@@ -5,6 +5,8 @@ export type ChoiceEntry = {
 	name: string
 }
 
+const indeterminateChoice: ChoiceEntry = { key: "undetermined", name: "choose one" }
+
 export class ChoiceProperty<T extends ChoiceEntry> extends EditableProperty<T> {
 	private label: string
 	private selectElement: HTMLSelectElement
@@ -14,8 +16,8 @@ export class ChoiceProperty<T extends ChoiceEntry> extends EditableProperty<T> {
 		return this.choiceOptions
 	}
 
-	public constructor(label: string, choiceOptions: T[], initialValue?: T, tooltip = "") {
-		super(initialValue, tooltip)
+	public constructor(label: string, choiceOptions: T[], initialValue?: T, tooltip = "", id: string = "") {
+		super(initialValue, tooltip, id)
 		this.label = label
 		this.choiceOptions = choiceOptions
 	}
@@ -56,6 +58,10 @@ export class ChoiceProperty<T extends ChoiceEntry> extends EditableProperty<T> {
 		row.appendChild(col)
 		return row
 	}
+
+	protected disable(disabled = true): void {
+		this.selectElement.disabled = disabled
+	}
 	public updateHTML(): void {
 		if (this.selectElement) {
 			for (const optionElement of this.selectElement.children) {
@@ -63,5 +69,33 @@ export class ChoiceProperty<T extends ChoiceEntry> extends EditableProperty<T> {
 					(optionElement as HTMLOptionElement).value == this.value.key
 			}
 		}
+	}
+
+	public getMultiEditVersion(properties: ChoiceProperty<T>[]): ChoiceProperty<T> {
+		let allEqual = this.equivalent(properties)
+
+		const options: ChoiceEntry[] = allEqual ? [indeterminateChoice] : []
+		options.push(...this.choiceOptions)
+
+		const result = new ChoiceProperty<T>(
+			this.label,
+			this.choiceOptions,
+			allEqual ? properties[0].value : (indeterminateChoice as T),
+			this.tooltip,
+			this.id
+		)
+
+		let removedUndeterminedChoice = false
+		result.addChangeListener((ev) => {
+			if (!removedUndeterminedChoice && ev.previousValue.key == "undetermined") {
+				removedUndeterminedChoice = true
+				this.selectElement.removeChild(this.selectElement.firstChild)
+			}
+			for (const property of properties) {
+				property.updateValue(ev.value, true, true)
+			}
+		})
+		result.getHTMLElement()
+		return result
 	}
 }

@@ -2,6 +2,7 @@ import { Point } from "@svgdotjs/svg.js"
 import {
 	ComponentSaveObject,
 	MainController,
+	MessageData,
 	SaveController,
 	SelectionController,
 	SelectionMode,
@@ -39,7 +40,7 @@ export class CopyPaste {
 				selectionPos: new Point(bbox.cx, bbox.cy),
 			}
 
-			MainController.instance.broadcastChannel.postMessage("clipboard=" + JSON.stringify(CopyPaste.clipboard))
+			MainController.instance.sendBroadcastMessage("clipboard", CopyPaste.clipboard)
 		}
 	}
 

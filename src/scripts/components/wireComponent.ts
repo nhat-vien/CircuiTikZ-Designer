@@ -137,16 +137,16 @@ export class WireComponent extends Strokable(PathComponent) {
 			"stroke-width": selectionSize,
 		})
 
-		// override default value - thicker wire for better visibility
-		this.strokeWidthProperty.value = new SVG.Number("0.8pt")
+		// override default value
+		this.strokeWidthProperty.value = new SVG.Number("0.4pt")
 		this.strokeInfo.width = this.strokeWidthProperty.value
 
 		this.visualization.add(this.wire)
 		this.visualization.add(this.draggableWire)
 		this.snappingPoints = []
 
-		this.properties.add(PropertyCategories.options, new SectionHeaderProperty("Arrows"))
-		this.arrowStartChoice = new ChoiceProperty("Start", arrowTips, defaultArrowTip)
+		this.properties.add(PropertyCategories.options, new SectionHeaderProperty("Arrows", undefined, "arrows:header"))
+		this.arrowStartChoice = new ChoiceProperty("Start", arrowTips, defaultArrowTip, undefined, "arrows:start")
 		this.arrowStartChoice.addChangeListener((ev) => {
 			this.updateArrowTypesAndColors()
 			this.update()
@@ -156,15 +156,15 @@ export class WireComponent extends Strokable(PathComponent) {
 		this.arrowEndChoice = new ChoiceProperty(
 			"End",
 			arrowTips,
-			this.defaultArrowHead ? arrowTips[3] : defaultArrowTip
+			this.defaultArrowHead ? arrowTips[3] : defaultArrowTip,
+			undefined,
+			"arrows:end"
 		)
 		this.arrowEndChoice.addChangeListener((ev) => {
 			this.updateArrowTypesAndColors()
 			this.update()
 		})
 		this.properties.add(PropertyCategories.options, this.arrowEndChoice)
-
-		this.updateTheme()
 
 		if (!WireComponent.arrowSymbols) {
 			WireComponent.arrowSymbols = new Map<string, SVGSymbolElement>()
@@ -265,6 +265,9 @@ export class WireComponent extends Strokable(PathComponent) {
 				.map((factor) => this.strokeInfo.width.times(factor).toString())
 				.join(" "),
 		})
+		if (this.finishedPlacing) {
+			this.update()
+		}
 	}
 
 	public recalculateSnappingPoints(): void {
@@ -616,30 +619,6 @@ export class WireComponent extends Strokable(PathComponent) {
 			}
 			command.connectors.push(dir)
 		}
-	}
-
-	public toSVG(defs: Map<string, SVG.Element>): SVG.Element {
-		if (this.arrowStartChoice.value != defaultArrowTip) {
-			const id = this.arrowStartChoice.value.key
-			if (!defs.has(id)) {
-				const marker = document.getElementById(id).cloneNode(true)
-				defs.set(id, new SVG.Element(marker))
-			}
-		}
-		if (this.arrowEndChoice.value != defaultArrowTip) {
-			const id = this.arrowEndChoice.value.key
-			if (!defs.has(id)) {
-				const marker = document.getElementById(id).cloneNode(true)
-				defs.set(id, new SVG.Element(marker))
-			}
-		}
-
-		const copiedSVG = this.visualization.clone(true)
-		let draggableWire = copiedSVG.find('polyline[fill="none"][stroke="transparent"]')[0]
-		if (draggableWire) {
-			copiedSVG.removeElement(draggableWire)
-		}
-		return copiedSVG
 	}
 
 	public copyForPlacement(): WireComponent {

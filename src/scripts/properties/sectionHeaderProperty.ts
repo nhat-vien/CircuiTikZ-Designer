@@ -15,9 +15,16 @@ export class SectionHeaderProperty extends EditableProperty<string> {
 		row.appendChild(this.labelElement)
 		return row
 	}
+	protected disable(disabled?: boolean): void {}
 	public updateHTML(): void {
 		if (this.labelElement) {
 			this.labelElement.innerHTML = this.value
 		}
+	}
+	public getMultiEditVersion(properties: SectionHeaderProperty[]): SectionHeaderProperty {
+		const result = new SectionHeaderProperty(properties[0].value, this.tooltip, this.id)
+
+		result.getHTMLElement()
+		return result
 	}
 }

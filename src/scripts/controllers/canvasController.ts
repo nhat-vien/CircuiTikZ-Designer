@@ -59,12 +59,6 @@ export class CanvasController {
 	public majorGridSubdivisions = 4
 	public gridVisible = true
 
-	/** CircuiTikZ voltage and current annotation defaults
-	 * Direction: "^" = above/right, "_" = below/left, "" = default
-	 */
-	public voltageDirection: "^" | "_" | "" = ""
-	public currentDirection: "^" | "_" | "" = ""
-
 	/**
 	 * Needed for window size changes to reconstruct the old zoom level.
 	 */
@@ -210,10 +204,6 @@ export class CanvasController {
 			this.zoomCurrent = settings.viewZoom
 			this.onResizeCanvas()
 		}
-		// Set voltage and current direction preferences
-		this.voltageDirection = settings.voltageDirection !== undefined ? settings.voltageDirection : this.voltageDirection
-		this.currentDirection = settings.currentDirection !== undefined ? settings.currentDirection : this.currentDirection
-		PropertyController.instance.setVoltageCurrentSettings(this.voltageDirection, this.currentDirection)
 	}
 
 	public resetView() {

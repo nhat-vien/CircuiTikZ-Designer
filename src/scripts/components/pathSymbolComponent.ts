@@ -29,9 +29,9 @@ import {
 	CircuitikzTo,
 	SaveController,
 	buildTikzStringFromPathCommand,
-	MathJaxProperty,
-	renderMathJax,
-	ColorProperty,
+	VoltageLabel,
+	Voltageable,
+	Currentable,
 } from "../internal"
 import { lineRectIntersection, pointInsideRect, selectedBoxWidth, selectionSize } from "../utils/selectionHelper"
 
@@ -41,22 +41,10 @@ export type PathSymbolSaveObject = PathSaveObject & {
 	name?: string
 	options?: string[]
 	label?: PathLabel
-	voltage?: string
-	voltageShow?: boolean
-	voltageDirection?: string
-	voltageDistance?: number
-	voltageInvert?: boolean
-	voltageColor?: string
-	current?: string
-	currentShow?: boolean
-	currentDirection?: string
-	currentDistance?: number
-	currentPosition?: string
-	currentInvert?: boolean
-	currentColor?: string
+	voltage?: VoltageLabel
 }
 
-export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) {
+export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(Nameable(PathComponent)))) {
 	private static jsonID = "path"
 	static {
 		CircuitComponent.jsonSaveMap.set(PathSymbolComponent.jsonID, PathSymbolComponent)
@@ -86,25 +74,6 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 
 	protected scaleProperty: SliderProperty
 
-	// Voltage and current annotation properties
-	protected voltageAnnotation: MathJaxProperty
-	protected voltageShowProperty: BooleanProperty
-	protected voltageDirectionProperty: ChoiceProperty<ChoiceEntry>
-	protected voltageDistance: SliderProperty
-	protected voltageColor: ColorProperty
-	protected voltageRendering: SVG.Element
-	protected voltagePolarityRendering: SVG.G
-	protected voltageInvertProperty: BooleanProperty
-	protected currentAnnotation: MathJaxProperty
-	protected currentShowProperty: BooleanProperty
-	protected currentDirectionProperty: ChoiceProperty<ChoiceEntry>
-	protected currentDistance: SliderProperty
-	protected currentColor: ColorProperty
-	protected currentPositionProperty: ChoiceProperty<ChoiceEntry>
-	protected currentInvertProperty: BooleanProperty
-	protected currentRendering: SVG.Element
-	protected currentArrowRendering: SVG.G
-
 	/**
 	 * the scale of the component, i.e. how much it is scaled compared to the original symbol size. this also includes mirroring and inverting.
 	 * It is greatly discouraged to use this property to scale the component, since an elegant solution in tikz does not exist for that.
@@ -118,7 +87,16 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 	constructor(symbol: ComponentSymbol) {
 		super()
 		this.scaleState = new SVG.Point(1, 1)
-		this.scaleProperty = new SliderProperty("Scale", 0.1, 10, 0.01, new SVG.Number(1), true)
+		this.scaleProperty = new SliderProperty(
+			"Scale",
+			0.1,
+			10,
+			0.01,
+			new SVG.Number(1),
+			true,
+			undefined,
+			"manipulation:scale"
+		)
 		this.scaleProperty.addChangeListener((ev) => {
 			this.scaleState = new SVG.Point(
 				Math.sign(this.scaleState.x) * ev.value.value,
@@ -132,9 +110,17 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 		this.optionEnumProperties = new Map()
 
 		if (symbol.possibleOptions.length > 0 || symbol.possibleEnumOptions.length > 0) {
-			this.properties.add(PropertyCategories.options, new SectionHeaderProperty("Options"))
+			this.properties.add(
+				PropertyCategories.options,
+				new SectionHeaderProperty("Options", undefined, "options:header")
+			)
 			for (const option of symbol.possibleOptions) {
-				const property = new BooleanProperty(option.displayName ?? option.name, false)
+				const property = new BooleanProperty(
+					option.displayName ?? option.name,
+					false,
+					undefined,
+					"options:option" + option.name
+				)
 				property.addChangeListener((ev) => {
 					this.updateOptions()
 				})
@@ -146,7 +132,13 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 				enumOption.options.forEach((option) => {
 					choices.push({ key: option.name, name: option.displayName ?? option.name })
 				})
-				const property = new ChoiceProperty(enumOption.displayName, choices, choices[0])
+				const property = new ChoiceProperty(
+					enumOption.displayName,
+					choices,
+					choices[0],
+					undefined,
+					"options:enum_" + enumOption.displayName
+				)
 
 				property.addChangeListener((ev) => {
 					this.updateOptions()
@@ -203,109 +195,24 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 		this.visualization.add(this.dragEndLine)
 		this.visualization.hide()
 
-		this.properties.add(PropertyCategories.manipulation, new SectionHeaderProperty("Symbol Orientation"))
+		this.properties.add(
+			PropertyCategories.manipulation,
+			new SectionHeaderProperty("Symbol Orientation", undefined, "manipulation:header")
+		)
 
-		this.mirror = new BooleanProperty("Mirror", false)
+		this.mirror = new BooleanProperty("Mirror", false, undefined, "manipulation:mirror")
 		this.mirror.addChangeListener((ev) => {
 			this.scaleState.y *= -1
 			this.update()
 		})
 		this.properties.add(PropertyCategories.manipulation, this.mirror)
 
-		this.invert = new BooleanProperty("Invert", false)
+		this.invert = new BooleanProperty("Invert", false, undefined, "manipulation:invert")
 		this.invert.addChangeListener((ev) => {
 			this.scaleState.x *= -1
 			this.update()
 		})
 		this.properties.add(PropertyCategories.manipulation, this.invert)
-
-		// Add voltage and current annotation properties
-		this.properties.add(PropertyCategories.label, new SectionHeaderProperty("Voltage & Current"))
-
-		// Voltage properties
-		this.voltageAnnotation = new MathJaxProperty("Voltage")
-		this.voltageAnnotation.addChangeListener((ev) => this.generateVoltageRender())
-		this.properties.add(PropertyCategories.label, this.voltageAnnotation)
-
-		this.voltageShowProperty = new BooleanProperty("V Show", false)
-		this.voltageShowProperty.addChangeListener((ev) => this.updateVoltageCurrentAnnotations())
-		this.properties.add(PropertyCategories.label, this.voltageShowProperty)
-
-		this.voltageDirectionProperty = new ChoiceProperty<ChoiceEntry>(
-			"V Direction",
-			[
-				{ key: "default", name: "Use Global Setting" },
-				{ key: "", name: "Default" },
-				{ key: "^", name: "Above/Right (^)" },
-				{ key: "_", name: "Below/Left (_)" },
-			],
-			{ key: "default", name: "Use Global Setting" }
-		)
-		this.voltageDirectionProperty.addChangeListener((ev) => this.updateVoltageCurrentAnnotations())
-		this.properties.add(PropertyCategories.label, this.voltageDirectionProperty)
-
-		this.voltageDistance = new SliderProperty("V Distance", 0, 2, 0.05, new SVG.Number(0, "cm"))
-		this.voltageDistance.addChangeListener((ev) => this.updateVoltageCurrentAnnotations())
-		this.properties.add(PropertyCategories.label, this.voltageDistance)
-
-		this.voltageInvertProperty = new BooleanProperty("V Invert Polarity", false)
-		this.voltageInvertProperty.addChangeListener((ev) => this.updateVoltageCurrentAnnotations())
-		this.properties.add(PropertyCategories.label, this.voltageInvertProperty)
-
-		this.voltageColor = new ColorProperty("V Color", null)
-		this.voltageColor.addChangeListener((ev) => {
-			this.updateTheme()
-			this.update()
-		})
-		this.properties.add(PropertyCategories.label, this.voltageColor)
-
-		// Current properties
-		this.currentAnnotation = new MathJaxProperty("Current")
-		this.currentAnnotation.addChangeListener((ev) => this.generateCurrentRender())
-		this.properties.add(PropertyCategories.label, this.currentAnnotation)
-
-		this.currentShowProperty = new BooleanProperty("I Show", false)
-		this.currentShowProperty.addChangeListener((ev) => this.updateVoltageCurrentAnnotations())
-		this.properties.add(PropertyCategories.label, this.currentShowProperty)
-
-		this.currentDirectionProperty = new ChoiceProperty<ChoiceEntry>(
-			"I Direction",
-			[
-				{ key: "default", name: "Use Global Setting" },
-				{ key: "", name: "Default" },
-				{ key: "^", name: "Above/Right (^)" },
-				{ key: "_", name: "Below/Left (_)" },
-			],
-			{ key: "default", name: "Use Global Setting" }
-		)
-		this.currentDirectionProperty.addChangeListener((ev) => this.updateVoltageCurrentAnnotations())
-		this.properties.add(PropertyCategories.label, this.currentDirectionProperty)
-
-		this.currentDistance = new SliderProperty("I Distance", 0, 2, 0.05, new SVG.Number(0, "cm"))
-		this.currentDistance.addChangeListener((ev) => this.updateVoltageCurrentAnnotations())
-		this.properties.add(PropertyCategories.label, this.currentDistance)
-
-		this.currentPositionProperty = new ChoiceProperty<ChoiceEntry>(
-			"I Position",
-			[
-				{ key: "inline", name: "On Wire (Inline)" },
-				{ key: "offset", name: "Beside Wire (Offset)" },
-			],
-			{ key: "inline", name: "On Wire (Inline)" }
-		)
-		this.currentPositionProperty.addChangeListener((ev) => this.updateVoltageCurrentAnnotations())
-		this.properties.add(PropertyCategories.label, this.currentPositionProperty)
-
-		this.currentInvertProperty = new BooleanProperty("I Invert Direction", false)
-		this.currentInvertProperty.addChangeListener((ev) => this.updateVoltageCurrentAnnotations())
-		this.properties.add(PropertyCategories.label, this.currentInvertProperty)
-
-		this.currentColor = new ColorProperty("I Color", null)
-		this.currentColor.addChangeListener((ev) => {
-			this.updateTheme()
-			this.update()
-		})
-		this.properties.add(PropertyCategories.label, this.currentColor)
 
 		this.addInfo()
 
@@ -318,334 +225,59 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 		]
 	}
 
+	protected updateVoltageRender() {
+		this.voltageArrowRendering?.remove()
+		if (this.voltageLabel.value != "") {
+			let voltageArrow = this.generateVoltageArrow(
+				this.referencePoints[0],
+				this.referencePoints[1],
+				this.componentVariant.mid.mul(-1),
+				new SVG.Point(this.componentVariant.viewBox.x2, this.componentVariant.viewBox.y2).sub(
+					this.componentVariant.mid
+				),
+				this.scaleState
+			)
+			this.voltageArrowRendering = voltageArrow.arrow
+			this.voltageRendering.add(this.voltageArrowRendering)
+
+			const voltageLabelBbox = this.voltageLabelRendering.bbox()
+			const voltageLabelReference = new SVG.Point(voltageLabelBbox.cx, voltageLabelBbox.cy).add(
+				new SVG.Point(voltageLabelBbox.w / 2, voltageLabelBbox.h / 2).mul(voltageArrow.labelAnchorDir)
+			)
+			this.voltageLabelRendering.transform(
+				new SVG.Matrix({ translate: voltageArrow.labelPos.sub(voltageLabelReference) })
+			)
+		}
+	}
+
+	protected updateCurrentRender(): void {
+		this.currentArrowRendering?.remove()
+		if (this.currentLabel.value != "") {
+			let currentArrow = this.generateCurrentArrow(
+				this.referencePoints[0],
+				this.referencePoints[1],
+				this.componentVariant.mid.mul(-1),
+				new SVG.Point(this.componentVariant.viewBox.x2, this.componentVariant.viewBox.y2).sub(
+					this.componentVariant.mid
+				),
+				this.scaleState
+			)
+			this.currentArrowRendering = currentArrow.arrow
+			this.currentRendering.add(this.currentArrowRendering)
+
+			const currentLabelBbox = this.currentLabelRendering.bbox()
+			const currentLabelReference = new SVG.Point(currentLabelBbox.cx, currentLabelBbox.cy).add(
+				new SVG.Point(currentLabelBbox.w / 2, currentLabelBbox.h / 2).mul(currentArrow.labelAnchorDir)
+			)
+			this.currentLabelRendering.transform(
+				new SVG.Matrix({ translate: currentArrow.labelPos.sub(currentLabelReference) })
+			)
+		}
+	}
+
 	protected addInfo() {
 		this.properties.add(PropertyCategories.info, new SectionHeaderProperty("Info"))
 		this.properties.add(PropertyCategories.info, new InfoProperty("ID", this.referenceSymbol.tikzName))
-	}
-
-	/**
-	 * Generate voltage annotation visualization via mathjax
-	 */
-	protected generateVoltageRender(): void {
-		// Remove previous rendering
-		if (this.voltageRendering) {
-			let removeIDs = new Set<string>()
-			for (const element of this.voltageRendering.find("use")) {
-				removeIDs.add(element.node.getAttribute("xlink:href"))
-			}
-			for (const id of removeIDs) {
-				CanvasController.instance.canvas.find(id)[0]?.remove()
-			}
-			this.voltageRendering.remove()
-		}
-
-		// Remove previous polarity rendering
-		if (this.voltagePolarityRendering) {
-			this.voltagePolarityRendering.remove()
-		}
-
-		// Create new rendering if there's text
-		if (this.voltageAnnotation.value) {
-			// Wrap in {} to ensure proper spacing in MathJax
-			const wrappedText = `{${this.voltageAnnotation.value}}`
-			const transformGroup = renderMathJax(wrappedText)
-			this.voltageRendering = new SVG.G()
-			this.voltageRendering.addClass("pointerNone")
-			this.voltageRendering.addClass("voltageAnnotation")
-			this.voltageRendering.add(transformGroup.element)
-			this.visualization.add(this.voltageRendering)
-
-			// Create polarity signs (+ and -)
-			this.voltagePolarityRendering = new SVG.G()
-			this.voltagePolarityRendering.addClass("pointerNone")
-			this.voltagePolarityRendering.addClass("voltagePolaritySigns")
-			this.visualization.add(this.voltagePolarityRendering)
-		}
-
-		this.updateVoltageCurrentAnnotations()
-		this.updateTheme()
-	}
-
-	/**
-	 * Generate current annotation visualization via mathjax
-	 */
-	protected generateCurrentRender(): void {
-		// Remove previous rendering
-		if (this.currentRendering) {
-			let removeIDs = new Set<string>()
-			for (const element of this.currentRendering.find("use")) {
-				removeIDs.add(element.node.getAttribute("xlink:href"))
-			}
-			for (const id of removeIDs) {
-				CanvasController.instance.canvas.find(id)[0]?.remove()
-			}
-			this.currentRendering.remove()
-		}
-
-		// Remove previous arrow rendering
-		if (this.currentArrowRendering) {
-			this.currentArrowRendering.remove()
-		}
-
-		// Create new rendering if there's text
-		if (this.currentAnnotation.value) {
-			// Wrap in {} to ensure proper spacing in MathJax
-			const wrappedText = `{${this.currentAnnotation.value}}`
-			const transformGroup = renderMathJax(wrappedText)
-			this.currentRendering = new SVG.G()
-			this.currentRendering.addClass("pointerNone")
-			this.currentRendering.addClass("currentAnnotation")
-			this.currentRendering.add(transformGroup.element)
-			this.visualization.add(this.currentRendering)
-
-			// Create arrow for current direction
-			this.currentArrowRendering = new SVG.G()
-			this.currentArrowRendering.addClass("pointerNone")
-			this.currentArrowRendering.addClass("currentArrow")
-			this.visualization.add(this.currentArrowRendering)
-		}
-
-		this.updateVoltageCurrentAnnotations()
-		this.updateTheme()
-	}
-
-	/**
-	 * Update positions of voltage and current annotations
-	 */
-	protected updateVoltageCurrentAnnotations(): void {
-		if (!this.referencePoints || this.referencePoints.length < 2) {
-			return
-		}
-
-		const start = this.referencePoints[0]
-		const end = this.referencePoints[1]
-		const mid = start.add(end).div(2)
-		const pathVec = end.sub(start)
-		const pathLength = Math.sqrt(pathVec.x * pathVec.x + pathVec.y * pathVec.y)
-
-		if (pathLength === 0) return
-
-		// Normalized path vector (direction along the component)
-		const pathDir = new SVG.Point(pathVec.x / pathLength, pathVec.y / pathLength)
-		// Normalized perpendicular vector (rotated 90 degrees)
-		const perpVec = new SVG.Point(-pathVec.y / pathLength, pathVec.x / pathLength)
-
-		// Update voltage annotation position (at center of component)
-		if (this.voltageRendering && this.voltageAnnotation.value) {
-			// Check if voltage should be shown
-			const showVoltage = this.voltageShowProperty.value
-
-			if (showVoltage) {
-				this.voltageRendering.show()
-				if (this.voltagePolarityRendering) this.voltagePolarityRendering.show()
-
-				const vDir =
-					this.voltageDirectionProperty.value.key === "default" ?
-						CanvasController.instance.voltageDirection
-					:	this.voltageDirectionProperty.value.key
-
-				const vDist = this.voltageDistance.value.convertToUnit("px").value
-				const baseOffset = 15 // Base offset in pixels
-				const totalVOffset = baseOffset + vDist
-
-				// Determine position based on direction (perpendicular to component)
-				let vPerpOffset = perpVec.mul(totalVOffset)
-				if (vDir === "_") {
-					vPerpOffset = vPerpOffset.mul(-1)
-				}
-
-				const vPos = mid.add(vPerpOffset)
-				this.voltageRendering.move(vPos.x, vPos.y)
-
-				// Center the text
-				const vBBox = this.voltageRendering.bbox()
-				this.voltageRendering.dmove(-vBBox.w / 2, -vBBox.h / 2)
-
-				// Draw polarity signs (+ and -)
-				if (this.voltagePolarityRendering) {
-					this.voltagePolarityRendering.clear()
-
-					const signSize = 8
-					const signOffset = pathLength / 2 - 10 // Distance from center along the path
-					const invertPolarity = this.voltageInvertProperty.value
-
-					// Position for + sign (at start end, or end if inverted)
-					const plusPos =
-						invertPolarity ?
-							mid.add(pathDir.mul(signOffset)).add(vPerpOffset)
-						:	mid.sub(pathDir.mul(signOffset)).add(vPerpOffset)
-
-					// Position for - sign (at end, or start if inverted)
-					const minusPos =
-						invertPolarity ?
-							mid.sub(pathDir.mul(signOffset)).add(vPerpOffset)
-						:	mid.add(pathDir.mul(signOffset)).add(vPerpOffset)
-
-					// Draw + sign
-					const plusGroup = this.voltagePolarityRendering.group()
-					plusGroup.line(-signSize / 2, 0, signSize / 2, 0).stroke({ width: 1.5 })
-					plusGroup.line(0, -signSize / 2, 0, signSize / 2).stroke({ width: 1.5 })
-					plusGroup.move(plusPos.x, plusPos.y)
-
-					// Draw - sign
-					const minusGroup = this.voltagePolarityRendering.group()
-					minusGroup.line(-signSize / 2, 0, signSize / 2, 0).stroke({ width: 1.5 })
-					minusGroup.move(minusPos.x, minusPos.y)
-				}
-			} else {
-				// Hide voltage rendering
-				this.voltageRendering.hide()
-				if (this.voltagePolarityRendering) this.voltagePolarityRendering.hide()
-			}
-		}
-
-		// Update current annotation position
-		if (this.currentRendering && this.currentAnnotation.value) {
-			// Check if current should be shown
-			const showCurrent = this.currentShowProperty.value
-
-			if (showCurrent) {
-				this.currentRendering.show()
-				if (this.currentArrowRendering) this.currentArrowRendering.show()
-
-				const iDir =
-					this.currentDirectionProperty.value.key === "default" ?
-						CanvasController.instance.currentDirection
-					:	this.currentDirectionProperty.value.key
-
-				const iDist = this.currentDistance.value.convertToUnit("px").value
-				const iPosition = this.currentPositionProperty.value.key
-				const invertCurrent = this.currentInvertProperty.value
-
-				if (iPosition === "inline") {
-					// Mode 1: On Wire (Inline) - arrow and text on the wire
-					const baseOffset = 15 // Increased offset to move text further from wire
-					const totalIOffset = baseOffset + iDist
-
-					// Position current annotation on the wire (1/4 from start to end)
-					const currentPosOnWire = start.add(pathVec.mul(0.25))
-
-					// Perpendicular offset based on direction
-					let iPerpOffset = perpVec.mul(totalIOffset)
-					if (iDir === "_") {
-						iPerpOffset = iPerpOffset.mul(-1)
-					}
-
-					const iPos = currentPosOnWire.add(iPerpOffset)
-					this.currentRendering.move(iPos.x, iPos.y)
-
-					// Center the text
-					const iBBox = this.currentRendering.bbox()
-					this.currentRendering.dmove(-iBBox.w / 2, -iBBox.h / 2)
-
-					// Draw arrow for current direction (on the wire itself)
-					if (this.currentArrowRendering) {
-						this.currentArrowRendering.clear()
-
-						const arrowLength = 15 // Shortened arrow for inline mode
-						const arrowHeadSize = 5
-
-						// Calculate component length to avoid overlap
-						const componentLength = pathVec.abs()
-						const componentMargin = 8 // Margin from component edge in pixels
-
-						// Arrow position on the wire - adjust based on invert
-						let arrowPosition: number
-						if (invertCurrent) {
-							// When inverted, arrow points backward - place near end
-							arrowPosition = 1 - (componentMargin + arrowLength) / componentLength
-						} else {
-							// Normal direction - place near start
-							arrowPosition = (componentMargin + arrowLength) / componentLength
-						}
-
-						// Clamp position to valid range
-						arrowPosition = Math.max(0.05, Math.min(0.95, arrowPosition))
-
-						const arrowPosOnWire = start.add(pathVec.mul(arrowPosition))
-
-						// Arrow direction (normal or inverted)
-						const arrowDir = invertCurrent ? pathDir.mul(-1) : pathDir
-
-						const arrowEnd = arrowPosOnWire
-						const arrowStart = arrowEnd.sub(arrowDir.mul(arrowLength))
-
-						// Draw arrow line
-						this.currentArrowRendering.line(arrowStart.x, arrowStart.y, arrowEnd.x, arrowEnd.y).stroke({
-							width: 1.5,
-						})
-
-						// Draw arrow head
-						const arrowTip1 = arrowEnd.sub(arrowDir.mul(arrowHeadSize)).add(perpVec.mul(arrowHeadSize / 2))
-						const arrowTip2 = arrowEnd.sub(arrowDir.mul(arrowHeadSize)).sub(perpVec.mul(arrowHeadSize / 2))
-
-						this.currentArrowRendering
-							.polygon([
-								[arrowEnd.x, arrowEnd.y],
-								[arrowTip1.x, arrowTip1.y],
-								[arrowTip2.x, arrowTip2.y],
-							])
-							.fill(defaultStroke)
-					}
-				} else {
-					// Mode 2: Beside Wire (Offset) - similar to voltage, with arrow beside text
-					const baseOffset = 20 // Increased offset for better visibility
-					const totalIOffset = baseOffset + iDist
-
-					// Position at 1/4 from start
-					const currentPosOnWire = start.add(pathVec.mul(0.25))
-
-					// Perpendicular offset based on direction
-					let iPerpOffset = perpVec.mul(totalIOffset)
-					if (iDir === "_") {
-						iPerpOffset = iPerpOffset.mul(-1)
-					}
-
-					const iPos = currentPosOnWire.add(iPerpOffset)
-					this.currentRendering.move(iPos.x, iPos.y)
-
-					// Center the text
-					const iBBox = this.currentRendering.bbox()
-					this.currentRendering.dmove(-iBBox.w / 2, -iBBox.h / 2)
-
-					// Draw arrow beside the text
-					if (this.currentArrowRendering) {
-						this.currentArrowRendering.clear()
-
-						const arrowLength = 20
-						const arrowHeadSize = 6
-
-						// Arrow direction (normal or inverted)
-						const arrowDir = invertCurrent ? pathDir.mul(-1) : pathDir
-
-						// Arrow position (to the right of the text)
-						const arrowStart = new SVG.Point(iPos.x + iBBox.w / 2 + 5, iPos.y)
-						const arrowEnd = arrowStart.add(arrowDir.mul(arrowLength))
-
-						// Draw arrow line
-						this.currentArrowRendering.line(arrowStart.x, arrowStart.y, arrowEnd.x, arrowEnd.y).stroke({
-							width: 1.5,
-						})
-
-						// Draw arrow head
-						const arrowTip1 = arrowEnd.sub(arrowDir.mul(arrowHeadSize)).add(perpVec.mul(arrowHeadSize / 2))
-						const arrowTip2 = arrowEnd.sub(arrowDir.mul(arrowHeadSize)).sub(perpVec.mul(arrowHeadSize / 2))
-
-						this.currentArrowRendering
-							.polygon([
-								[arrowEnd.x, arrowEnd.y],
-								[arrowTip1.x, arrowTip1.y],
-								[arrowTip2.x, arrowTip2.y],
-							])
-							.fill(defaultStroke)
-					}
-				}
-			} else {
-				// Hide current rendering
-				this.currentRendering.hide()
-				if (this.currentArrowRendering) this.currentArrowRendering.hide()
-			}
-		}
 	}
 
 	protected optionsFromProperties(): SymbolOption[] {
@@ -814,7 +446,8 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 		)
 
 		this.updatePathLabel()
-		this.updateVoltageCurrentAnnotations()
+		this.updateVoltageRender()
+		this.updateCurrentRender()
 		this._bbox = this.visualization.bbox()
 		this.referencePosition = this.position.sub(new SVG.Point(this._bbox.x, this._bbox.y))
 
@@ -862,24 +495,6 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 			labelColor = this.labelColor.value.toString()
 		}
 		this.labelRendering?.fill(labelColor)
-
-		// Apply color to voltage annotation
-		let voltageColor = defaultStroke
-		if (this.voltageColor && this.voltageColor.value) {
-			voltageColor = this.voltageColor.value.toString()
-		}
-		this.voltageRendering?.fill(voltageColor)
-		this.voltagePolarityRendering?.fill(voltageColor)
-		this.voltagePolarityRendering?.stroke(voltageColor)
-
-		// Apply color to current annotation
-		let currentColor = defaultStroke
-		if (this.currentColor && this.currentColor.value) {
-			currentColor = this.currentColor.value.toString()
-		}
-		this.currentRendering?.fill(currentColor)
-		this.currentArrowRendering?.fill(currentColor)
-		this.currentArrowRendering?.stroke(currentColor)
 	}
 
 	public isInsideSelectionRectangle(selectionRectangle: SVG.Box): boolean {
@@ -947,58 +562,6 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 			data.scale = this.scaleState
 		}
 
-		if (this.voltageAnnotation && this.voltageAnnotation.value) {
-			data.voltage = this.voltageAnnotation.value
-		}
-
-		if (this.voltageShowProperty && this.voltageShowProperty.value) {
-			data.voltageShow = this.voltageShowProperty.value
-		}
-
-		if (this.voltageDirectionProperty && this.voltageDirectionProperty.value.key !== "default") {
-			data.voltageDirection = this.voltageDirectionProperty.value.key
-		}
-
-		if (this.voltageDistance && this.voltageDistance.value.value !== 0) {
-			data.voltageDistance = this.voltageDistance.value.convertToUnit("cm").value
-		}
-
-		if (this.voltageInvertProperty && this.voltageInvertProperty.value) {
-			data.voltageInvert = this.voltageInvertProperty.value
-		}
-
-		if (this.voltageColor && this.voltageColor.value) {
-			data.voltageColor = this.voltageColor.value.toString()
-		}
-
-		if (this.currentAnnotation && this.currentAnnotation.value) {
-			data.current = this.currentAnnotation.value
-		}
-
-		if (this.currentShowProperty && this.currentShowProperty.value) {
-			data.currentShow = this.currentShowProperty.value
-		}
-
-		if (this.currentDirectionProperty && this.currentDirectionProperty.value.key !== "default") {
-			data.currentDirection = this.currentDirectionProperty.value.key
-		}
-
-		if (this.currentDistance && this.currentDistance.value.value !== 0) {
-			data.currentDistance = this.currentDistance.value.convertToUnit("cm").value
-		}
-
-		if (this.currentPositionProperty && this.currentPositionProperty.value.key !== "inline") {
-			data.currentPosition = this.currentPositionProperty.value.key
-		}
-
-		if (this.currentInvertProperty && this.currentInvertProperty.value) {
-			data.currentInvert = this.currentInvertProperty.value
-		}
-
-		if (this.currentColor && this.currentColor.value) {
-			data.currentColor = this.currentColor.value.toString()
-		}
-
 		return data
 	}
 
@@ -1032,70 +595,9 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 
 		let to: CircuitikzTo = { options: options, name: this.name.value }
 		this.buildTikzPathLabel(to)
-
-		// Add voltage annotation if specified AND show is enabled
-		if (this.voltageAnnotation && this.voltageAnnotation.value && this.voltageShowProperty.value) {
-			// Determine voltage direction (use component setting or fall back to global)
-			let voltageDir =
-				this.voltageDirectionProperty.value.key === "default" ?
-					CanvasController.instance.voltageDirection
-				:	this.voltageDirectionProperty.value.key
-
-			const voltageOption = "v" + voltageDir + "={$" + this.voltageAnnotation.value + "$}"
-			to.options.push(voltageOption)
-
-			// Add voltage distance if non-zero
-			const vDist = this.voltageDistance.value.convertToUnit("cm").value
-			if (Math.abs(vDist) > 0.0001) {
-				to.options.push("voltage/distance from node=" + vDist.toFixed(2) + "cm")
-			}
-		}
-
-		// Add current annotation if specified AND show is enabled
-		if (this.currentAnnotation && this.currentAnnotation.value && this.currentShowProperty.value) {
-			// Determine current direction (use component setting or fall back to global)
-			let currentDir =
-				this.currentDirectionProperty.value.key === "default" ?
-					CanvasController.instance.currentDirection
-				:	this.currentDirectionProperty.value.key
-
-			const currentOption = "i" + currentDir + "={$" + this.currentAnnotation.value + "$}"
-			to.options.push(currentOption)
-
-			// Add current distance if non-zero
-			const iDist = this.currentDistance.value.convertToUnit("cm").value
-			if (Math.abs(iDist) > 0.0001) {
-				to.options.push("current/distance from node=" + iDist.toFixed(2) + "cm")
-			}
-		}
-
+		this.buildTikzVoltage(to)
+		this.buildTikzCurrent(to)
 		command.connectors.push(to)
-	}
-
-	public toSVG(defs: Map<string, SVG.Element>): SVG.Element {
-		let symbolID = this.componentVariant.symbol.id()
-		if (!defs.has(symbolID)) {
-			const symbol = this.componentVariant.symbol.clone(true, false)
-			defs.set(symbolID, symbol)
-		}
-		this.labelRendering?.addClass("labelRendering")
-		const copiedSVG = this.visualization.clone(true)
-		if (this.labelRendering) {
-			this.labelRendering.removeClass("labelRendering")
-			if (!this.mathJaxLabel.value) {
-				copiedSVG.removeElement(copiedSVG.find(".labelRendering")[0])
-			} else {
-				for (const use of copiedSVG.find(".labelRendering")[0].find("use")) {
-					const id = use.node.getAttribute("xlink:href")
-					if (!defs.has(id)) {
-						defs.set(id, CanvasController.instance.canvas.find(id)[0].clone(true, false))
-					}
-				}
-			}
-
-			copiedSVG.findOne(".labelRendering")?.removeClass("labelRendering")
-		}
-		return copiedSVG
 	}
 
 	public remove(): void {
@@ -1105,31 +607,6 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 		this.visualization.remove()
 		this.selectionElement?.remove()
 		this.labelRendering?.remove()
-
-		// Remove voltage and current renderings
-		if (this.voltageRendering) {
-			let removeIDs = new Set<string>()
-			for (const element of this.voltageRendering.find("use")) {
-				removeIDs.add(element.node.getAttribute("xlink:href"))
-			}
-			for (const id of removeIDs) {
-				CanvasController.instance.canvas.find(id)[0]?.remove()
-			}
-			this.voltageRendering.remove()
-		}
-		this.voltagePolarityRendering?.remove()
-
-		if (this.currentRendering) {
-			let removeIDs = new Set<string>()
-			for (const element of this.currentRendering.find("use")) {
-				removeIDs.add(element.node.getAttribute("xlink:href"))
-			}
-			for (const id of removeIDs) {
-				CanvasController.instance.canvas.find(id)[0]?.remove()
-			}
-			this.currentRendering.remove()
-		}
-		this.currentArrowRendering?.remove()
 	}
 
 	public copyForPlacement(): PathSymbolComponent {
@@ -1152,75 +629,6 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 		this.mirror.value = this.scaleState.y < 0
 		this.invert.value = this.scaleState.x < 0
 		this.scaleProperty.value = new SVG.Number(Math.abs(this.scaleState.x))
-
-		if (saveObject.voltage) {
-			this.voltageAnnotation.value = saveObject.voltage
-		}
-
-		if (saveObject.voltageShow !== undefined) {
-			this.voltageShowProperty.value = saveObject.voltageShow
-		}
-
-		if (saveObject.voltageDirection) {
-			const dirEntry = this.voltageDirectionProperty.entries.find((e) => e.key === saveObject.voltageDirection)
-			if (dirEntry) {
-				this.voltageDirectionProperty.value = dirEntry
-			}
-		}
-
-		if (saveObject.voltageDistance !== undefined) {
-			this.voltageDistance.value = new SVG.Number(saveObject.voltageDistance, "cm")
-		}
-
-		if (saveObject.voltageInvert !== undefined) {
-			this.voltageInvertProperty.value = saveObject.voltageInvert
-		}
-
-		if (saveObject.voltageColor) {
-			this.voltageColor.value = new SVG.Color(saveObject.voltageColor)
-		}
-
-		if (saveObject.current) {
-			this.currentAnnotation.value = saveObject.current
-		}
-
-		if (saveObject.currentShow !== undefined) {
-			this.currentShowProperty.value = saveObject.currentShow
-		}
-
-		if (saveObject.currentDirection) {
-			const dirEntry = this.currentDirectionProperty.entries.find((e) => e.key === saveObject.currentDirection)
-			if (dirEntry) {
-				this.currentDirectionProperty.value = dirEntry
-			}
-		}
-
-		if (saveObject.currentDistance !== undefined) {
-			this.currentDistance.value = new SVG.Number(saveObject.currentDistance, "cm")
-		}
-
-		if (saveObject.currentPosition) {
-			const posEntry = this.currentPositionProperty.entries.find((e) => e.key === saveObject.currentPosition)
-			if (posEntry) {
-				this.currentPositionProperty.value = posEntry
-			}
-		}
-
-		if (saveObject.currentInvert !== undefined) {
-			this.currentInvertProperty.value = saveObject.currentInvert
-		}
-
-		if (saveObject.currentColor) {
-			this.currentColor.value = new SVG.Color(saveObject.currentColor)
-		}
-
-		// Generate renderings for voltage and current if they exist
-		if (saveObject.voltage) {
-			this.generateVoltageRender()
-		}
-		if (saveObject.current) {
-			this.generateCurrentRender()
-		}
 
 		this.update()
 		this.visualization.show()

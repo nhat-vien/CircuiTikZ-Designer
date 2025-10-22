@@ -67,13 +67,19 @@ export function Strokable<TBase extends AbstractConstructor<CircuitComponent>>(B
 
 			//add color property
 
-			this.properties.add(PropertyCategories.stroke, new SectionHeaderProperty("Stroke"))
+			this.properties.add(
+				PropertyCategories.stroke,
+				new SectionHeaderProperty("Stroke", undefined, "stroke:header")
+			)
 			this.strokeOpacityProperty = new SliderProperty(
 				"Opacity",
 				0,
 				100,
 				1,
-				new SVG.Number(this.strokeInfo.opacity * 100, "%")
+				new SVG.Number(this.strokeInfo.opacity * 100, "%"),
+				undefined,
+				undefined,
+				"stroke:opacity"
 			)
 			this.strokeOpacityProperty.addChangeListener((ev) => {
 				this.strokeInfo.opacity = ev.value.value / 100
@@ -81,7 +87,7 @@ export function Strokable<TBase extends AbstractConstructor<CircuitComponent>>(B
 				this.update()
 			})
 
-			this.strokeColorProperty = new ColorProperty("Color", null)
+			this.strokeColorProperty = new ColorProperty("Color", null, undefined, undefined, "stroke:color")
 			this.strokeColorProperty.addChangeListener((ev) => {
 				if (ev.value == null) {
 					this.strokeInfo.color = "default"
@@ -93,7 +99,16 @@ export function Strokable<TBase extends AbstractConstructor<CircuitComponent>>(B
 				this.updateTheme()
 				this.update()
 			})
-			this.strokeWidthProperty = new SliderProperty("Width", 0, 10, 0.1, this.strokeInfo.width)
+			this.strokeWidthProperty = new SliderProperty(
+				"Width",
+				0,
+				10,
+				0.1,
+				this.strokeInfo.width,
+				undefined,
+				undefined,
+				"stroke:width"
+			)
 			this.strokeWidthProperty.addChangeListener((ev) => {
 				this.strokeInfo.width = ev.value
 				this.updateTheme()
@@ -102,7 +117,9 @@ export function Strokable<TBase extends AbstractConstructor<CircuitComponent>>(B
 			this.strokeStyleProperty = new ChoiceProperty<StrokeStyle>(
 				"Style",
 				strokeStyleChoices,
-				defaultStrokeStyleChoice
+				defaultStrokeStyleChoice,
+				undefined,
+				"stroke:style"
 			)
 			this.strokeStyleProperty.addChangeListener((ev) => {
 				this.strokeInfo.style = ev.value.key
@@ -146,6 +163,17 @@ export function Strokable<TBase extends AbstractConstructor<CircuitComponent>>(B
 
 		protected applyJson(saveObject: ComponentSaveObject & { stroke?: StrokeInfo }): void {
 			super.applyJson(saveObject)
+
+			this.strokeInfo = {
+				color: "default",
+				opacity: 1,
+				width: new SVG.Number("1pt"),
+				style: defaultStrokeStyleChoice.key,
+			}
+			this.strokeWidthProperty.value = this.strokeInfo.width
+			this.strokeColorProperty.value = null
+			this.strokeOpacityProperty.value = new SVG.Number(this.strokeInfo.opacity * 100, "%")
+			this.strokeStyleProperty.value = defaultStrokeStyleChoice
 
 			if (saveObject.stroke) {
 				if (saveObject.stroke.color) {
