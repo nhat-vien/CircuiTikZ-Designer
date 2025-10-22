@@ -1,0 +1,13 @@
+{
+	"compileOnSave": false,
+	"compilerOptions": {
+		"allowJs": true,
+		"module": "NodeNext",
+		"target": "ESNext", 
+		"noEmit": true,
+		"strictNullChecks": false,
+		"resolveJsonModule": true
+	},
+	"exclude": [],
+	"include": ["src/**/*"]
+}

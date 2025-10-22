@@ -1,0 +1,64 @@
+// Styles for the left offcanvas resp. the symbol/components DB
+
+#leftOffcanvas {
+	max-width: 400px;
+	min-width: min(100vw, 300px);
+	width: 33.3vw;
+}
+
+.offcanvas-search {
+	position: relative;
+
+	span {
+		position: absolute;
+		top: calc(50% - 12px);
+		left: 13px;
+	}
+
+	input {
+		display: block;
+		width: 100%;
+		padding-left: 50px;
+	}
+}
+
+// fix style when searching for symbols of first shown group
+.accordion-item:nth-child(1 of :not(.d-none)) {
+	border-top-left-radius: var(--bs-accordion-border-radius);
+	border-top-right-radius: var(--bs-accordion-border-radius);
+	border: var(--bs-accordion-border-width) solid var(--bs-accordion-border-color);
+
+	// .accordion-header>button {
+	// 	background-color: transparent;
+	// }
+}
+
+// fix style when searching for symbols of last shown group
+.accordion-item:nth-last-child(1 of :not(.d-none)) {
+	border-bottom-left-radius: var(--bs-accordion-border-radius);
+	border-bottom-right-radius: var(--bs-accordion-border-radius);
+
+	// .accordion-header>button {
+	// 	background-color: transparent;
+	// }
+}
+
+.iconLibAccordionBody {
+	display: flex;
+	flex-flow: row wrap;
+	justify-content: space-between;
+	align-items: center;
+	gap: 10px;
+}
+
+div.libComponent {
+	padding: 2px;
+	> svg {
+		min-width: 28px;
+		min-height: 28px;
+	}
+}
+
+div.libComponent:hover {
+	box-shadow: 3px 3px 7px 1px #cccc;
+}

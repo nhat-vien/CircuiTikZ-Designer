@@ -1,0 +1,31 @@
+{
+	"extends": "@parcel/config-default",
+	"transformers": {
+		"*.{ts,tsx}": [
+			"@parcel/transformer-typescript-tsc"
+		],
+		"*.{cjs,js,mjs}": [
+			"@parcel/transformer-js"
+		],
+		"*.css": [
+			"@parcel/transformer-css"
+		],
+		"*.{htm,html}": [
+			"@parcel/transformer-posthtml",
+			"@parcel/transformer-html",
+			"./scripts/inlineSVG.mjs"
+		],
+		"*.svg": [
+			"@parcel/transformer-svg"
+		],
+		"*.xml": [
+			"@parcel/transformer-xml"
+		],
+		"*.{sass,scss}": [
+			"@parcel/transformer-sass"
+		]
+	},
+	"optimizers": {
+		"*.{jpg,jpeg,png,svg,html}": []
+	}
+}

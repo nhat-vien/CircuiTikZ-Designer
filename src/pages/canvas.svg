@@ -1,0 +1,51 @@
+<svg
+	id="canvas"
+	class="mainCanvas"
+	version="1.2"
+	xmlns="http://www.w3.org/2000/svg"
+	xmlns:xlink="http://www.w3.org/1999/xlink"
+	style="font-size: 10pt"
+>
+	<defs id="backgroundDefs">
+		<pattern
+			id="smallGridPattern"
+			width=".25cm"
+			height=".25cm"
+			patternUnits="userSpaceOnUse"
+			style="translate: .025pt .025pt; "
+		>
+			<path d="M 9.44882 0 L 0 0 0 9.44882" fill="none" stroke="var(--bs-secondary-text-emphasis)" stroke-width="0.1pt" />
+			</pattern>
+		<pattern id="gridPattern" width="1cm" height="1cm" patternUnits="userSpaceOnUse" style="translate: -.05pt -.05pt; ">
+			<rect width="1cm" height="1cm" fill="url(#smallGridPattern)" />
+			<path d="M 37.79528 0 L 0 0 0 37.79528" fill="none" stroke="var(--bs-secondary-text-emphasis)" stroke-width="0.2pt" />
+		</pattern>
+		<symbol id="snapCursor" viewBox="0 0 14 14">
+			<circle cx="7" cy="7" fill="none" stroke="var(--bs-emphasis-color)" stroke-width="1.5" r="6" />
+		</symbol>
+		<symbol id="latex">
+			<path stroke="none" d="M 0 0.125 C 0.375 0.375 1 0.5 1 0.5 C 1 0.5 0.375 0.625 0 0.875 z" />
+		</symbol>
+		<symbol id="latexR">
+			<path stroke="none" d="M 1 0.125 C 0.625 0.375 0 0.5 0 0.5 C 0 0.5 0.625 0.625 1 0.875 z" />
+		</symbol>
+		<symbol id="to">
+			<path fill="none" d="M.5.1C.5.3.9.6 1 .6M.5 1.1C.5.9.9.6 1 .6" stroke-linecap="round" />
+		</symbol>
+		<symbol id="toR">
+			<path fill="none" d="M1 .1C1 .3.6.6.5.6M1 1.1C1 .9.6.6.5.6" stroke-linecap="round" />
+		</symbol>
+		<symbol id="stealth">
+			<path stroke="none" d="M0 0 1 .5 0 1 .3.5" stroke-linecap="round" />
+		</symbol>
+		<symbol id="stealthR">
+			<path stroke="none" d="M1 0 0 .5 1 1 .7.5" stroke-linecap="round" />
+		</symbol>
+		<symbol id="line">
+			<path fill="none" d="M .5 0 L .5 1" />
+		</symbol>
+	</defs>
+	<rect id="grid" x="0" y="0" width="100%" height="100%" fill="url(#gridPattern)" />
+	<line id="yAxis" x1="0" x2="0" y1="0" y2="100%" stroke="var(--bs-primary-text-emphasis)" stroke-width="0.3pt" />
+	<line id="xAxis" x1="0" x2="100%" y1="0" y2="0" stroke="var(--bs-primary-text-emphasis)" stroke-width="0.3pt" />
+</svg>
