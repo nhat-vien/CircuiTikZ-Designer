@@ -5,6 +5,7 @@ import {
 	ChoiceEntry,
 	ChoiceProperty,
 	CircuitComponent,
+	Currentable,
 	defaultStroke,
 	MainController,
 	PathComponent,
@@ -86,7 +87,7 @@ export const defaultArrowTip = arrowTips[0]
 /**
  * The component responsible for multi segmented wires (polylines)/wires
  */
-export class WireComponent extends Strokable(PathComponent) {
+export class WireComponent extends Currentable(Strokable(PathComponent)) {
 	private static jsonID = "wire"
 	static {
 		CircuitComponent.jsonSaveMap.set(WireComponent.jsonID, WireComponent)
@@ -265,8 +266,58 @@ export class WireComponent extends Strokable(PathComponent) {
 				.map((factor) => this.strokeInfo.width.times(factor).toString())
 				.join(" "),
 		})
+
+		// Update current label color if exists
+		if (this.currentLabelRendering) {
+			this.currentLabelRendering.fill(strokeColor)
+		}
+		if (this.currentArrowRendering) {
+			this.currentArrowRendering.fill(strokeColor)
+		}
+
 		if (this.finishedPlacing) {
 			this.update()
+		}
+	}
+
+	protected updateCurrentRender(): void {
+		this.currentArrowRendering?.remove()
+		if (this.currentLabel.value != "" && this.referencePoints.length >= 2) {
+			// For wire, we draw current on the first or last segment depending on currentPosition
+			const positionStart = this.currentPosition.value
+
+			// Get start and end points for the segment where current will be drawn
+			let segmentStart: SVG.Point
+			let segmentEnd: SVG.Point
+
+			if (positionStart) {
+				// Draw on first segment
+				segmentStart = this.referencePoints[0]
+				segmentEnd = this.referencePoints[1]
+			} else {
+				// Draw on last segment
+				segmentStart = this.referencePoints[this.referencePoints.length - 2]
+				segmentEnd = this.referencePoints[this.referencePoints.length - 1]
+			}
+
+			// For wire, we don't have component bounds, so use zero deltas
+			const zeroDelta = new SVG.Point(0, 0)
+			const scale = new SVG.Point(1, 1)
+
+			let currentArrow = this.generateCurrentArrow(segmentStart, segmentEnd, zeroDelta, zeroDelta, scale)
+			this.currentArrowRendering = currentArrow.arrow
+			this.currentRendering.add(this.currentArrowRendering)
+
+			const currentLabelBbox = this.currentLabelRendering.bbox()
+			const currentLabelReference = new SVG.Point(currentLabelBbox.cx, currentLabelBbox.cy).add(
+				new SVG.Point(currentLabelBbox.w / 2, currentLabelBbox.h / 2).mul(currentArrow.labelAnchorDir)
+			)
+			this.currentLabelRendering.dmove(
+				currentArrow.labelPos.x - currentLabelReference.x,
+				currentArrow.labelPos.y - currentLabelReference.y
+			)
+		} else {
+			this.currentLabelRendering?.dmove(0, 0)
 		}
 	}
 
@@ -465,6 +516,9 @@ export class WireComponent extends Strokable(PathComponent) {
 		this.recalculateSelectionVisuals()
 		this.recalculateSnappingPoints()
 		this.recalculateResizePoints()
+
+		// update current annotation if exists
+		this.updateCurrentRender()
 	}
 
 	private pointsFromCornerPoints() {
@@ -601,6 +655,40 @@ export class WireComponent extends Strokable(PathComponent) {
 		}
 		if (arrowOptions.length > 0) {
 			command.options.push(arrowOptions.join(""))
+		}
+
+		// Add current annotation if specified
+		if (this.currentLabel && this.currentLabel.value != "") {
+			let currentString = "i"
+			let labelPosString = this.currentLabelPosition.value ? "_" : "^"
+			let dirString = this.currentDirection.value ? "<" : ">"
+
+			if (this.currentPosition.value) {
+				// if position is start, the label position comes after the direction and both are required, except:
+				if (this.currentLabelPosition.value == false && this.currentDirection.value == true) {
+					// if direction is backward and the label position is default above, the label position is not required
+					labelPosString = ""
+				}
+				currentString += dirString + labelPosString
+			} else {
+				// if position is end, the label position comes before the direction
+				if (this.currentDirection.value == false) {
+					// if direction is forward the label position is not required
+					dirString = ""
+					if (this.currentLabelPosition.value == false) {
+						// if the label position is default above and the direction is forward, the label position is also not required
+						labelPosString = ""
+					}
+				}
+				currentString += labelPosString + dirString
+			}
+
+			currentString += "={$" + this.currentLabel.value + "$}"
+			command.options.push(currentString)
+
+			if (this.currentDistance.value.value != 0.5) {
+				command.options.push("current/distance=" + this.currentDistance.value.value.toString())
+			}
 		}
 
 		let pointArray = this.referencePoints.map((point) => point)

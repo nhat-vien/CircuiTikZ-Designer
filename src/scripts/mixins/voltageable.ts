@@ -54,7 +54,7 @@ const voltageStyleChoices: ChoiceEntry[] = [
 	{ key: "straight", name: "straight" },
 	{ key: "european", name: "european" },
 ]
-const defaultVoltageStyleChoice = voltageStyleChoices[0]
+const defaultVoltageStyleChoice = voltageStyleChoices[1] // american
 let voltageEuropean = true
 let voltageStraight = false
 let voltageRaised = false
@@ -473,7 +473,8 @@ export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Ba
 		}
 
 		protected buildTikzVoltage(to: CircuitikzTo): void {
-			if (this.voltageLabel.value != "") {
+			// Only export voltage if show property is enabled
+			if (this.voltageShow.value && this.voltageLabel.value != "") {
 				const options = to.options
 
 				let voltageString = "v"
