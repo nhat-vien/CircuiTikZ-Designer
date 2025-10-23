@@ -22,13 +22,15 @@ export type CurrentLabel = {
 	start?: boolean
 	below?: boolean
 	backwards?: boolean
+	thickness?: number
+	shift?: number
 }
 
 let currentDirectionBackward = false
 let currentPositionStart = false
 let currentLabelBelow = false
 
-const arrowStrokeWidth = 0.5
+const arrowStrokeWidth = 1.5  // Increased from 0.5 for better visibility
 const currentArrowScale = 16
 const defaultRlen = 1.4
 const cmtopx = 4800 / 127 // 96px/2.54
@@ -43,6 +45,9 @@ export interface Currentable {
 	currentPosition: BooleanProperty
 	currentDirection: BooleanProperty
 	currentLabelPosition: BooleanProperty
+	currentArrowThickness: SliderProperty
+	currentArrowShift: SliderProperty
+	currentLabelDistance: SliderProperty
 }
 
 export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Base: TBase) {
@@ -56,6 +61,9 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 		protected currentPosition: BooleanProperty
 		protected currentDirection: BooleanProperty
 		protected currentLabelPosition: BooleanProperty
+		protected currentArrowThickness: SliderProperty
+		protected currentArrowShift: SliderProperty
+		protected currentLabelDistance: SliderProperty
 
 		constructor(...args: any[]) {
 			super(...args)
@@ -106,6 +114,45 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 			)
 			this.currentDistance.addChangeListener((ev) => this.updateCurrentRender())
 			this.properties.add(PropertyCategories.current, this.currentDistance)
+
+			this.currentArrowThickness = new SliderProperty(
+				"Arrow thickness",
+				0.1,
+				3.0,
+				0.1,
+				new SVG.Number(0.5, ""),
+				false,
+				"Thickness of the current arrow.",
+				"current:thickness"
+			)
+			this.currentArrowThickness.addChangeListener((ev) => this.updateCurrentRender())
+			this.properties.add(PropertyCategories.current, this.currentArrowThickness)
+
+			this.currentArrowShift = new SliderProperty(
+				"Arrow shift",
+				-1.0,
+				1.0,
+				0.05,
+				new SVG.Number(0, ""),
+				false,
+				"Shift the current arrow position along the component.",
+				"current:shift"
+			)
+			this.currentArrowShift.addChangeListener((ev) => this.updateCurrentRender())
+			this.properties.add(PropertyCategories.current, this.currentArrowShift)
+
+			this.currentLabelDistance = new SliderProperty(
+				"Label distance",
+				-1.0,
+				1.0,
+				0.05,
+				new SVG.Number(0.12, ""),
+				false,
+				"Distance between the current arrow and its label (negative values move label closer to component).",
+				"current:labeldistance"
+			)
+			this.currentLabelDistance.addChangeListener((ev) => this.updateCurrentRender())
+			this.properties.add(PropertyCategories.current, this.currentLabelDistance)
 		}
 
 		protected generateCurrentRender(): void {
@@ -133,6 +180,9 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 			const scaleFactor = Math.abs(scale.x)
 
 			let distance = this.currentDistance.value.value
+			let arrowThickness = this.currentArrowThickness.value.value
+			let arrowShift = this.currentArrowShift.value.value
+			let labelDistance = this.currentLabelDistance.value.value
 
 			let directionBackwards = this.currentDirection.value
 			let positionStart = this.currentPosition.value
@@ -155,14 +205,54 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 			const compStart = midTrans.add(new SVG.Point(northwestDelta.x * scaleFactor, 0))
 			const compEnd = midTrans.add(new SVG.Point(southeastDelta.x * scaleFactor, 0))
 
-			const arrowScale = (cmtopx * defaultRlen) / (currentArrowScale / scaleFactor) + 2 * arrowStrokeWidth
+			// Apply arrow thickness to the scale calculation
+			const arrowScale = ((cmtopx * defaultRlen) / (currentArrowScale / scaleFactor) + 2 * arrowStrokeWidth) * arrowThickness
 
-			const arrowPositionTrans =
+			// Calculate base arrow position along the component
+			const baseArrowPositionTrans =
 				positionStart ? interpolate(start, compStart, distance) : interpolate(compEnd, endTrans, distance)
+
+			// Arrow shift should move perpendicular to the component (like voltage arrows)
+			// In transformed space, perpendicular is the Y direction
+			const shiftAmount = arrowShift * cmtopx * defaultRlen * scaleFactor
+
+			// Calculate line: it should be a small horizontal line (parallel to component) at the shifted position
+			// Line length is a small fraction of the component length
+			const lineLength = 0.25 * cmtopx * defaultRlen * scaleFactor
+			const lineFromTrans = baseArrowPositionTrans.add(new SVG.Point(-lineLength / 2, shiftAmount))
+			const lineToTrans = baseArrowPositionTrans.add(new SVG.Point(lineLength / 2, shiftAmount))
+
+			// Arrow position is at the end of the line (in the direction of current)
+			const arrowPositionTrans = directionBackwards ? lineFromTrans : lineToTrans
 			const arrowPos = arrowPositionTrans.rotate(-angle, start, true)
 
-			const labelOffset = new SVG.Point(0, -labelBelow * 0.12 * cmtopx)
-			let labPos: SVG.Point = arrowPos.add(labelOffset.rotate(-angle, undefined, true))
+			// Rotate line points back to world space
+			const lineFrom = lineFromTrans.rotate(-angle, start, true)
+			const lineTo = lineToTrans.rotate(-angle, start, true)
+
+			// Use the slider value for label distance
+			// Label should be positioned perpendicular to the component line (in transformed space)
+			// In transformed space, perpendicular is the Y direction
+			const labelOffsetTrans = new SVG.Point(0, -labelBelow * labelDistance * cmtopx)
+			const labelPosTrans = arrowPositionTrans.add(labelOffsetTrans)
+			let labPos: SVG.Point = labelPosTrans.rotate(-angle, start, true)
+
+			// Draw the line parallel to component at the shifted position
+			const lineStrokeWidth = arrowStrokeWidth * arrowThickness
+			console.log("=== Line Stroke Debug ===", {
+				arrowStrokeWidth,
+				arrowThickness,
+				lineStrokeWidth,
+				lineFrom: { x: lineFrom.x, y: lineFrom.y },
+				lineTo: { x: lineTo.x, y: lineTo.y }
+			})
+			const d = `M${lineFrom.toSVGPathString()}L${lineTo.toSVGPathString()}`
+			const path = new SVG.Path()
+			path.plot(d)
+			// Apply arrow thickness to the line stroke width
+			path.fill("none")
+			path.stroke({ color: defaultStroke, width: lineStrokeWidth, linecap: "round", linejoin: "round" })
+			group.add(path)
 
 			const arrowTip = CanvasController.instance.canvas.use("currarrow").fill(defaultStroke)
 			const arrowAngle = angle + (directionBackwards ? Math.PI : 0)
@@ -173,6 +263,7 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				rotate: (180 * arrowAngle) / Math.PI,
 				translate: arrowPos,
 			})
+
 			arrowTip.transform(arrowTipTransform)
 			group.add(arrowTip)
 
@@ -193,6 +284,10 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				currentLabel.backwards = this.currentDirection.value ? true : undefined
 				currentLabel.start = this.currentPosition.value ? true : undefined
 				currentLabel.below = this.currentLabelPosition.value ? true : undefined
+				currentLabel.thickness =
+					this.currentArrowThickness.value.value != 1.0 ? this.currentArrowThickness.value.value : undefined
+				currentLabel.shift =
+					this.currentArrowShift.value.value != 0 ? this.currentArrowShift.value.value : undefined
 				data.current = currentLabel
 			}
 
@@ -215,6 +310,12 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				}
 				if (saveObject.current.below) {
 					this.currentLabelPosition.value = true
+				}
+				if (saveObject.current.thickness) {
+					this.currentArrowThickness.value = new SVG.Number(saveObject.current.thickness, "")
+				}
+				if (saveObject.current.shift) {
+					this.currentArrowShift.value = new SVG.Number(saveObject.current.shift, "")
 				}
 				this.generateCurrentRender()
 			}
@@ -253,6 +354,35 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 
 				if (this.currentDistance.value.value != 0.5) {
 					options.push("current/distance=" + this.currentDistance.value.value.toString())
+				}
+
+				// Convert thickness to CircuiTikZ's current arrow scale
+				// CircuiTikZ uses inverse scale: higher number = smaller arrow
+				// Our thickness: 1.0 = default, >1.0 = thicker, <1.0 = thinner
+				// CircuiTikZ scale: 16 = default, <16 = larger, >16 = smaller
+				if (this.currentArrowThickness.value.value != 1.0) {
+					const circuitikzScale = 16 / this.currentArrowThickness.value.value
+					options.push("current arrow scale=" + circuitikzScale.toFixed(2))
+				}
+
+				// Note: CircuiTikZ does not support arrow shift natively
+				// The shift is only applied in the visual editor, not in TikZ export
+				// If shift != 0, we adjust the distance to approximate the effect
+				if (this.currentArrowShift.value.value != 0) {
+					// Shift affects the position along the wire
+					// We can approximate this by adjusting the distance
+					const adjustedDistance = this.currentDistance.value.value + this.currentArrowShift.value.value * 0.1
+					// Clamp between 0 and 1
+					const clampedDistance = Math.max(0, Math.min(1, adjustedDistance))
+					if (clampedDistance != 0.5) {
+						// Update the distance option if it was already added
+						const distIndex = options.findIndex(opt => opt.startsWith("current/distance="))
+						if (distIndex >= 0) {
+							options[distIndex] = "current/distance=" + clampedDistance.toFixed(2)
+						} else {
+							options.push("current/distance=" + clampedDistance.toFixed(2))
+						}
+					}
 				}
 			}
 		}
