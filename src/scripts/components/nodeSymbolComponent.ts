@@ -26,6 +26,8 @@ import {
 } from "../internal"
 import { selectedBoxWidth } from "../utils/selectionHelper"
 
+// TODO don't use <use> element as the component visualisation, but directly the symbol's children
+
 export type NodeSymbolSaveObject = NodeSaveObject & {
 	id: string
 	options?: string[]
@@ -43,10 +45,6 @@ export class NodeSymbolComponent extends NodeComponent {
 	 * All the possible symbol variants for this node component.
 	 */
 	public referenceSymbol: ComponentSymbol
-	/**
-	 * which static symbol is used from the symbol database (i.e. src/data/symbols.svg)
-	 */
-	protected symbolUse: SVG.Use
 
 	protected optionProperties: Map<BooleanProperty, SymbolOption>
 	protected optionEnumProperties: Map<ChoiceProperty<ChoiceEntry>, EnumOption>
@@ -63,7 +61,16 @@ export class NodeSymbolComponent extends NodeComponent {
 		this.optionEnumProperties = new Map()
 
 		this.scaleState = new SVG.Point(1, 1)
-		this.scaleProperty = new SliderProperty("Scale", 0.1, 10, 0.01, new SVG.Number(1), true)
+		this.scaleProperty = new SliderProperty(
+			"Scale",
+			0.1,
+			10,
+			0.01,
+			new SVG.Number(1),
+			true,
+			undefined,
+			"manipulation:scale"
+		)
 		this.scaleProperty.addChangeListener((ev) => {
 			this.scaleState = new SVG.Point(
 				Math.sign(this.scaleState.x) * ev.value.value,
@@ -75,9 +82,17 @@ export class NodeSymbolComponent extends NodeComponent {
 
 		// initialize UI for options handling
 		if (symbol.possibleOptions.length > 0 || symbol.possibleEnumOptions.length > 0) {
-			this.properties.add(PropertyCategories.options, new SectionHeaderProperty("Options"))
+			this.properties.add(
+				PropertyCategories.options,
+				new SectionHeaderProperty("Options", undefined, "options:header")
+			)
 			for (const option of symbol.possibleOptions) {
-				const property = new BooleanProperty(option.displayName ?? option.name, false)
+				const property = new BooleanProperty(
+					option.displayName ?? option.name,
+					false,
+					undefined,
+					"options:option" + option.name
+				)
 				property.addChangeListener((ev) => {
 					this.updateOptions()
 				})
@@ -89,7 +104,13 @@ export class NodeSymbolComponent extends NodeComponent {
 				enumOption.options.forEach((option) => {
 					choices.push({ key: option.name, name: option.displayName ?? option.name })
 				})
-				const property = new ChoiceProperty(enumOption.displayName, choices, choices[0])
+				const property = new ChoiceProperty(
+					enumOption.displayName,
+					choices,
+					choices[0],
+					undefined,
+					"options:enum_" + enumOption.displayName
+				)
 
 				property.addChangeListener((ev) => {
 					this.updateOptions()
@@ -103,13 +124,13 @@ export class NodeSymbolComponent extends NodeComponent {
 		this.size = new SVG.Point(this.componentVariant.viewBox.w, this.componentVariant.viewBox.h)
 		this.defaultTextPosition = this.componentVariant.textPosition.point.add(this.componentVariant.mid)
 
-		this.symbolUse = CanvasController.instance.canvas.use(this.componentVariant.symbol)
-		this.symbolUse.fill(defaultFill)
-		this.symbolUse.stroke(defaultStroke)
-		this.symbolUse.node.style.color = defaultStroke
+		this.componentVisualization = CanvasController.instance.canvas.use(this.componentVariant.symbol)
+		this.componentVisualization.fill(defaultFill)
+		this.componentVisualization.stroke(defaultStroke)
+		this.componentVisualization.node.style.color = defaultStroke
 		this.referencePosition = this.componentVariant.mid
-		this.visualization.add(this.symbolUse)
-		this.dragElement = this.symbolUse
+		this.visualization.add(this.componentVisualization)
+		this.dragElement = this.componentVisualization
 
 		this.addInfo()
 
@@ -145,32 +166,6 @@ export class NodeSymbolComponent extends NodeComponent {
 		this.properties.add(PropertyCategories.info, new InfoProperty("ID", this.referenceSymbol.tikzName))
 	}
 
-	public toSVG(defs: Map<string, SVG.Element>): SVG.Element {
-		let symbolID = this.componentVariant.symbol.id()
-		if (!defs.has(symbolID)) {
-			const symbol = this.componentVariant.symbol.clone(true, false)
-			defs.set(symbolID, symbol)
-		}
-		this.labelRendering?.addClass("labelRendering")
-		const copiedSVG = this.visualization.clone(true)
-		if (this.labelRendering) {
-			this.labelRendering.removeClass("labelRendering")
-			if (!this.mathJaxLabel.value) {
-				copiedSVG.removeElement(copiedSVG.find(".labelRendering")[0])
-			} else {
-				for (const use of copiedSVG.find(".labelRendering")[0].find("use")) {
-					const id = use.node.getAttribute("xlink:href")
-					if (!defs.has(id)) {
-						defs.set(id, CanvasController.instance.canvas.find(id)[0].clone(true, false))
-					}
-				}
-			}
-
-			copiedSVG.findOne(".labelRendering")?.removeClass("labelRendering")
-		}
-		return copiedSVG
-	}
-
 	protected setPropertiesFromOptions(options: SymbolOption[]) {
 		this.optionProperties.forEach((value, property) => {
 			if (options.find((op) => op.name == value.name)) {
@@ -198,7 +193,7 @@ export class NodeSymbolComponent extends NodeComponent {
 	protected updateOptions() {
 		this.componentVariant = this.referenceSymbol.getVariant(this.optionsFromProperties())
 		this.referencePosition = this.componentVariant.mid
-		this.symbolUse.node.setAttribute("href", "#" + this.componentVariant.symbol.id())
+		this.componentVisualization.node.setAttribute("href", "#" + this.componentVariant.symbol.id())
 		this.size = new SVG.Point(this.componentVariant.viewBox.w, this.componentVariant.viewBox.h)
 		this.defaultTextPosition = this.componentVariant.textPosition.point.add(this.componentVariant.mid)
 
@@ -217,7 +212,7 @@ export class NodeSymbolComponent extends NodeComponent {
 
 	protected update() {
 		let m = this.getTransformMatrix()
-		this.symbolUse.transform(m)
+		this.componentVisualization.transform(m)
 		this._bbox = this.componentVariant.viewBox.transform(m)
 
 		this.updatePositionedLabel()

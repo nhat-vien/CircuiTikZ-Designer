@@ -4,11 +4,14 @@ export class BooleanProperty extends EditableProperty<boolean> {
 	private checkBox: HTMLInputElement
 	private label: string
 
-	public constructor(label: string, initialValue?: boolean, tooltip = "") {
-		super(initialValue, tooltip)
+	public constructor(label: string, initialValue?: boolean, tooltip = "", id: string = "") {
+		super(initialValue, tooltip, id)
 		this.label = label
 	}
 	public eq(first: boolean, second: boolean): boolean {
+		if (first == null || second == null) {
+			return false
+		}
 		return first == second
 	}
 
@@ -29,7 +32,11 @@ export class BooleanProperty extends EditableProperty<boolean> {
 				this.checkBox.classList.add("form-check-input", "m-0")
 				this.checkBox.setAttribute("type", "checkbox")
 				this.checkBox.setAttribute("role", "switch")
-				this.checkBox.checked = this.value
+				if (this.value != null) {
+					this.checkBox.checked = this.value
+				} else {
+					this.checkBox.indeterminate = true
+				}
 
 				this.checkBox.addEventListener("change", (ev) => {
 					this.updateValue(this.checkBox.checked)
@@ -42,9 +49,27 @@ export class BooleanProperty extends EditableProperty<boolean> {
 		row.appendChild(col)
 		return row
 	}
+
+	protected disable(disabled = true): void {
+		this.checkBox.disabled = disabled
+	}
+
 	public updateHTML(): void {
 		if (this.checkBox) {
 			this.checkBox.checked = this.value
 		}
+	}
+
+	public getMultiEditVersion(properties: BooleanProperty[]): BooleanProperty {
+		let allEqual = this.equivalent(properties)
+
+		const result = new BooleanProperty(this.label, allEqual ? this.value : null, this.tooltip, this.id)
+		result.addChangeListener((ev) => {
+			for (const property of properties) {
+				property.updateValue(ev.value, true, true)
+			}
+		})
+		result.getHTMLElement()
+		return result
 	}
 }

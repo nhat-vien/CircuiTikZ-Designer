@@ -5,8 +5,8 @@ export class InfoProperty extends EditableProperty<string> {
 	private labelElement: HTMLElement
 	private labelString: string
 
-	public constructor(label: string, initalValue?: string, tooltip = "") {
-		super(initalValue, tooltip)
+	public constructor(label: string, initalValue?: string, tooltip = "", id: string = "") {
+		super(initalValue, tooltip, id)
 		this.labelString = label
 	}
 
@@ -35,6 +35,7 @@ export class InfoProperty extends EditableProperty<string> {
 
 		return row
 	}
+	protected disable(disabled?: boolean): void {}
 	public eq(first: string, second: string): boolean {
 		return first == second
 	}
@@ -42,5 +43,16 @@ export class InfoProperty extends EditableProperty<string> {
 		if (this.valueElement) {
 			this.valueElement.innerHTML = this.value ?? ""
 		}
+	}
+
+	public getMultiEditVersion(properties: InfoProperty[]): InfoProperty {
+		const result = new InfoProperty(this.labelString, properties[0].value, this.tooltip, this.id)
+		result.addChangeListener((ev) => {
+			for (const property of properties) {
+				property.updateValue(ev.value, true, true)
+			}
+		})
+		result.getHTMLElement()
+		return result
 	}
 }

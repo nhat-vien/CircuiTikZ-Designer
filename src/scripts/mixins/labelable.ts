@@ -60,35 +60,58 @@ export function PositionLabelable<TBase extends AbstractConstructor<CircuitCompo
 		constructor(...args: any[]) {
 			super(...args)
 			//label section
-			this.properties.add(PropertyCategories.label, new SectionHeaderProperty("Label"))
+			this.properties.add(PropertyCategories.label, new SectionHeaderProperty("Label", undefined, "label:header"))
 
-			this.mathJaxLabel = new MathJaxProperty()
+			this.mathJaxLabel = new MathJaxProperty(undefined, undefined, "label:label")
 			this.mathJaxLabel.addChangeListener((ev) => this.generateLabelRender())
 			this.properties.add(PropertyCategories.label, this.mathJaxLabel)
 
 			this.labelReferenceProperty = new ChoiceProperty(
 				"Relative to",
 				this.labelReferenceChoices,
-				this.labelReferenceChoices[0]
+				this.labelReferenceChoices[0],
+				undefined,
+				"label:relative"
 			)
 			this.labelReferenceProperty.addChangeListener((ev) => {
 				this.updatePositionedLabel()
 			})
 			this.properties.add(PropertyCategories.label, this.labelReferenceProperty)
 
-			this.anchorChoice = new ChoiceProperty("Anchor", basicDirections, defaultBasicDirection)
+			this.anchorChoice = new ChoiceProperty(
+				"Anchor",
+				basicDirections,
+				defaultBasicDirection,
+				undefined,
+				"label:anchor"
+			)
 			this.anchorChoice.addChangeListener((ev) => this.updatePositionedLabel())
 			this.properties.add(PropertyCategories.label, this.anchorChoice)
 
-			this.positionChoice = new ChoiceProperty("Position", basicDirections, defaultBasicDirection)
+			this.positionChoice = new ChoiceProperty(
+				"Position",
+				basicDirections,
+				defaultBasicDirection,
+				undefined,
+				"label:position"
+			)
 			this.positionChoice.addChangeListener((ev) => this.updatePositionedLabel())
 			this.properties.add(PropertyCategories.label, this.positionChoice)
 
-			this.labelDistance = new SliderProperty("Gap", -0.5, 1, 0.01, new SVG.Number(0.12, "cm"))
+			this.labelDistance = new SliderProperty(
+				"Gap",
+				-0.5,
+				1,
+				0.01,
+				new SVG.Number(0.12, "cm"),
+				undefined,
+				undefined,
+				"label:gap"
+			)
 			this.labelDistance.addChangeListener((ev) => this.updatePositionedLabel())
 			this.properties.add(PropertyCategories.label, this.labelDistance)
 
-			this.labelColor = new ColorProperty("Color", null)
+			this.labelColor = new ColorProperty("Color", null, undefined, undefined, "label:color")
 			this.labelColor.addChangeListener((ev) => {
 				this.updateTheme()
 				this.update()
@@ -105,7 +128,7 @@ export function PositionLabelable<TBase extends AbstractConstructor<CircuitCompo
 					anchor: this.anchorChoice.value.key,
 					position: this.positionChoice.value.key,
 					relativeToComponent: this.labelReferenceProperty.value.key == "component" ? true : undefined,
-					distance: this.labelDistance.value.value != 0 ? this.labelDistance.value : undefined,
+					distance: this.labelDistance.value.value != 0.12 ? this.labelDistance.value : undefined,
 					color: this.labelColor.value ? this.labelColor.value.toString() : undefined,
 				}
 				data.label = labelWithoutRender
@@ -130,7 +153,7 @@ export function PositionLabelable<TBase extends AbstractConstructor<CircuitCompo
 						this.labelDistance.value = new SVG.Number(saveObject.label.distance)
 					}
 				} else {
-					this.labelDistance.value = new SVG.Number(0, "cm")
+					this.labelDistance.value = new SVG.Number(0.12, "cm")
 				}
 				this.anchorChoice.value =
 					saveObject.label.anchor ?
@@ -230,24 +253,33 @@ export function PathLabelable<TBase extends AbstractConstructor<CircuitComponent
 			super(...args)
 
 			//label section
-			this.properties.add(PropertyCategories.label, new SectionHeaderProperty("Label"))
+			this.properties.add(PropertyCategories.label, new SectionHeaderProperty("Label", undefined, "label:header"))
 
-			this.mathJaxLabel = new MathJaxProperty()
+			this.mathJaxLabel = new MathJaxProperty(undefined, undefined, "label:label")
 			this.mathJaxLabel.addChangeListener((ev) => this.generateLabelRender())
 			this.properties.add(PropertyCategories.label, this.mathJaxLabel)
 
-			this.labelDistance = new SliderProperty("Gap", -0.5, 1, 0.01, new SVG.Number(0.12, "cm"))
+			this.labelDistance = new SliderProperty(
+				"Gap",
+				-0.5,
+				1,
+				0.01,
+				new SVG.Number(0.12, "cm"),
+				undefined,
+				undefined,
+				"label:gap"
+			)
 			this.labelDistance.addChangeListener((ev) => this.updatePathLabel())
 			this.properties.add(PropertyCategories.label, this.labelDistance)
 
-			this.labelColor = new ColorProperty("Color", null)
+			this.labelColor = new ColorProperty("Color", null, undefined, undefined, "label:color")
 			this.labelColor.addChangeListener((ev) => {
 				this.updateTheme()
 				this.update()
 			})
 			this.properties.add(PropertyCategories.label, this.labelColor)
 
-			this.labelSide = new BooleanProperty("Switch side")
+			this.labelSide = new BooleanProperty("Switch side", undefined, undefined, "label:side")
 			this.labelSide.addChangeListener((ev) => this.updatePathLabel())
 			this.properties.add(PropertyCategories.label, this.labelSide)
 		}
@@ -259,7 +291,7 @@ export function PathLabelable<TBase extends AbstractConstructor<CircuitComponent
 				let label: PathLabel = {
 					value: this.mathJaxLabel.value,
 					otherSide: this.labelSide.value ? true : undefined,
-					distance: this.labelDistance.value.value != 0 ? this.labelDistance.value : undefined,
+					distance: this.labelDistance.value.value != 0.12 ? this.labelDistance.value : undefined,
 					color: this.labelColor.value ? this.labelColor.value.toString() : undefined,
 				}
 				data.label = label
@@ -285,7 +317,7 @@ export function PathLabelable<TBase extends AbstractConstructor<CircuitComponent
 						this.labelDistance.value = new SVG.Number(saveObject.label.distance)
 					}
 				} else {
-					this.labelDistance.value = new SVG.Number(0, "cm")
+					this.labelDistance.value = new SVG.Number(0.12, "cm")
 				}
 				this.mathJaxLabel.value = saveObject.label.value
 				this.labelColor.value = saveObject.label.color ? new SVG.Color(saveObject.label.color) : null
@@ -328,7 +360,7 @@ export function PathLabelable<TBase extends AbstractConstructor<CircuitComponent
 	return PathLabelable
 }
 
-function generateLabelRender(labelRendering: SVG.Element, mathJaxLabel: MathJaxProperty): SVG.Element {
+export function generateLabelRender(labelRendering: SVG.Element, mathJaxLabel: MathJaxProperty): SVG.Element {
 	// if a previous label was rendered, remove everything concerning that rendering
 	if (labelRendering) {
 		let removeIDs = new Set<string>()

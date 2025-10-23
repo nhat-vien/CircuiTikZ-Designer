@@ -6,8 +6,23 @@ type ChangeEvent<T> = {
 }
 
 export abstract class EditableProperty<T> {
-	private tooltip: string
+	protected tooltip: string
 	protected element: HTMLElement
+
+	private _disabled: boolean
+	public get disabled(): boolean {
+		return this._disabled
+	}
+	public set disabled(value: boolean) {
+		this.getHTMLElement() // build component if not already done, otherwise disabling might not work sometimes
+		this._disabled = value
+		this.disable(value)
+	}
+
+	private _id: string
+	public get id(): string {
+		return this._id
+	}
 
 	private _value: T
 	public get value(): T {
@@ -23,7 +38,7 @@ export abstract class EditableProperty<T> {
 
 	private changeListeners: { (event: ChangeEvent<T>): void }[]
 
-	public constructor(initialValue?: T, tooltip: string = "") {
+	public constructor(initialValue?: T, tooltip: string = "", id: string = "") {
 		// make sure to be in drag_pan mode when changing any value
 		this.changeListeners = [
 			(ev) => {
@@ -33,7 +48,21 @@ export abstract class EditableProperty<T> {
 		if (initialValue !== undefined) {
 			this._value = initialValue
 		}
+		this._id = id
 		this.tooltip = tooltip
+	}
+
+	public equivalent(properties: EditableProperty<T>[]) {
+		if (properties.length < 2) {
+			return true
+		}
+		const first = properties[0]
+		for (const property of properties.slice(1)) {
+			if (!this.eq(first.value, property.value)) {
+				return false
+			}
+		}
+		return true
 	}
 
 	/**
@@ -42,20 +71,16 @@ export abstract class EditableProperty<T> {
 	public abstract eq(first: T, second: T): boolean
 
 	/**
-	 *
-	 * @param enable
+	 * Build this property to be able to edit multiple properties at once
+	 * @param properties
 	 */
-	public enable(enable = true): void {
-		if (this.element) {
-			for (const element of this.element.getElementsByClassName("disableable")) {
-				if (enable) {
-					element.classList.remove("disabled")
-				} else {
-					element.classList.add("disabled")
-				}
-			}
-		}
-	}
+	public abstract getMultiEditVersion(properties: EditableProperty<T>[]): EditableProperty<T>
+
+	/**
+	 * override this to implement how this component can be disabled
+	 * @param disabled
+	 */
+	protected abstract disable(disabled?: boolean): void
 
 	public getHTMLElement(): HTMLElement {
 		if (!this.element) {
@@ -67,6 +92,13 @@ export abstract class EditableProperty<T> {
 			}
 		}
 		return this.element
+	}
+
+	public removeHTMLElement(): void {
+		if (this.element) {
+			this.element.remove()
+			this.element = null
+		}
 	}
 
 	/**
@@ -113,5 +145,12 @@ export abstract class EditableProperty<T> {
 				element(changeEvent)
 			}
 		}
+	}
+
+	public remove() {
+		for (const changeListener of this.changeListeners) {
+			this.removeChangeListener(changeListener)
+		}
+		this.element?.remove()
 	}
 }
