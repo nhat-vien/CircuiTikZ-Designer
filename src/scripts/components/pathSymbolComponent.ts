@@ -398,8 +398,43 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 		let m = this.getTransformMatrix()
 		this.componentVisualization.transform(m)
 
-		let startLineEndPoint = this.relSymbolStart.add(this.componentVariant.mid).transform(m)
-		let endLineStartPoint = this.relSymbolEnd.add(this.componentVariant.mid).transform(m)
+		// For rmeter and rmeterwa, calculate line endpoints differently since symbol doesn't rotate
+		const keepHorizontal =
+			this.referenceSymbol.tikzName === "rmeter" || this.referenceSymbol.tikzName === "rmeterwa"
+
+		let startLineEndPoint: SVG.Point
+		let endLineStartPoint: SVG.Point
+
+		if (keepHorizontal) {
+			// For horizontal meters, the connection points are at the left and right edges of the symbol
+			// We need to calculate where the wires meet the symbol circle
+			const symbolMid = this.componentVariant.mid
+			const radius = Math.abs(this.relSymbolStart.x) // Distance from center to edge
+
+			// Calculate the angle from center to each reference point
+			const angleToStart = Math.atan2(
+				this.referencePoints[0].y - this.position.y,
+				this.referencePoints[0].x - this.position.x
+			)
+			const angleToEnd = Math.atan2(
+				this.referencePoints[1].y - this.position.y,
+				this.referencePoints[1].x - this.position.x
+			)
+
+			// Connection points on the circle edge
+			startLineEndPoint = new SVG.Point(
+				this.position.x + radius * Math.cos(angleToStart) * this.scaleState.x,
+				this.position.y + radius * Math.sin(angleToStart) * this.scaleState.y
+			)
+			endLineStartPoint = new SVG.Point(
+				this.position.x + radius * Math.cos(angleToEnd) * this.scaleState.x,
+				this.position.y + radius * Math.sin(angleToEnd) * this.scaleState.y
+			)
+		} else {
+			// Normal behavior for other components
+			startLineEndPoint = this.relSymbolStart.add(this.componentVariant.mid).transform(m)
+			endLineStartPoint = this.relSymbolEnd.add(this.componentVariant.mid).transform(m)
+		}
 
 		if (this.invert.value) {
 			let switchPos = startLineEndPoint
@@ -476,6 +511,12 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 	 */
 	public getTransformMatrix(): SVG.Matrix {
 		const symbolRel = this.componentVariant.mid
+
+		// For rmeter and rmeterwa, keep the symbol horizontal (don't rotate)
+		const keepHorizontal =
+			this.referenceSymbol.tikzName === "rmeter" || this.referenceSymbol.tikzName === "rmeterwa"
+		const rotationAngle = keepHorizontal ? 0 : -this.rotationDeg
+
 		return new SVG.Matrix({
 			scaleX: this.scaleState.x,
 			scaleY: this.scaleState.y,
@@ -483,7 +524,7 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 			origin: [symbolRel.x, symbolRel.y],
 		}).lmultiply(
 			new SVG.Matrix({
-				rotate: -this.rotationDeg,
+				rotate: rotationAngle,
 				translate: [this.position.x, this.position.y],
 			})
 		)
@@ -594,6 +635,16 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 		}
 
 		let to: CircuitikzTo = { options: options, name: this.name.value }
+
+		// For rmeter and rmeterwa, add the 't' parameter for text inside meter
+		if (this.referenceSymbol.tikzName === "rmeter") {
+			// rmeter is for voltage measurement, add t=V
+			options.push("t=V")
+		} else if (this.referenceSymbol.tikzName === "rmeterwa") {
+			// rmeterwa is for current measurement, add t=A
+			options.push("t=A")
+		}
+
 		this.buildTikzPathLabel(to)
 		this.buildTikzVoltage(to)
 		this.buildTikzCurrent(to)

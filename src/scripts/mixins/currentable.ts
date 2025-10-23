@@ -30,7 +30,7 @@ let currentDirectionBackward = false
 let currentPositionStart = false
 let currentLabelBelow = false
 
-const arrowStrokeWidth = 1.5  // Increased from 0.5 for better visibility
+const arrowStrokeWidth = 1.5 // Increased from 0.5 for better visibility
 const currentArrowScale = 16
 const defaultRlen = 1.4
 const cmtopx = 4800 / 127 // 96px/2.54
@@ -206,7 +206,10 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 			const compEnd = midTrans.add(new SVG.Point(southeastDelta.x * scaleFactor, 0))
 
 			// Apply arrow thickness to the scale calculation
-			const arrowScale = ((cmtopx * defaultRlen) / (currentArrowScale / scaleFactor) + 2 * arrowStrokeWidth) * arrowThickness
+			// Use cube root (power of 1/3) to make arrowhead grow much slower than the line thickness
+			// This keeps the proportions more balanced - arrowhead grows at ~1/3 the rate of line thickness
+			const baseArrowScale = (cmtopx * defaultRlen) / (currentArrowScale / scaleFactor) + 2 * arrowStrokeWidth
+			const arrowScale = baseArrowScale * Math.pow(arrowThickness, 0.4)
 
 			// Calculate base arrow position along the component
 			const baseArrowPositionTrans =
@@ -244,7 +247,7 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				arrowThickness,
 				lineStrokeWidth,
 				lineFrom: { x: lineFrom.x, y: lineFrom.y },
-				lineTo: { x: lineTo.x, y: lineTo.y }
+				lineTo: { x: lineTo.x, y: lineTo.y },
 			})
 			const d = `M${lineFrom.toSVGPathString()}L${lineTo.toSVGPathString()}`
 			const path = new SVG.Path()
@@ -376,7 +379,7 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 					const clampedDistance = Math.max(0, Math.min(1, adjustedDistance))
 					if (clampedDistance != 0.5) {
 						// Update the distance option if it was already added
-						const distIndex = options.findIndex(opt => opt.startsWith("current/distance="))
+						const distIndex = options.findIndex((opt) => opt.startsWith("current/distance="))
 						if (distIndex >= 0) {
 							options[distIndex] = "current/distance=" + clampedDistance.toFixed(2)
 						} else {
