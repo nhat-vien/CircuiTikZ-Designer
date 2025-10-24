@@ -29,6 +29,9 @@ import {
 	CircuitikzTo,
 	SaveController,
 	buildTikzStringFromPathCommand,
+	VoltageLabel,
+	Voltageable,
+	Currentable,
 } from "../internal"
 import { lineRectIntersection, pointInsideRect, selectedBoxWidth, selectionSize } from "../utils/selectionHelper"
 
@@ -38,9 +41,10 @@ export type PathSymbolSaveObject = PathSaveObject & {
 	name?: string
 	options?: string[]
 	label?: PathLabel
+	voltage?: VoltageLabel
 }
 
-export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) {
+export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(Nameable(PathComponent)))) {
 	private static jsonID = "path"
 	static {
 		CircuitComponent.jsonSaveMap.set(PathSymbolComponent.jsonID, PathSymbolComponent)
@@ -83,7 +87,16 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 	constructor(symbol: ComponentSymbol) {
 		super()
 		this.scaleState = new SVG.Point(1, 1)
-		this.scaleProperty = new SliderProperty("Scale", 0.1, 10, 0.01, new SVG.Number(1), true)
+		this.scaleProperty = new SliderProperty(
+			"Scale",
+			0.1,
+			10,
+			0.01,
+			new SVG.Number(1),
+			true,
+			undefined,
+			"manipulation:scale"
+		)
 		this.scaleProperty.addChangeListener((ev) => {
 			this.scaleState = new SVG.Point(
 				Math.sign(this.scaleState.x) * ev.value.value,
@@ -97,9 +110,17 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 		this.optionEnumProperties = new Map()
 
 		if (symbol.possibleOptions.length > 0 || symbol.possibleEnumOptions.length > 0) {
-			this.properties.add(PropertyCategories.options, new SectionHeaderProperty("Options"))
+			this.properties.add(
+				PropertyCategories.options,
+				new SectionHeaderProperty("Options", undefined, "options:header")
+			)
 			for (const option of symbol.possibleOptions) {
-				const property = new BooleanProperty(option.displayName ?? option.name, false)
+				const property = new BooleanProperty(
+					option.displayName ?? option.name,
+					false,
+					undefined,
+					"options:option" + option.name
+				)
 				property.addChangeListener((ev) => {
 					this.updateOptions()
 				})
@@ -111,7 +132,13 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 				enumOption.options.forEach((option) => {
 					choices.push({ key: option.name, name: option.displayName ?? option.name })
 				})
-				const property = new ChoiceProperty(enumOption.displayName, choices, choices[0])
+				const property = new ChoiceProperty(
+					enumOption.displayName,
+					choices,
+					choices[0],
+					undefined,
+					"options:enum_" + enumOption.displayName
+				)
 
 				property.addChangeListener((ev) => {
 					this.updateOptions()
@@ -168,16 +195,19 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 		this.visualization.add(this.dragEndLine)
 		this.visualization.hide()
 
-		this.properties.add(PropertyCategories.manipulation, new SectionHeaderProperty("Symbol Orientation"))
+		this.properties.add(
+			PropertyCategories.manipulation,
+			new SectionHeaderProperty("Symbol Orientation", undefined, "manipulation:header")
+		)
 
-		this.mirror = new BooleanProperty("Mirror", false)
+		this.mirror = new BooleanProperty("Mirror", false, undefined, "manipulation:mirror")
 		this.mirror.addChangeListener((ev) => {
 			this.scaleState.y *= -1
 			this.update()
 		})
 		this.properties.add(PropertyCategories.manipulation, this.mirror)
 
-		this.invert = new BooleanProperty("Invert", false)
+		this.invert = new BooleanProperty("Invert", false, undefined, "manipulation:invert")
 		this.invert.addChangeListener((ev) => {
 			this.scaleState.x *= -1
 			this.update()
@@ -193,6 +223,56 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 				.filter((_, index) => !(index == startPinIndex || index == endPinIndex))
 				.map((pin) => new SnapPoint(this, pin.name, pin.point.add(this.componentVariant.mid))),
 		]
+	}
+
+	protected updateVoltageRender() {
+		this.voltageArrowRendering?.remove()
+		if (this.voltageLabel.value != "") {
+			let voltageArrow = this.generateVoltageArrow(
+				this.referencePoints[0],
+				this.referencePoints[1],
+				this.componentVariant.mid.mul(-1),
+				new SVG.Point(this.componentVariant.viewBox.x2, this.componentVariant.viewBox.y2).sub(
+					this.componentVariant.mid
+				),
+				this.scaleState
+			)
+			this.voltageArrowRendering = voltageArrow.arrow
+			this.voltageRendering.add(this.voltageArrowRendering)
+
+			const voltageLabelBbox = this.voltageLabelRendering.bbox()
+			const voltageLabelReference = new SVG.Point(voltageLabelBbox.cx, voltageLabelBbox.cy).add(
+				new SVG.Point(voltageLabelBbox.w / 2, voltageLabelBbox.h / 2).mul(voltageArrow.labelAnchorDir)
+			)
+			this.voltageLabelRendering.transform(
+				new SVG.Matrix({ translate: voltageArrow.labelPos.sub(voltageLabelReference) })
+			)
+		}
+	}
+
+	protected updateCurrentRender(): void {
+		this.currentArrowRendering?.remove()
+		if (this.currentLabel.value != "") {
+			let currentArrow = this.generateCurrentArrow(
+				this.referencePoints[0],
+				this.referencePoints[1],
+				this.componentVariant.mid.mul(-1),
+				new SVG.Point(this.componentVariant.viewBox.x2, this.componentVariant.viewBox.y2).sub(
+					this.componentVariant.mid
+				),
+				this.scaleState
+			)
+			this.currentArrowRendering = currentArrow.arrow
+			this.currentRendering.add(this.currentArrowRendering)
+
+			const currentLabelBbox = this.currentLabelRendering.bbox()
+			const currentLabelReference = new SVG.Point(currentLabelBbox.cx, currentLabelBbox.cy).add(
+				new SVG.Point(currentLabelBbox.w / 2, currentLabelBbox.h / 2).mul(currentArrow.labelAnchorDir)
+			)
+			this.currentLabelRendering.transform(
+				new SVG.Matrix({ translate: currentArrow.labelPos.sub(currentLabelReference) })
+			)
+		}
 	}
 
 	protected addInfo() {
@@ -318,8 +398,43 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 		let m = this.getTransformMatrix()
 		this.componentVisualization.transform(m)
 
-		let startLineEndPoint = this.relSymbolStart.add(this.componentVariant.mid).transform(m)
-		let endLineStartPoint = this.relSymbolEnd.add(this.componentVariant.mid).transform(m)
+		// For rmeter and rmeterwa, calculate line endpoints differently since symbol doesn't rotate
+		const keepHorizontal =
+			this.referenceSymbol.tikzName === "rmeter" || this.referenceSymbol.tikzName === "rmeterwa"
+
+		let startLineEndPoint: SVG.Point
+		let endLineStartPoint: SVG.Point
+
+		if (keepHorizontal) {
+			// For horizontal meters, the connection points are at the left and right edges of the symbol
+			// We need to calculate where the wires meet the symbol circle
+			const symbolMid = this.componentVariant.mid
+			const radius = Math.abs(this.relSymbolStart.x) // Distance from center to edge
+
+			// Calculate the angle from center to each reference point
+			const angleToStart = Math.atan2(
+				this.referencePoints[0].y - this.position.y,
+				this.referencePoints[0].x - this.position.x
+			)
+			const angleToEnd = Math.atan2(
+				this.referencePoints[1].y - this.position.y,
+				this.referencePoints[1].x - this.position.x
+			)
+
+			// Connection points on the circle edge
+			startLineEndPoint = new SVG.Point(
+				this.position.x + radius * Math.cos(angleToStart) * this.scaleState.x,
+				this.position.y + radius * Math.sin(angleToStart) * this.scaleState.y
+			)
+			endLineStartPoint = new SVG.Point(
+				this.position.x + radius * Math.cos(angleToEnd) * this.scaleState.x,
+				this.position.y + radius * Math.sin(angleToEnd) * this.scaleState.y
+			)
+		} else {
+			// Normal behavior for other components
+			startLineEndPoint = this.relSymbolStart.add(this.componentVariant.mid).transform(m)
+			endLineStartPoint = this.relSymbolEnd.add(this.componentVariant.mid).transform(m)
+		}
 
 		if (this.invert.value) {
 			let switchPos = startLineEndPoint
@@ -366,6 +481,8 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 		)
 
 		this.updatePathLabel()
+		this.updateVoltageRender()
+		this.updateCurrentRender()
 		this._bbox = this.visualization.bbox()
 		this.referencePosition = this.position.sub(new SVG.Point(this._bbox.x, this._bbox.y))
 
@@ -394,6 +511,12 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 	 */
 	public getTransformMatrix(): SVG.Matrix {
 		const symbolRel = this.componentVariant.mid
+
+		// For rmeter and rmeterwa, keep the symbol horizontal (don't rotate)
+		const keepHorizontal =
+			this.referenceSymbol.tikzName === "rmeter" || this.referenceSymbol.tikzName === "rmeterwa"
+		const rotationAngle = keepHorizontal ? 0 : -this.rotationDeg
+
 		return new SVG.Matrix({
 			scaleX: this.scaleState.x,
 			scaleY: this.scaleState.y,
@@ -401,7 +524,7 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 			origin: [symbolRel.x, symbolRel.y],
 		}).lmultiply(
 			new SVG.Matrix({
-				rotate: -this.rotationDeg,
+				rotate: rotationAngle,
 				translate: [this.position.x, this.position.y],
 			})
 		)
@@ -512,34 +635,20 @@ export class PathSymbolComponent extends PathLabelable(Nameable(PathComponent)) 
 		}
 
 		let to: CircuitikzTo = { options: options, name: this.name.value }
+
+		// For rmeter and rmeterwa, add the 't' parameter for text inside meter
+		if (this.referenceSymbol.tikzName === "rmeter") {
+			// rmeter is for voltage measurement, add t=V
+			options.push("t=V")
+		} else if (this.referenceSymbol.tikzName === "rmeterwa") {
+			// rmeterwa is for current measurement, add t=A
+			options.push("t=A")
+		}
+
 		this.buildTikzPathLabel(to)
+		this.buildTikzVoltage(to)
+		this.buildTikzCurrent(to)
 		command.connectors.push(to)
-	}
-
-	public toSVG(defs: Map<string, SVG.Element>): SVG.Element {
-		let symbolID = this.componentVariant.symbol.id()
-		if (!defs.has(symbolID)) {
-			const symbol = this.componentVariant.symbol.clone(true, false)
-			defs.set(symbolID, symbol)
-		}
-		this.labelRendering?.addClass("labelRendering")
-		const copiedSVG = this.visualization.clone(true)
-		if (this.labelRendering) {
-			this.labelRendering.removeClass("labelRendering")
-			if (!this.mathJaxLabel.value) {
-				copiedSVG.removeElement(copiedSVG.find(".labelRendering")[0])
-			} else {
-				for (const use of copiedSVG.find(".labelRendering")[0].find("use")) {
-					const id = use.node.getAttribute("xlink:href")
-					if (!defs.has(id)) {
-						defs.set(id, CanvasController.instance.canvas.find(id)[0].clone(true, false))
-					}
-				}
-			}
-
-			copiedSVG.findOne(".labelRendering")?.removeClass("labelRendering")
-		}
-		return copiedSVG
 	}
 
 	public remove(): void {

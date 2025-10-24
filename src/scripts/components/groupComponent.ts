@@ -46,7 +46,14 @@ export class GroupComponent extends CircuitComponent {
 		MainController.instance.circuitComponents.splice(firstIndex, 0, this) // added here
 
 		this.properties.add(PropertyCategories.ordering, new SectionHeaderProperty("Grouping"))
-		let grouping = new ButtonGridProperty(1, [["Ungroup", ""]], [(ev) => this.ungroup()])
+		let grouping = new ButtonGridProperty(
+			1,
+			[["Ungroup", ""]],
+			[(ev) => this.ungroup()],
+			undefined,
+			undefined,
+			"ordering:ungroup"
+		)
 		this.properties.add(PropertyCategories.ordering, grouping)
 
 		this.update()

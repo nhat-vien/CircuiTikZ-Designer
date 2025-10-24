@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Current Arrow Enhancements**: Added two new properties for current arrows
+  - Arrow Thickness: Adjust the thickness/size of current arrows (range: 0.1-3.0, default: 1.0)
+  - Arrow Shift: Shift arrow position along the component wire (range: -1.0-1.0, default: 0)
+- New slider controls in the Current label properties panel
+- TikZ export support for `current/distance/thickness` and `current/distance/shift` options
+- JSON serialization support for saving and loading arrow thickness and shift values
+
+### Changed
+
+- Updated `currentable.ts` mixin to support arrow customization
+- Enhanced `generateCurrentArrow()` function to apply thickness and shift transformations
+- Improved current arrow rendering with real-time updates
+
 ## [0.7.5]
 
 ### Changed

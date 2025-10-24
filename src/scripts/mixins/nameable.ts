@@ -44,8 +44,11 @@ export function Nameable<TBase extends AbstractConstructor<CircuitComponent>>(Ba
 				}
 				return ""
 			}
-			this.name = new TextProperty("Name", "", "", validator)
-			this.properties.add(PropertyCategories.info, new SectionHeaderProperty("TikZ name"))
+			this.name = new TextProperty("Name", "", "", validator, "info:name")
+			this.properties.add(
+				PropertyCategories.info,
+				new SectionHeaderProperty("TikZ name", undefined, "info:nameHeader")
+			)
 			this.properties.add(PropertyCategories.info, this.name)
 		}
 

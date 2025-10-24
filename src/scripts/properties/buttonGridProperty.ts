@@ -1,20 +1,22 @@
 import { EditableProperty } from "../internal"
 
 export class ButtonGridProperty extends EditableProperty<never> {
-	private buttonsPerRow: number
+	private buttonsPerRow: 1 | 2 | 3 | 4 | 6 | 12
 	private labels: [string, string | [string, string]][]
 	private callbacks: ((ev: Event) => void)[]
 	private materialSymbols: boolean
 	private tooltips: string[]
+	private buttons: HTMLButtonElement[]
 
 	public constructor(
 		buttonsPerRow: 1 | 2 | 3 | 4 | 6 | 12,
 		labels: [string, string | [string, string]][],
 		callbacks: ((ev: Event) => void)[],
 		materialSymbols = false,
-		tooltips: string[] = []
+		tooltips: string[] = [],
+		id: string = ""
 	) {
-		super()
+		super(undefined as never, "", id)
 		if (labels.length !== callbacks.length) {
 			throw new Error("every button has to have a callback and a label")
 		}
@@ -23,6 +25,7 @@ export class ButtonGridProperty extends EditableProperty<never> {
 		this.callbacks = callbacks
 		this.materialSymbols = materialSymbols
 		this.tooltips = tooltips
+		this.buttons = []
 	}
 
 	public eq(first: never, second: never): boolean {
@@ -78,10 +81,33 @@ export class ButtonGridProperty extends EditableProperty<never> {
 				button.appendChild(spanMat)
 			}
 			button.addEventListener("click", callback)
+			this.buttons.push(button)
 			col.appendChild(button)
 			row.appendChild(col)
 		}
 		return row
 	}
+
+	protected disable(disabled = true): void {
+		this.buttons.forEach((button) => (button.disabled = disabled))
+	}
 	public updateHTML(): void {}
+
+	public getMultiEditVersion(properties: ButtonGridProperty[]): ButtonGridProperty {
+		const result = new ButtonGridProperty(
+			this.buttonsPerRow,
+			this.labels,
+			this.callbacks,
+			this.materialSymbols,
+			this.tooltips,
+			this.id
+		)
+		result.addChangeListener((ev) => {
+			for (const property of properties) {
+				property.updateValue(ev.value, true, true)
+			}
+		})
+		result.getHTMLElement()
+		return result
+	}
 }

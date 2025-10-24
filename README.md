@@ -44,6 +44,31 @@ Stop wrestling with code syntax — focus on your circuit design, and let Circui
 4. Run "npm start" in terminal in project directory
 5. Open website at URL provided in command line output
 
+## Deploy to GitHub Pages
+
+This repository includes a GitHub Actions workflow for automatic deployment to GitHub Pages.
+
+### Quick Setup (3 steps):
+
+1. **Enable GitHub Pages:**
+   - Go to: `https://github.com/YOUR_USERNAME/YOUR_REPO/settings/pages`
+   - Set **Source** to **GitHub Actions** (NOT "Deploy from a branch")
+   
+2. **Run the workflow:**
+   - Go to the **Actions** tab
+   - Click **Deploy to GitHub Pages** → **Run workflow**
+   
+3. **Access your site:**
+   - `https://YOUR_USERNAME.github.io/YOUR_REPO/`
+
+### Troubleshooting
+
+If you get a **404 error** during deployment:
+- This means GitHub Pages is not enabled - see [PAGES_SETUP.md](PAGES_SETUP.md) for detailed instructions
+- The workflow needs the Pages source to be set to "GitHub Actions" in repository settings
+
+For detailed instructions, troubleshooting, and common errors, see **[PAGES_SETUP.md](PAGES_SETUP.md)**.
+
 ## How to use
 
 All controls of the application are explained in the help menu in the top right corner via the circled questionmark in the application itself.

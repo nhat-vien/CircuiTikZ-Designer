@@ -1,15 +1,14 @@
 import * as SVG from "@svgdotjs/svg.js"
 import {
 	basicDirections,
+	BooleanProperty,
 	CanvasController,
+	ChoiceEntry,
 	ChoiceProperty,
 	CircuitComponent,
 	ColorProperty,
 	convertTextToNativeSVGText,
 	defaultBasicDirection,
-	defaultFontSize,
-	FontSize,
-	fontSizes,
 	MathjaxParser,
 	PropertyCategories,
 	SectionHeaderProperty,
@@ -18,16 +17,56 @@ import {
 	SliderProperty,
 	SnapPoint,
 	strokeStyleChoices,
-	Text,
-	TextAlign,
 	TextAreaProperty,
 	textToSVG,
 	TikzNodeCommand,
+	RadioButtonProperty,
 } from "../internal"
 import { rectRectIntersection, roundTikz } from "../utils/selectionHelper"
 
 export type RectangleSaveObject = ShapeSaveObject & {
 	text?: Text
+}
+
+export type FontSize = ChoiceEntry & {
+	size: number
+}
+export const fontSizes: FontSize[] = [
+	{ key: "tiny", name: "tiny", size: 5 },
+	{ key: "scriptsize", name: "scriptsize", size: 7 },
+	{ key: "footnotesize", name: "footnotesize", size: 8 },
+	{ key: "small", name: "small", size: 9 },
+	{ key: "normalsize", name: "normalsize", size: 10 },
+	{ key: "large", name: "large", size: 12 },
+	{ key: "Large", name: "Large", size: 14.4 },
+	{ key: "LARGE", name: "LARGE", size: 17.28 },
+	{ key: "huge", name: "huge", size: 20.74 },
+	{ key: "Huge", name: "Huge", size: 24.88 },
+]
+export const defaultFontSize = fontSizes[4]
+
+export type Text = {
+	text: string
+	align?: TextAlign
+	justify?: TextJustify
+	fontSize?: string
+	innerSep?: SVG.Number
+	color?: string | "default"
+	showPlaceholderText?: boolean
+	useHyphenation?: boolean
+}
+
+export enum TextAlign {
+	LEFT,
+	CENTER,
+	RIGHT,
+	JUSTIFY,
+}
+
+export enum TextJustify {
+	START = -1,
+	CENTER = 0,
+	END = 1,
 }
 
 export class RectangleComponent extends ShapeComponent {
@@ -38,9 +77,19 @@ export class RectangleComponent extends ShapeComponent {
 
 	declare protected dragElement: SVG.Rect
 
+	private text: Text
 	private textAreaProperty: TextAreaProperty
-	private textInnerSep: SliderProperty
+	private textAreaPlaceHolder: BooleanProperty
+	private textAreaHyphenation: BooleanProperty
+	private textAreaAlign: RadioButtonProperty<{ key: string; name: string; isMaterialSymbol: boolean; numberID: any }>
+	private textAreaJustify: RadioButtonProperty<{
+		key: string
+		name: string
+		isMaterialSymbol: boolean
+		numberID: any
+	}>
 	private textFontSize: ChoiceProperty<FontSize>
+	private textInnerSep: SliderProperty
 	private textColor: ColorProperty
 	private textSVG: SVG.G
 
@@ -66,37 +115,100 @@ export class RectangleComponent extends ShapeComponent {
 
 		this.visualization.add(this.dragElement)
 
-		this.properties.add(PropertyCategories.text, new SectionHeaderProperty("Text"))
-		this.textAreaProperty = new TextAreaProperty({
-			text: "",
-			align: TextAlign.LEFT,
-			justify: -1,
-			showPlaceholderText: this.createAsText,
-			useHyphenation: this.useHyphenation,
-		})
+		this.properties.add(PropertyCategories.text, new SectionHeaderProperty("Text", undefined, "text:header"))
+		this.textAreaProperty = new TextAreaProperty("", undefined, "text:area")
 		if (createAsText) {
 			this.strokeStyleProperty.value = strokeStyleChoices[1]
 		}
 		this.textAreaProperty.addChangeListener((ev) => {
-			this.createAsText = ev.value.showPlaceholderText
-			this.useHyphenation = ev.value.useHyphenation
 			this.update()
 		})
 		this.properties.add(PropertyCategories.text, this.textAreaProperty)
 
-		this.textFontSize = new ChoiceProperty("Fontsize", fontSizes, defaultFontSize)
+		this.textAreaPlaceHolder = new BooleanProperty("Placeholder", createAsText, undefined, "text:placeholder")
+		this.textAreaPlaceHolder.addChangeListener((ev) => {
+			this.createAsText = ev.value
+			this.update()
+		})
+		this.properties.add(PropertyCategories.text, this.textAreaPlaceHolder)
+
+		this.textAreaHyphenation = new BooleanProperty(
+			"Hyphenation",
+			this.useHyphenation,
+			undefined,
+			"text:hyphenation"
+		)
+		this.textAreaHyphenation.addChangeListener((ev) => {
+			this.useHyphenation = ev.value
+			this.update()
+		})
+		this.properties.add(PropertyCategories.text, this.textAreaHyphenation)
+
+		this.textAreaAlign = new RadioButtonProperty<{
+			key: string
+			name: string
+			isMaterialSymbol: boolean
+			numberID: any
+		}>(
+			"Align",
+			[
+				{ key: "LEFT", name: "format_align_left", isMaterialSymbol: true, numberID: TextAlign.LEFT },
+				{ key: "CENTER", name: "format_align_center", isMaterialSymbol: true, numberID: TextAlign.CENTER },
+				{ key: "RIGHT", name: "format_align_right", isMaterialSymbol: true, numberID: TextAlign.RIGHT },
+				{ key: "JUSTIFY", name: "format_align_justify", isMaterialSymbol: true, numberID: TextAlign.JUSTIFY },
+			],
+			{ key: "LEFT", name: "format_align_left", isMaterialSymbol: true, numberID: TextAlign.LEFT },
+			undefined,
+			"text:align"
+		)
+		this.textAreaAlign.addChangeListener((ev) => {
+			this.update()
+		})
+		this.properties.add(PropertyCategories.text, this.textAreaAlign)
+
+		this.textAreaJustify = new RadioButtonProperty<{
+			key: string
+			name: string
+			isMaterialSymbol: boolean
+			numberID: any
+		}>(
+			"Justify",
+			[
+				{ key: "START", name: "vertical_align_top", isMaterialSymbol: true, numberID: TextJustify.START },
+				{ key: "CENTER", name: "vertical_align_center", isMaterialSymbol: true, numberID: TextJustify.CENTER },
+				{ key: "END", name: "vertical_align_bottom", isMaterialSymbol: true, numberID: TextJustify.END },
+			],
+			{ key: "START", name: "vertical_align_top", isMaterialSymbol: true, numberID: TextJustify.START },
+			undefined,
+			"text:justify"
+		)
+		this.textAreaJustify.addChangeListener((ev) => {
+			this.update()
+		})
+		this.properties.add(PropertyCategories.text, this.textAreaJustify)
+
+		this.textFontSize = new ChoiceProperty("Fontsize", fontSizes, defaultFontSize, undefined, "text:fontsize")
 		this.textFontSize.addChangeListener((ev) => {
 			this.update()
 		})
 		this.properties.add(PropertyCategories.text, this.textFontSize)
 
-		this.textInnerSep = new SliderProperty("Inner sep", 0, 10, 0.1, new SVG.Number(5, "pt"))
+		this.textInnerSep = new SliderProperty(
+			"Inner sep",
+			0,
+			10,
+			0.1,
+			new SVG.Number(5, "pt"),
+			undefined,
+			undefined,
+			"text:innersep"
+		)
 		this.textInnerSep.addChangeListener((ev) => {
 			this.update()
 		})
 		this.properties.add(PropertyCategories.text, this.textInnerSep)
 
-		this.textColor = new ColorProperty("Color", null)
+		this.textColor = new ColorProperty("Color", null, undefined, undefined, "text:color")
 		this.textColor.addChangeListener((ev) => {
 			this.updateText()
 		})
@@ -153,13 +265,13 @@ export class RectangleComponent extends ShapeComponent {
 				text: undefined,
 			}
 			let hasText = false
-			if (this.textAreaProperty.value.text != undefined && this.textAreaProperty.value.text !== "") {
-				textData.text = this.textAreaProperty.value.text
-				if (this.textAreaProperty.value.align !== TextAlign.LEFT) {
-					textData.align = this.textAreaProperty.value.align
+			if (this.textAreaProperty.value != undefined && this.textAreaProperty.value !== "") {
+				textData.text = this.textAreaProperty.value
+				if (this.textAreaAlign.value.numberID !== TextAlign.LEFT) {
+					textData.align = this.textAreaAlign.value.numberID
 				}
-				if (this.textAreaProperty.value.justify !== -1) {
-					textData.justify = this.textAreaProperty.value.justify
+				if (this.textAreaJustify.value.numberID !== TextJustify.START) {
+					textData.justify = this.textAreaJustify.value.numberID
 				}
 				if (this.textFontSize.value.key !== defaultFontSize.key) {
 					textData.fontSize = this.textFontSize.value.key
@@ -190,13 +302,21 @@ export class RectangleComponent extends ShapeComponent {
 			let text: Text = {
 				text: saveObject.text.text == undefined ? "" : saveObject.text.text,
 				align: saveObject.text.align ?? TextAlign.LEFT,
-				justify: saveObject.text.justify ?? -1,
+				justify: saveObject.text.justify ?? TextJustify.START,
 				showPlaceholderText: saveObject.text.showPlaceholderText ?? false,
 				useHyphenation: saveObject.text.useHyphenation ?? false,
 			}
 			this.createAsText = text.showPlaceholderText
 			this.useHyphenation = text.useHyphenation
-			this.textAreaProperty.value = text
+			this.textAreaProperty.value = text.text
+			this.textAreaPlaceHolder.value = this.createAsText
+			this.textAreaHyphenation.value = this.useHyphenation
+			this.textAreaAlign.value =
+				Object.values(this.textAreaAlign.options).find((item) => item.numberID == text.align) ??
+				this.textAreaAlign.options[0]
+			this.textAreaJustify.value =
+				Object.values(this.textAreaJustify.options).find((item) => item.numberID == text.justify) ??
+				this.textAreaJustify.options[0]
 
 			this.textFontSize.value =
 				saveObject.text.fontSize ?
@@ -264,20 +384,20 @@ export class RectangleComponent extends ShapeComponent {
 				"cm"
 		)
 
-		if (this.textAreaProperty.value.text) {
+		if (this.textAreaProperty.value) {
 			let options: string[] = []
 
 			//treat justify like left aligned
 			let alignDir =
-				this.textAreaProperty.value.align == TextAlign.JUSTIFY ? -1 : this.textAreaProperty.value.align - 1
-			let dir = new SVG.Point(alignDir, this.textAreaProperty.value.justify)
+				this.textAreaAlign.value.numberID == TextAlign.JUSTIFY ? -1 : this.textAreaAlign.value.numberID - 1
+			let dir = new SVG.Point(alignDir, this.textAreaJustify.value.numberID)
 
 			// which anchor and position corresponds to the direction?
 			let anchor = basicDirections.find((item) => item.direction.eq(dir)).name
 			let pos = this.position.add(dir.mul(this.size.div(2)).rotate(this.rotationDeg))
 			options.push("anchor=" + anchor)
 
-			switch (this.textAreaProperty.value.align) {
+			switch (this.textAreaAlign.value.numberID) {
 				case TextAlign.LEFT:
 					options.push("align=left")
 					break
@@ -315,7 +435,7 @@ export class RectangleComponent extends ShapeComponent {
 			}
 			const mathjaxParser = new MathjaxParser()
 			const sections: string[] = []
-			const textSections = mathjaxParser.parse(this.textAreaProperty.value.text)
+			const textSections = mathjaxParser.parse(this.textAreaProperty.value)
 			for (const section of textSections) {
 				if (section.type == "text") {
 					sections.push(section.text.replaceAll(/[\#\%\$\&\_\{\}\~\^\\\n]/g, (match) => replaceDict[match]))
@@ -337,30 +457,7 @@ export class RectangleComponent extends ShapeComponent {
 	}
 
 	public toSVG(defs: Map<string, SVG.Element>): SVG.Element {
-		// save which symbols are used by this component
-		const backgroundDefs = CanvasController.instance.canvas.findOne("#backgroundDefs") as SVG.Defs
-
-		let labelUse = this.labelRendering?.find("use") ?? []
-		let textUse = this.textSVG?.find("use") ?? []
-
-		for (const element of labelUse.concat(textUse)) {
-			const id = element.node.getAttribute("xlink:href")
-			if (!defs.has(id)) {
-				const symbol = backgroundDefs.findOne(id) as SVG.Element
-				defs.set(id, symbol.clone(true, false))
-			}
-		}
-
-		this.labelRendering?.addClass("labelRendering")
-		this.textSVG?.addClass("textSVG")
-		const copiedSVG = this.visualization.clone(true)
-		if (this.labelRendering) {
-			if (!this.mathJaxLabel.value) {
-				copiedSVG.removeElement(copiedSVG.find(".labelRendering")[0])
-			}
-			this.labelRendering.removeClass("labelRendering")
-			copiedSVG.findOne(".labelRendering")?.removeClass("labelRendering")
-		}
+		const copiedSVG = super.toSVG(defs)
 		if (this.textSVG) {
 			let texts = copiedSVG.find("text") as SVG.List<SVG.Text>
 			for (const textElement of texts) {
@@ -393,13 +490,6 @@ export class RectangleComponent extends ShapeComponent {
 			copiedSVG.findOne(".textSVG")?.removeClass("textSVG")
 		}
 
-		let draggable = copiedSVG.find(".draggable")[0]
-		if (draggable) {
-			copiedSVG.removeElement(draggable)
-		}
-
-		const viz = copiedSVG.findOne('[fill-opacity="0"][stroke-opacity="0"]')
-		viz?.remove()
 		return copiedSVG
 	}
 
@@ -410,12 +500,12 @@ export class RectangleComponent extends ShapeComponent {
 	private updateText() {
 		this.textSVG?.remove()
 
-		if (this.textAreaProperty.value.text || this.createAsText) {
+		if (this.textAreaProperty.value || this.createAsText) {
 			let textData: Text = {
-				text: this.textAreaProperty.value.text || (this.createAsText ? "text component" : ""),
+				text: this.textAreaProperty.value || (this.createAsText ? "text component" : ""),
 			}
-			textData.align = this.textAreaProperty.value.align ?? TextAlign.LEFT
-			textData.justify = this.textAreaProperty.value.justify ?? -1
+			textData.align = this.textAreaAlign.value.numberID ?? TextAlign.LEFT
+			textData.justify = this.textAreaJustify.value.numberID ?? TextJustify.START
 			textData.fontSize = this.textFontSize.value.key
 
 			textData.color = this.textColor.value?.toString() || "var(--bs-emphasis-color)"

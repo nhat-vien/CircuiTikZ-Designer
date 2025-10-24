@@ -172,12 +172,13 @@ export class ExportController {
 			svgObj.add(component)
 		}
 
-		//basic cleanup of components used to improve dragging
-		for (const removeElement of svgObj
-			.find('[fill="none"][stroke="transparent"]')
-			.concat(svgObj.find('[fill="transparent"][stroke="none"]'))) {
+		//basic cleanup of invisible components (fill and stroke both need to be invisible)
+		for (const removeElement of svgObj.find(
+			':is([fill-opacity="0"],[fill="none"],[fill="transparent"]):is([stroke-opacity="0"],[stroke="none"],[stroke-width="0"],[stroke="transparent"])'
+		)) {
 			removeElement.remove()
 		}
+		//basic draggable class
 		for (const removeClass of svgObj.find(".draggable")) {
 			removeClass.removeClass("draggable")
 		}
@@ -229,9 +230,14 @@ export class ExportController {
 		}
 		// create listeners
 		const saveFile = (() => {
+			const filename =
+				(this.fileBasename.value.trim() || MainController.instance.designName.value).replace(
+					/[^a-z0-9]/gi,
+					"_"
+				) || "Circuit"
 			FileSaver.saveAs(
 				new Blob([this.exportedContent.value], { type: "text/x-tex;charset=utf-8" }),
-				(this.fileBasename.value.trim() || "Circuit") + this.fileExtension.value
+				filename + this.fileExtension.value
 			)
 		}).bind(this)
 		const hideListener = (() => {
