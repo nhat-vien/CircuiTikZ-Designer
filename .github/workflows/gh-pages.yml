@@ -33,7 +33,10 @@ jobs:
 
       - name: Build project
         run: npm run build
-
+ 
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+ 
       - name: Upload build artifacts
         uses: actions/upload-pages-artifact@v3
         with:
