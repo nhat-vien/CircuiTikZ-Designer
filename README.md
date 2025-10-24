@@ -46,15 +46,28 @@ Stop wrestling with code syntax — focus on your circuit design, and let Circui
 
 ## Deploy to GitHub Pages
 
-This repository includes a GitHub Actions workflow for automatic deployment to GitHub Pages. To enable it:
+This repository includes a GitHub Actions workflow for automatic deployment to GitHub Pages.
 
-1. Go to your repository settings: `https://github.com/YOUR_USERNAME/YOUR_REPO/settings/pages`
-2. Under "Build and deployment":
-   - Set **Source** to **GitHub Actions**
-3. Push to the `main` branch or trigger the workflow manually
-4. Your site will be available at `https://YOUR_USERNAME.github.io/YOUR_REPO/`
+### Quick Setup (3 steps):
 
-For detailed instructions, troubleshooting, and setup for forked repositories, see [PAGES_SETUP.md](PAGES_SETUP.md).
+1. **Enable GitHub Pages:**
+   - Go to: `https://github.com/YOUR_USERNAME/YOUR_REPO/settings/pages`
+   - Set **Source** to **GitHub Actions** (NOT "Deploy from a branch")
+   
+2. **Run the workflow:**
+   - Go to the **Actions** tab
+   - Click **Deploy to GitHub Pages** → **Run workflow**
+   
+3. **Access your site:**
+   - `https://YOUR_USERNAME.github.io/YOUR_REPO/`
+
+### Troubleshooting
+
+If you get a **404 error** during deployment:
+- This means GitHub Pages is not enabled - see [PAGES_SETUP.md](PAGES_SETUP.md) for detailed instructions
+- The workflow needs the Pages source to be set to "GitHub Actions" in repository settings
+
+For detailed instructions, troubleshooting, and common errors, see **[PAGES_SETUP.md](PAGES_SETUP.md)**.
 
 ## How to use
 
