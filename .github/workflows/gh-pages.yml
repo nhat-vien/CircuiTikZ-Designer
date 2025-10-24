@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   build:
+    if: ${{ github.event.repository.fork == false }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -33,16 +34,20 @@ jobs:
 
       - name: Build project
         run: npm run build
- 
+
+      - name: Add .nojekyll file
+        run: touch dist/.nojekyll
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
- 
+
       - name: Upload build artifacts
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
   deploy:
+    if: ${{ github.event.repository.fork == false }}
     needs: build
     runs-on: ubuntu-latest
     environment:
