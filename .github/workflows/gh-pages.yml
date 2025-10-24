@@ -2,59 +2,50 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    branches: [ main ]
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Detect package.json
+        run: |
+          if [ -f package.json ]; then echo "HAS_PKG=true" >> $GITHUB_ENV; else echo "HAS_PKG=false" >> $GITHUB_ENV; fi
+
+      - name: Setup Node (if needed)
+        if: env.HAS_PKG == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: '18'
 
-      - name: Install dependencies
+      - name: Install dependencies (if needed)
+        if: env.HAS_PKG == 'true'
         run: npm ci
 
-      - name: Build project
+      - name: Build (if needed)
+        if: env.HAS_PKG == 'true'
         run: npm run build
 
-      - name: Add .nojekyll file
-        run: touch dist/.nojekyll
+      - name: Determine publish directory
+        run: |
+          if [ -d build ]; then echo "PUBLISH_DIR=build" >> $GITHUB_ENV
+          elif [ -d dist ]; then echo "PUBLISH_DIR=dist" >> $GITHUB_ENV
+          elif [ -d public ]; then echo "PUBLISH_DIR=public" >> $GITHUB_ENV
+          else echo "PUBLISH_DIR=." >> $GITHUB_ENV
+          fi
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v1
         with:
-          path: dist
+          path: ${{ env.PUBLISH_DIR }}
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    permissions:
-      pages: write
-      id-token: write
-    steps:
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v1
