@@ -1,0 +1,51 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect package.json
+        run: |
+          if [ -f package.json ]; then echo "HAS_PKG=true" >> $GITHUB_ENV; else echo "HAS_PKG=false" >> $GITHUB_ENV; fi
+
+      - name: Setup Node (if needed)
+        if: env.HAS_PKG == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies (if needed)
+        if: env.HAS_PKG == 'true'
+        run: npm ci
+
+      - name: Build (if needed)
+        if: env.HAS_PKG == 'true'
+        run: npm run build
+
+      - name: Determine publish directory
+        run: |
+          if [ -d build ]; then echo "PUBLISH_DIR=build" >> $GITHUB_ENV
+          elif [ -d dist ]; then echo "PUBLISH_DIR=dist" >> $GITHUB_ENV
+          elif [ -d public ]; then echo "PUBLISH_DIR=public" >> $GITHUB_ENV
+          else echo "PUBLISH_DIR=." >> $GITHUB_ENV
+          fi
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: ${{ env.PUBLISH_DIR }}
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v1
