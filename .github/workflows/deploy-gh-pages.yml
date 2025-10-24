@@ -15,23 +15,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-name: Deploy to GitHub Pages
-
-on:
-  push:
-    branches: [ main ]
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
 
       - name: Detect package.json
         id: detect
@@ -65,10 +48,10 @@ jobs:
         run: echo "Publish directory is: ${{ env.PUBLISH_DIR }}"
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ env.PUBLISH_DIR }}
 
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v4
 
