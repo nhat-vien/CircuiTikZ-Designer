@@ -15,45 +15,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Detect package.json
-        id: detect
-        run: |
-          if [ -f package.json ]; then echo "HAS_PKG=true" >> $GITHUB_ENV; else echo "HAS_PKG=false" >> $GITHUB_ENV; fi
-
-      - name: Setup Node (if needed)
-        if: env.HAS_PKG == 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install dependencies (if needed)
-        if: env.HAS_PKG == 'true'
-        run: npm ci
-
-      - name: Build (if needed)
-        if: env.HAS_PKG == 'true'
-        run: npm run build
-
-      - name: Determine publish directory
-        id: publish_dir
-        run: |
-          if [ -d build ]; then echo "PUBLISH_DIR=build" >> $GITHUB_ENV
-          elif [ -d dist ]; then echo "PUBLISH_DIR=dist" >> $GITHUB_ENV
-          elif [ -d public ]; then echo "PUBLISH_DIR=public" >> $GITHUB_ENV
-          else echo "PUBLISH_DIR=." >> $GITHUB_ENV
-          fi
-
-      - name: Show publish dir
-        run: echo "Publish directory is: ${{ env.PUBLISH_DIR }}"
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v1
-        with:
-          path: ${{ env.PUBLISH_DIR }}
-
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v1
 name: Deploy to GitHub Pages
 
 on:
@@ -73,10 +34,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Detect package.json
-<<<<<<< HEAD
         id: detect
-=======
->>>>>>> dce595b2e405b617818c32c791109e62c081c745
         run: |
           if [ -f package.json ]; then echo "HAS_PKG=true" >> $GITHUB_ENV; else echo "HAS_PKG=false" >> $GITHUB_ENV; fi
 
@@ -95,10 +53,7 @@ jobs:
         run: npm run build
 
       - name: Determine publish directory
-<<<<<<< HEAD
         id: publish_dir
-=======
->>>>>>> dce595b2e405b617818c32c791109e62c081c745
         run: |
           if [ -d build ]; then echo "PUBLISH_DIR=build" >> $GITHUB_ENV
           elif [ -d dist ]; then echo "PUBLISH_DIR=dist" >> $GITHUB_ENV
@@ -106,12 +61,9 @@ jobs:
           else echo "PUBLISH_DIR=." >> $GITHUB_ENV
           fi
 
-<<<<<<< HEAD
       - name: Show publish dir
         run: echo "Publish directory is: ${{ env.PUBLISH_DIR }}"
 
-=======
->>>>>>> dce595b2e405b617818c32c791109e62c081c745
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v1
         with:
@@ -119,3 +71,4 @@ jobs:
 
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v1
+
