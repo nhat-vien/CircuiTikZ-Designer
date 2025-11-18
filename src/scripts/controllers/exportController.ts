@@ -316,8 +316,20 @@ export class ExportController {
 			try {
 				console.log("Image loaded successfully, bbox:", bbox)
 
-				// Create canvas with appropriate size (2x for better quality)
-				const scale = 2
+				// Create canvas with appropriate size
+				// Use higher scale for small circuits to prevent blurry images
+				// Minimum dimension of 800px to ensure good quality even for single components
+				const minDimension = 800
+				const baseScale = 4 // Higher base scale for better quality
+
+				let scale = baseScale
+				// If bbox is very small, scale up more to reach minimum dimension
+				if (bbox.width * scale < minDimension || bbox.height * scale < minDimension) {
+					const scaleForWidth = minDimension / bbox.width
+					const scaleForHeight = minDimension / bbox.height
+					scale = Math.max(scaleForWidth, scaleForHeight)
+				}
+
 				const canvas = document.createElement("canvas")
 				canvas.width = bbox.width * scale
 				canvas.height = bbox.height * scale
