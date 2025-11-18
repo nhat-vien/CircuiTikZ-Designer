@@ -181,6 +181,11 @@ export class MainController {
 			passive: true,
 		})
 
+		const exportImageButton: HTMLButtonElement = document.getElementById("exportImageButton") as HTMLButtonElement
+		exportImageButton.addEventListener("click", ExportController.instance.exportImage.bind(ExportController.instance), {
+			passive: true,
+		})
+
 		// init save and load
 		SaveController.instance
 		const saveButton: HTMLButtonElement = document.getElementById("saveButton") as HTMLButtonElement
@@ -770,6 +775,10 @@ export class MainController {
 			ExportController.instance.exportSVG()
 			return false
 		})
+		hotkeys("ctrl+shift+i,command+shift+i", () => {
+			ExportController.instance.exportImage()
+			return false
+		})
 
 		// mode change
 		hotkeys("q", () => {
@@ -808,8 +817,8 @@ export class MainController {
 			{ shortcut: "r", component: "Resistor (american)" },
 			{ shortcut: "c", component: "Capacitor" },
 			{ shortcut: "alt+c,option+c", component: "Curved (polarized) capacitor" },
-			{ shortcut: "l", component: "Inductor (american)" },
-			{ shortcut: "alt+l,option+l", component: "Inductor (cute)" },
+			{ shortcut: "l", component: "Inductor (cute)" },
+			{ shortcut: "alt+l,option+l", component: "Inductor (american)" },
 			{ shortcut: "d", component: "Empty diode" },
 			{ shortcut: "b", component: "NPN" },
 			{ shortcut: "alt+b,option+b", component: "PNP" },

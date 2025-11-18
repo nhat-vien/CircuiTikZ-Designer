@@ -15,6 +15,7 @@ import {
 	ChoiceEntry,
 	approxCompare,
 	interpolate,
+	BooleanProperty,
 } from "../internal"
 
 export type VoltageLabel = {
@@ -54,7 +55,7 @@ const voltageStyleChoices: ChoiceEntry[] = [
 	{ key: "straight", name: "straight" },
 	{ key: "european", name: "european" },
 ]
-const defaultVoltageStyleChoice = voltageStyleChoices[0]
+const defaultVoltageStyleChoice = voltageStyleChoices[1] // american
 let voltageEuropean = true
 let voltageStraight = false
 let voltageRaised = false
@@ -76,6 +77,7 @@ export interface Voltageable {
 	voltageShift: SliderProperty
 	switchSide: ChoiceProperty<ChoiceEntry>
 	switchDirection: ChoiceProperty<ChoiceEntry>
+	voltageShow: BooleanProperty
 }
 
 export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Base: TBase) {
@@ -91,6 +93,7 @@ export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Ba
 		protected voltagePosition: ChoiceProperty<ChoiceEntry>
 		protected voltageDirection: ChoiceProperty<ChoiceEntry>
 		protected voltageStyle: ChoiceProperty<ChoiceEntry>
+		protected voltageShow: BooleanProperty
 
 		constructor(...args: any[]) {
 			super(...args)
@@ -98,6 +101,10 @@ export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				PropertyCategories.voltage,
 				new SectionHeaderProperty("Voltage label", undefined, "voltage:header")
 			)
+
+			this.voltageShow = new BooleanProperty("Show voltage", false, undefined, "voltage:show")
+			this.voltageShow.addChangeListener((ev) => this.updateVoltageRender())
+			this.properties.add(PropertyCategories.voltage, this.voltageShow)
 
 			this.voltageLabel = new MathJaxProperty(undefined, undefined, "voltage:label")
 			this.voltageLabel.addChangeListener((ev) => this.generateVoltageRender())
@@ -473,7 +480,8 @@ export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Ba
 		}
 
 		protected buildTikzVoltage(to: CircuitikzTo): void {
-			if (this.voltageLabel.value != "") {
+			// Only export voltage if show property is enabled
+			if (this.voltageShow.value && this.voltageLabel.value != "") {
 				const options = to.options
 
 				let voltageString = "v"

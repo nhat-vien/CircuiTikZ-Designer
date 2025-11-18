@@ -151,6 +151,18 @@
 									<span class="d-md-none fs-4"> Export SVG code </span>
 								</button>
 							</li>
+							<li class="nav-item col-12 col-md-auto">
+								<button
+									type="button"
+									class="dropdown-item"
+									id="exportImageButton"
+									data-bs-toggle="tooltip"
+									data-bs-placement="bottom"
+									data-bs-title="Export the circuit as image (PNG/JPG) (Ctrl/⌘ + Shift + I)">
+									<span class="material-symbols-outlined toolbarButton">photo_camera</span>
+									<span class="d-md-none fs-4"> Export Image </span>
+								</button>
+							</li>
 							<li class="nav-item py-2 py-md-1 col-12 col-md-auto">
 								<div class="vr d-none d-md-flex h-100 mx-md-2"></div>
 								<hr class="d-md-none my-2" />
@@ -462,6 +474,10 @@
 							content_copy
 						</div>
 						<textarea id="exportedContent" spellcheck="false"></textarea>
+						<div id="exportImagePreview" style="display: none; text-align: center; padding: 20px;">
+							<p>Image ready for export. Click "Save" to download.</p>
+							<canvas id="exportImagePreviewCanvas" style="max-width: 100%; border: 1px solid #ccc;"></canvas>
+						</div>
 					</div>
 					<div class="modal-footer">
 						<div class="input-group w-px-200 flex-grow-1">
@@ -801,6 +817,11 @@
 									<td>Ctrl/⌘ + Shift + E</td>
 									<td>Export SVG code</td>
 								</tr>
+								<tr>
+									<td></td>
+									<td>Ctrl/⌘ + Shift + I</td>
+									<td>Export Image (PNG/JPG)</td>
+								</tr>
 							</tbody>
 							<tbody class="table-group-divider">
 								<tr>
@@ -816,7 +837,7 @@
 								<tr>
 									<td></td>
 									<td>(Alt/⌥ +) L</td>
-									<td>Place (cute) inductor</td>
+									<td>Place (american) inductor</td>
 								</tr>
 								<tr>
 									<td></td>
