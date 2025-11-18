@@ -139,7 +139,7 @@ export class WireComponent extends Currentable(Strokable(PathComponent)) {
 		})
 
 		// override default value
-		this.strokeWidthProperty.value = new SVG.Number("0.5pt")
+		this.strokeWidthProperty.value = new SVG.Number("1.0pt")
 		this.strokeInfo.width = this.strokeWidthProperty.value
 
 		this.visualization.add(this.wire)

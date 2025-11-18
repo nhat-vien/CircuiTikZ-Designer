@@ -168,7 +168,7 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 		this.startLine = CanvasController.instance.canvas
 			.line()
 			.fill("none")
-			.stroke({ color: defaultStroke, width: 0.5 })
+			.stroke({ color: defaultStroke, width: 1.0 })
 		this.endLine = this.startLine.clone(true)
 
 		this.dragStartLine = CanvasController.instance.canvas
