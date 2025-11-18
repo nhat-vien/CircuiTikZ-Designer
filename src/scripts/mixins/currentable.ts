@@ -23,6 +23,7 @@ export type CurrentLabel = {
 	below?: boolean
 	backwards?: boolean
 	shift?: number
+	arrowWidth?: number
 }
 
 let currentDirectionBackward = false
@@ -45,6 +46,8 @@ export interface Currentable {
 	currentDirection: BooleanProperty
 	currentLabelPosition: BooleanProperty
 	currentShift: SliderProperty
+	currentArrowWidth: SliderProperty
+	currentShow: BooleanProperty
 }
 
 export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Base: TBase) {
@@ -59,6 +62,8 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 		protected currentDirection: BooleanProperty
 		protected currentLabelPosition: BooleanProperty
 		protected currentShift: SliderProperty
+		protected currentArrowWidth: SliderProperty
+		protected currentShow: BooleanProperty
 
 		constructor(...args: any[]) {
 			super(...args)
@@ -68,6 +73,11 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 			)
 
 			this.currentLabel = new MathJaxProperty(undefined, undefined, "current:label")
+
+			this.currentShow = new BooleanProperty("Show current", false, undefined, "current:show")
+			this.currentShow.addChangeListener((ev) => this.updateCurrentRender())
+			this.properties.add(PropertyCategories.current, this.currentShow)
+
 			this.currentLabel.addChangeListener((ev) => this.generateCurrentRender())
 			this.properties.add(PropertyCategories.current, this.currentLabel)
 
@@ -122,6 +132,19 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 			)
 			this.currentShift.addChangeListener((ev) => this.updateCurrentRender())
 			this.properties.add(PropertyCategories.current, this.currentShift)
+
+			this.currentArrowWidth = new SliderProperty(
+				"Current width",
+				0.5,
+				20,
+				0.5,
+				new SVG.Number(10, ""),
+				false,
+				"Width of the current arrow shaft in pixels",
+				"current:arrowwidth"
+			)
+			this.currentArrowWidth.addChangeListener((ev) => this.updateCurrentRender())
+			this.properties.add(PropertyCategories.current, this.currentArrowWidth)
 		}
 
 		protected generateCurrentRender(): void {
@@ -195,8 +218,7 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 			// Create the arrow line using Path (more reliable than Line)
 			const pathData = `M ${lineStart.x} ${lineStart.y} L ${lineEnd.x} ${lineEnd.y}`
 			const arrowLine = new SVG.Path({ d: pathData })
-			arrowLine.fill("none").stroke({ color: defaultStroke, width: arrowStrokeWidth * 2 })
-			group.add(arrowLine)
+			arrowLine.fill("none").stroke({ color: defaultStroke, width: this.currentArrowWidth.value.value })
 
 			// Draw the arrow tip
 			const arrowTip = CanvasController.instance.canvas.use("currarrow").fill(defaultStroke)
@@ -208,6 +230,9 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				translate: arrowPos,
 			})
 			arrowTip.transform(arrowTipTransform)
+
+			// Add to group in correct order
+			group.add(arrowLine)
 			group.add(arrowTip)
 
 			return {
@@ -228,6 +253,8 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				currentLabel.start = this.currentPosition.value ? true : undefined
 				currentLabel.below = this.currentLabelPosition.value ? true : undefined
 				currentLabel.shift = this.currentShift.value.value != 0 ? this.currentShift.value.value : undefined
+				currentLabel.arrowWidth =
+					this.currentArrowWidth.value.value != 10 ? this.currentArrowWidth.value.value : undefined
 				data.current = currentLabel
 			}
 
@@ -253,6 +280,9 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				}
 				if (saveObject.current.shift !== undefined) {
 					this.currentShift.value = new SVG.Number(saveObject.current.shift, "")
+				}
+				if (saveObject.current.arrowWidth !== undefined) {
+					this.currentArrowWidth.value = new SVG.Number(saveObject.current.arrowWidth, "")
 				}
 				this.generateCurrentRender()
 			}

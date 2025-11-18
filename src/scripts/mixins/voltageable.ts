@@ -15,6 +15,7 @@ import {
 	ChoiceEntry,
 	approxCompare,
 	interpolate,
+	BooleanProperty,
 } from "../internal"
 
 export type VoltageLabel = {
@@ -76,6 +77,7 @@ export interface Voltageable {
 	voltageShift: SliderProperty
 	switchSide: ChoiceProperty<ChoiceEntry>
 	switchDirection: ChoiceProperty<ChoiceEntry>
+	voltageShow: BooleanProperty
 }
 
 export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Base: TBase) {
@@ -91,6 +93,7 @@ export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Ba
 		protected voltagePosition: ChoiceProperty<ChoiceEntry>
 		protected voltageDirection: ChoiceProperty<ChoiceEntry>
 		protected voltageStyle: ChoiceProperty<ChoiceEntry>
+		protected voltageShow: BooleanProperty
 
 		constructor(...args: any[]) {
 			super(...args)
@@ -98,6 +101,10 @@ export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				PropertyCategories.voltage,
 				new SectionHeaderProperty("Voltage label", undefined, "voltage:header")
 			)
+
+			this.voltageShow = new BooleanProperty("Show voltage", false, undefined, "voltage:show")
+			this.voltageShow.addChangeListener((ev) => this.updateVoltageRender())
+			this.properties.add(PropertyCategories.voltage, this.voltageShow)
 
 			this.voltageLabel = new MathJaxProperty(undefined, undefined, "voltage:label")
 			this.voltageLabel.addChangeListener((ev) => this.generateVoltageRender())

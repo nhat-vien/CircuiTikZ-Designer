@@ -181,6 +181,11 @@ export class MainController {
 			passive: true,
 		})
 
+		const exportImageButton: HTMLButtonElement = document.getElementById("exportImageButton") as HTMLButtonElement
+		exportImageButton.addEventListener("click", ExportController.instance.exportImage.bind(ExportController.instance), {
+			passive: true,
+		})
+
 		// init save and load
 		SaveController.instance
 		const saveButton: HTMLButtonElement = document.getElementById("saveButton") as HTMLButtonElement
@@ -768,6 +773,10 @@ export class MainController {
 		})
 		hotkeys("ctrl+shift+e,command+shift+e", () => {
 			ExportController.instance.exportSVG()
+			return false
+		})
+		hotkeys("ctrl+shift+i,command+shift+i", () => {
+			ExportController.instance.exportImage()
 			return false
 		})
 

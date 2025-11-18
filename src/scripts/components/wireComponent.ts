@@ -282,7 +282,8 @@ export class WireComponent extends Currentable(Strokable(PathComponent)) {
 
 	protected updateCurrentRender(): void {
 		this.currentArrowRendering?.remove()
-		if (this.currentLabel.value != "" && this.referencePoints.length >= 2) {
+		// Show current arrow if currentShow is enabled OR if there's a label
+		if ((this.currentShow.value || this.currentLabel.value != "") && this.referencePoints.length >= 2) {
 			// For wire, we draw current on the first or last segment depending on currentPosition
 			const positionStart = this.currentPosition.value
 

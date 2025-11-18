@@ -27,10 +27,13 @@ export class ExportController {
 	private fileExtensionDropdown: HTMLUListElement
 	private copyButton: HTMLDivElement
 	private saveButton: HTMLButtonElement
+	private imagePreview: HTMLDivElement
+	private imagePreviewCanvas: HTMLCanvasElement
 
 	private copyTooltip: Tooltip
 
 	private defaultDisplay: string
+	private exportImageCanvas: HTMLCanvasElement | null = null
 
 	private usedIDs: Map<string, number>
 	public createExportID(prefix = "N"): string {
@@ -72,6 +75,8 @@ export class ExportController {
 		this.fileExtensionDropdown = document.getElementById("exportModalFileExtensionDropdown") as HTMLUListElement
 		this.copyButton = document.getElementById("copyExportedContent") as HTMLDivElement
 		this.saveButton = document.getElementById("exportModalSave") as HTMLButtonElement
+		this.imagePreview = document.getElementById("exportImagePreview") as HTMLDivElement
+		this.imagePreviewCanvas = document.getElementById("exportImagePreviewCanvas") as HTMLCanvasElement
 
 		this.defaultDisplay = this.exportedContent.parentElement.style.display
 
@@ -218,16 +223,181 @@ export class ExportController {
 		MainController.instance.updateTheme()
 	}
 
-	private export(extensions: string[]) {
-		// copy text and adjust tooltip for feedback
-		const copyText = () => {
-			navigator.clipboard.writeText(this.exportedContent.value).then(() => {
-				this.copyButton.setAttribute("data-bs-title", "Copied!")
-				this.copyTooltip.dispose()
-				this.copyTooltip = new Tooltip(this.copyButton)
-				this.copyTooltip.show()
-			})
+	/**
+	 * Exports the circuit as an image (PNG or JPG).
+	 * Converts SVG to raster image format using Canvas API.
+	 */
+	exportImage() {
+		this.heading.textContent = "Export Image"
+		this.exportedContent.parentElement.style.display = "none" // Hide textarea for image export
+		this.imagePreview.style.display = "block" // Show image preview
+
+		// prepare selection and bounding box
+		SelectionController.instance.selectAll()
+		SelectionController.instance.deactivateSelection()
+
+		let colorTheme = MainController.instance.darkMode
+		MainController.instance.darkMode = false
+		MainController.instance.updateTheme()
+
+		//Get the canvas
+		let svgObj = new SVG.Svg()
+		svgObj.node.style.fontSize = "10pt"
+		svgObj.node.style.overflow = "visible"
+
+		// get all used node/symbol names
+		let defsMap: Map<string, SVG.Element> = new Map<string, SVG.Element>()
+		let components: SVG.Element[] = []
+		for (const instance of MainController.instance.circuitComponents) {
+			components.push(instance.toSVG(defsMap))
 		}
+
+		// add to defs
+		if (defsMap.size > 0) {
+			const defs = new SVG.Defs()
+			for (const element of defsMap) {
+				defs.add(element[1])
+			}
+			svgObj.add(defs)
+		}
+
+		for (const component of components) {
+			svgObj.add(component)
+		}
+
+		//basic cleanup of invisible components (fill and stroke both need to be invisible)
+		for (const removeElement of svgObj.find(
+			':is([fill-opacity="0"],[fill="none"],[fill="transparent"]):is([stroke-opacity="0"],[stroke="none"],[stroke-width="0"],[stroke="transparent"])'
+		)) {
+			removeElement.remove()
+		}
+		//basic draggable class
+		for (const removeClass of svgObj.find(".draggable")) {
+			removeClass.removeClass("draggable")
+		}
+
+		// bounding box to include all elements
+		let bbox = svgObj.bbox()
+		if (!bbox || bbox.width === 0 || bbox.height === 0) {
+			// If no valid bbox, use default size
+			bbox = { x: 0, y: 0, width: 800, height: 600 }
+		} else {
+			//make bbox 2px larger in every direction to not cut of tiny bits of some objects
+			bbox.x -= 2
+			bbox.y -= 2
+			bbox.width += 4
+			bbox.height += 4
+		}
+		svgObj.viewbox(bbox)
+
+		// convert SVG to image
+		let tempDiv = document.createElement("div")
+		tempDiv.appendChild(svgObj.node)
+		let svgString = tempDiv.innerHTML.replaceAll(defaultStroke, "#000").replaceAll(defaultFill, "#fff")
+
+		// Add XML namespace if not present
+		if (!svgString.includes('xmlns="http://www.w3.org/2000/svg"')) {
+			svgString = svgString.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"')
+		}
+
+		console.log("SVG String length:", svgString.length)
+		console.log("SVG preview:", svgString.substring(0, 200))
+
+		// Create image from SVG
+		const img = new Image()
+		img.crossOrigin = "anonymous"
+
+		const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" })
+		const url = URL.createObjectURL(svgBlob)
+
+		console.log("Blob URL created:", url)
+
+		img.onload = () => {
+			try {
+				console.log("Image loaded successfully, bbox:", bbox)
+
+				// Create canvas with appropriate size (2x for better quality)
+				const scale = 2
+				const canvas = document.createElement("canvas")
+				canvas.width = bbox.width * scale
+				canvas.height = bbox.height * scale
+				const ctx = canvas.getContext("2d")
+
+				if (!ctx) {
+					console.error("Failed to get canvas context")
+					return
+				}
+
+				console.log("Canvas created:", canvas.width, "x", canvas.height)
+
+				// Fill with white background
+				ctx.fillStyle = "#ffffff"
+				ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+				// Draw image
+				ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+
+				console.log("Image drawn to canvas")
+
+				// Store canvas for export
+				this.exportedContent.value = "" // Clear text content
+				this.exportImageCanvas = canvas
+
+				// Show preview
+				const previewCtx = this.imagePreviewCanvas.getContext("2d")
+				this.imagePreviewCanvas.width = canvas.width
+				this.imagePreviewCanvas.height = canvas.height
+				if (previewCtx) {
+					previewCtx.drawImage(canvas, 0, 0)
+				}
+
+				const extensions = [".png", ".jpg"]
+				this.export(extensions)
+
+				// Cleanup
+				URL.revokeObjectURL(url)
+				SelectionController.instance.activateSelection()
+				tempDiv.remove()
+
+				MainController.instance.darkMode = colorTheme
+				MainController.instance.updateTheme()
+			} catch (error) {
+				console.error("Error creating image:", error)
+				URL.revokeObjectURL(url)
+				SelectionController.instance.activateSelection()
+				tempDiv.remove()
+				MainController.instance.darkMode = colorTheme
+				MainController.instance.updateTheme()
+			}
+		}
+
+		img.onerror = (error) => {
+			console.error("Error loading SVG image:", error)
+			URL.revokeObjectURL(url)
+			SelectionController.instance.activateSelection()
+			tempDiv.remove()
+			MainController.instance.darkMode = colorTheme
+			MainController.instance.updateTheme()
+		}
+
+		img.src = url
+	}
+
+	private export(extensions: string[]) {
+		const isImageExport = this.exportImageCanvas !== null
+
+		// copy text and adjust tooltip for feedback (only for text exports)
+		const copyText = () => {
+			if (!isImageExport) {
+				navigator.clipboard.writeText(this.exportedContent.value).then(() => {
+					this.copyButton.setAttribute("data-bs-title", "Copied!")
+					this.copyTooltip.dispose()
+					this.copyTooltip = new Tooltip(this.copyButton)
+					this.copyTooltip.show()
+				})
+			}
+		}
+
 		// create listeners
 		const saveFile = (() => {
 			const filename =
@@ -235,13 +405,28 @@ export class ExportController {
 					/[^a-z0-9]/gi,
 					"_"
 				) || "Circuit"
-			FileSaver.saveAs(
-				new Blob([this.exportedContent.value], { type: "text/x-tex;charset=utf-8" }),
-				filename + this.fileExtension.value
-			)
+
+			if (isImageExport && this.exportImageCanvas) {
+				// Export as image
+				this.exportImageCanvas.toBlob((blob) => {
+					if (blob) {
+						FileSaver.saveAs(blob, filename + this.fileExtension.value)
+					}
+				}, this.fileExtension.value === ".png" ? "image/png" : "image/jpeg", 0.95)
+			} else {
+				// Export as text
+				FileSaver.saveAs(
+					new Blob([this.exportedContent.value], { type: "text/x-tex;charset=utf-8" }),
+					filename + this.fileExtension.value
+				)
+			}
 		}).bind(this)
+
 		const hideListener = (() => {
 			this.exportedContent.value = "" // free memory
+			this.exportImageCanvas = null // clear canvas reference
+			this.imagePreview.style.display = "none" // hide image preview
+			this.exportedContent.parentElement.style.display = this.defaultDisplay // restore textarea
 			this.copyButton.removeEventListener("click", copyText)
 			this.saveButton.removeEventListener("click", saveFile)
 			this.fileExtensionDropdown.replaceChildren()
@@ -269,6 +454,13 @@ export class ExportController {
 				return listElement
 			})
 		)
+
+		// Hide/show copy button based on export type
+		if (isImageExport) {
+			this.copyButton.style.display = "none"
+		} else {
+			this.copyButton.style.display = ""
+		}
 
 		// add listeners & show modal
 		this.copyButton.addEventListener("click", copyText, { passive: true })

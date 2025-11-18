@@ -132,7 +132,7 @@ export abstract class PathComponent extends CircuitComponent {
 	}
 	protected applyJson(saveObject: PathSaveObject): void {
 		super.applyJson(saveObject)
-		this.referencePoints = saveObject.points.map((point) => new SVG.Point(point)) ?? []
+		this.referencePoints = saveObject.points ? saveObject.points.map((point) => new SVG.Point(point)) : []
 	}
 	public rotate(angleDeg: number): void {
 		this.referencePoints = this.referencePoints.map((point) => point.rotate(angleDeg, this.position))

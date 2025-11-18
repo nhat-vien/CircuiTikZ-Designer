@@ -227,6 +227,10 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 
 	protected updateVoltageRender() {
 		this.voltageArrowRendering?.remove()
+		// Require a valid geometry and rendering group before updating
+		if (!this.referencePoints || this.referencePoints.length < 2 || !this.voltageRendering) {
+			return
+		}
 		if (this.voltageLabel.value != "") {
 			let voltageArrow = this.generateVoltageArrow(
 				this.referencePoints[0],
@@ -252,7 +256,12 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 
 	protected updateCurrentRender(): void {
 		this.currentArrowRendering?.remove()
-		if (this.currentLabel.value != "") {
+		// Require a valid geometry and rendering group before updating
+		if (!this.referencePoints || this.referencePoints.length < 2 || !this.currentRendering) {
+			return
+		}
+		// Show current arrow if currentShow is enabled OR if there's a label
+		if (this.currentShow.value || this.currentLabel.value != "") {
 			let currentArrow = this.generateCurrentArrow(
 				this.referencePoints[0],
 				this.referencePoints[1],
@@ -387,6 +396,10 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 	}
 
 	protected update(): void {
+		// Guard against invalid or incomplete reference points
+		if (!this.referencePoints || this.referencePoints.length < 2) {
+			return
+		}
 		this.position = this.referencePoints[0].add(this.referencePoints[1]).div(2)
 
 		const angle = Math.atan2(
@@ -566,6 +579,10 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 	}
 
 	public toTikzString(): string {
+		// Skip invalid components that don't have two reference points
+		if (!this.referencePoints || this.referencePoints.length < 2) {
+			return ""
+		}
 		let command: TikzPathCommand = {
 			options: ["draw"],
 			additionalNodes: [],
@@ -597,7 +614,10 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 		this.buildTikzPathLabel(to)
 		this.buildTikzVoltage(to)
 		this.buildTikzCurrent(to)
-		command.connectors.push(to)
+		// Only add connector when we have at least two coordinates
+		if (command.coordinates.length >= 2) {
+			command.connectors.push(to)
+		}
 	}
 
 	public remove(): void {
