@@ -393,11 +393,9 @@ export function renderMathJax(text: string, fontSize = 10): MathJaxRenderInfo {
 		}
 	}
 
-	//remove background of mathjax error message
+	//remove background of mathjax (including error message backgrounds)
 	for (const elementGroup of svgElement.find("rect")) {
-		if (elementGroup.node.hasAttribute("data-background")) {
-			elementGroup.remove()
-		}
+		elementGroup.remove()
 	}
 
 	// the current rendering svg viewbox
