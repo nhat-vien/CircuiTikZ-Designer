@@ -43,7 +43,7 @@
 			<path fill="none" d="M .5 0 L .5 1" />
 		</symbol>
 		<symbol id="currarrow">
-			<path stroke="none" d="M0 0 1.7.8 0 1.6Z" />
+			<path d="M0 0 1.7.8 0 1.6Z" />
 		</symbol>
 	</defs>
 	<rect id="grid" x="0" y="0" width="100%" height="100%" fill="url(#gridPattern)" />
