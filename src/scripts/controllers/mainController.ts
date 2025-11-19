@@ -26,6 +26,7 @@ import {
 	defaultStroke,
 	defaultFill,
 	PolygonComponent,
+	ArcArrowComponent,
 	GroupSaveObject,
 	memorySizeOf,
 	SaveFileFormat,
@@ -181,10 +182,11 @@ export class MainController {
 			passive: true,
 		})
 
-		const exportImageButton: HTMLButtonElement = document.getElementById("exportImageButton") as HTMLButtonElement
-		exportImageButton.addEventListener("click", ExportController.instance.exportImage.bind(ExportController.instance), {
-			passive: true,
-		})
+		// Temporarily disabled due to rendering issues
+		// const exportImageButton: HTMLButtonElement = document.getElementById("exportImageButton") as HTMLButtonElement
+		// exportImageButton.addEventListener("click", ExportController.instance.exportImage.bind(ExportController.instance), {
+		// 	passive: true,
+		// })
 
 		// init save and load
 		SaveController.instance
@@ -775,10 +777,11 @@ export class MainController {
 			ExportController.instance.exportSVG()
 			return false
 		})
-		hotkeys("ctrl+shift+i,command+shift+i", () => {
-			ExportController.instance.exportImage()
-			return false
-		})
+		// Temporarily disabled due to rendering issues
+		// hotkeys("ctrl+shift+i,command+shift+i", () => {
+		// 	ExportController.instance.exportImage()
+		// 	return false
+		// })
 
 		// mode change
 		hotkeys("q", () => {
@@ -1062,6 +1065,70 @@ export class MainController {
 					color: defaultStroke,
 					width: 1,
 				})
+		}
+
+		//Add Arc Arrow (AC current symbol)
+		{
+			const addButton: HTMLDivElement = accordionItemBody.appendChild(document.createElement("div"))
+			addButton.classList.add("libComponent")
+			addButton.setAttribute("searchData", "arc arrow ac current alternating")
+			addButton.ariaRoleDescription = "button"
+			addButton.title = "Arc Arrow (AC Current)"
+
+			const listener = (ev: MouseEvent) => {
+				ev.preventDefault()
+				this.switchMode(Modes.COMPONENT)
+
+				if (ComponentPlacer.instance.component) {
+					ComponentPlacer.instance.placeCancel()
+				}
+
+				let newComponent = new ArcArrowComponent()
+				ComponentPlacer.instance.placeComponent(newComponent)
+
+				leftOffcanvasOC.hide()
+			}
+
+			addButton.addEventListener("mouseup", listener)
+			addButton.addEventListener("touchstart", listener, { passive: false })
+
+			let svgIcon = SVG.SVG().addTo(addButton)
+			svgIcon.viewbox(0, 0, 17, 12)
+			// Draw AC current symbol - 3/5 arc with arrow
+			const cx = 8.5
+			const cy = 6
+			const rx = 4.5
+			const ry = 3.5
+			
+			// 3/5 arc from top (90°) to bottom-right (-54°) - 216° clockwise
+			const startAngle = 90 * Math.PI / 180
+			const endAngle = -54 * Math.PI / 180
+			
+			const x1 = cx + rx * Math.cos(startAngle)
+			const y1 = cy + ry * Math.sin(startAngle)
+			const x2 = cx + rx * Math.cos(endAngle)
+			const y2 = cy + ry * Math.sin(endAngle)
+			
+			// Draw 3/5 arc (216°)
+			const arcPath = `M ${x1},${y1} A ${rx},${ry} 0 1 1 ${x2},${y2}`
+			svgIcon.path(arcPath).fill("none").stroke({
+				color: defaultStroke,
+				width: 1,
+			})
+			
+			// Add filled arrowhead triangle (tangent adjusted up = 186°)
+			const arrowSize = 1.3
+			const arrowAngle = 195 * Math.PI / 180
+			const arrowSpread = 0.44  // 25 degrees
+			const a1x = x2 + arrowSize * Math.cos(arrowAngle - arrowSpread)
+			const a1y = y2 + arrowSize * Math.sin(arrowAngle - arrowSpread)
+			const a2x = x2 + arrowSize * Math.cos(arrowAngle + arrowSpread)
+			const a2y = y2 + arrowSize * Math.sin(arrowAngle + arrowSpread)
+			svgIcon.polygon([
+				[a1x, a1y],
+				[x2, y2],
+				[a2x, a2y],
+			]).fill(defaultStroke)
 		}
 
 		//Add straight line
