@@ -138,7 +138,7 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				0.5,
 				20,
 				0.5,
-				new SVG.Number(10, ""),
+				new SVG.Number(0.5, ""),
 				false,
 				"Width of the current arrow shaft in pixels",
 				"current:arrowwidth"
@@ -254,7 +254,7 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				currentLabel.below = this.currentLabelPosition.value ? true : undefined
 				currentLabel.shift = this.currentShift.value.value != 0 ? this.currentShift.value.value : undefined
 				currentLabel.arrowWidth =
-					this.currentArrowWidth.value.value != 10 ? this.currentArrowWidth.value.value : undefined
+					this.currentArrowWidth.value.value != 0.5 ? this.currentArrowWidth.value.value : undefined
 				data.current = currentLabel
 			}
 
