@@ -149,7 +149,7 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 
 		protected generateCurrentRender(): void {
 			this.currentLabelRendering = generateLabelRender(this.currentLabelRendering, this.currentLabel)
-			this.currentLabelRendering.fill(defaultStroke)
+			this.currentLabelRendering.fill("var(--bs-body-color)")
 
 			this.currentRendering = new SVG.G()
 			this.currentRendering.add(this.currentLabelRendering)
@@ -218,10 +218,10 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 			// Create the arrow line using Path (more reliable than Line)
 			const pathData = `M ${lineStart.x} ${lineStart.y} L ${lineEnd.x} ${lineEnd.y}`
 			const arrowLine = new SVG.Path({ d: pathData })
-			arrowLine.fill("none").stroke({ color: defaultStroke, width: this.currentArrowWidth.value.value })
+			arrowLine.fill("none").stroke({ color: "var(--bs-body-color)", width: this.currentArrowWidth.value.value })
 
 			// Draw the arrow tip
-			const arrowTip = CanvasController.instance.canvas.use("currarrow").fill(defaultStroke)
+			const arrowTip = CanvasController.instance.canvas.use("currarrow").fill("var(--bs-body-color)")
 			const arrowTipTransform = new SVG.Matrix({
 				translate: [-0.85, -0.8],
 			}).lmultiply({

@@ -253,7 +253,7 @@ export class WireComponent extends Currentable(Strokable(PathComponent)) {
 	public updateTheme(): void {
 		let strokeColor = this.strokeInfo.color
 		if (strokeColor == "default") {
-			strokeColor = defaultStroke
+			strokeColor = "var(--bs-body-color)"
 		}
 
 		this.updateArrowTypesAndColors()

@@ -346,8 +346,8 @@ export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				labPos = labPos.add(labelOffset.rotate(-angle, undefined, true))
 
 				const path = new SVG.Path({ d: d })
-				path.fill("none").stroke({ color: defaultStroke, width: arrowStrokeWidth })
-				const arrowTip = CanvasController.instance.canvas.use("currarrow").fill(defaultStroke)
+				path.fill("none").stroke({ color: "var(--bs-body-color)", width: arrowStrokeWidth })
+				const arrowTip = CanvasController.instance.canvas.use("currarrow").fill("var(--bs-body-color)")
 				const arrowTipTransform = new SVG.Matrix({
 					translate: [-1.7 + (2 * arrowStrokeWidth) / arrowScale, -0.8],
 				}).lmultiply({
