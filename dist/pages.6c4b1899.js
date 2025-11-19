@@ -94,7 +94,54 @@
 
     function localRequire(x) {
       var res = localRequire.resolve(x);
-      return res === false ? {} : newRequire(res);
+      if (res === false) {
+        return {};
+      }
+      // Synthesize a module to follow re-exports.
+      if (Array.isArray(res)) {
+        var m = {__esModule: true};
+        res.forEach(function (v) {
+          var key = v[0];
+          var id = v[1];
+          var exp = v[2] || v[0];
+          var x = newRequire(id);
+          if (key === '*') {
+            Object.keys(x).forEach(function (key) {
+              if (
+                key === 'default' ||
+                key === '__esModule' ||
+                Object.prototype.hasOwnProperty.call(m, key)
+              ) {
+                return;
+              }
+
+              Object.defineProperty(m, key, {
+                enumerable: true,
+                get: function () {
+                  return x[key];
+                },
+              });
+            });
+          } else if (exp === '*') {
+            Object.defineProperty(m, key, {
+              enumerable: true,
+              value: x,
+            });
+          } else {
+            Object.defineProperty(m, key, {
+              enumerable: true,
+              get: function () {
+                if (exp === 'default') {
+                  return x.__esModule ? x.default : x;
+                }
+                return x[exp];
+              },
+            });
+          }
+        });
+        return m;
+      }
+      return newRequire(res);
     }
 
     function resolve(x) {
@@ -15007,7 +15054,7 @@ if (typeof window !== 'undefined') {
 }
 
 },{"@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"c3hj5":[function(require,module,exports,__globalThis) {
-module.exports = JSON.parse('{"name":"circutikz-designer","version":"0.7.8","private":"true","description":"An interactive, visual, online editor for creating electrical circuit diagrams for LaTeX/CircuiTikZ with ease.","license":"GPL-3.0-only","author":"Manuel Kirzinger","contributors":[{"name":"Philipp Wiedemann","email":"jan.p.wiedemann@fau.de"},{"name":"Christof Pfannenm\xfcller","email":"christof.pfannenmueller@fau.de"}],"source":"src/pages/index.html","main":"src/scripts/main.js","targets":{"main":false},"scripts":{"build":"parcel build --public-url ./","update":"npx npm-check-updates -u","prepack":"npm run build","start":"parcel serve --lazy","postversion":"git push && git push origin tag $(git describe --tags --abbrev=0)","standalone":"electron-forge start","electron":"npm run build && electron .","package":"electron-forge package","make":"electron-forge make"},"browserslist":"> 0.5%, last 2 versions, not dead","dependencies":{"@prettier/plugin-xml":"^3.4.2","@svgdotjs/svg.draggable.js":"^3.0.6","@svgdotjs/svg.js":"^3.2.4","@svgdotjs/svg.panzoom.js":"^2.1.2","bootstrap":"^5.3.7","electron-squirrel-startup":"^1.0.1","file-saver":"^2.0.5","hotkeys-js":"^3.13.15","prettier":"^3.6.2","text-to-svg":"^3.1.5"},"devDependencies":{"@electron-forge/cli":"^7.8.2","@electron-forge/maker-deb":"^7.8.2","@electron-forge/maker-rpm":"^7.8.2","@electron-forge/maker-squirrel":"^7.8.2","@electron-forge/maker-wix":"^7.8.2","@electron-forge/maker-zip":"^7.8.2","@electron-forge/plugin-auto-unpack-natives":"^7.8.2","@electron-forge/plugin-fuses":"^7.8.2","@electron/fuses":"^2.0.0","@parcel/config-default":"^2.15.4","@parcel/packager-raw-url":"^2.15.4","@parcel/plugin":"^2.15.4","@parcel/transformer-css":"^2.15.4","@parcel/transformer-html":"^2.15.4","@parcel/transformer-js":"^2.15.4","@parcel/transformer-posthtml":"^2.15.4","@parcel/transformer-sass":"^2.15.4","@parcel/transformer-svg":"^2.15.4","@parcel/transformer-typescript-tsc":"^2.15.4","@parcel/transformer-webmanifest":"^2.15.4","@parcel/transformer-xml":"^2.15.4","@types/bootstrap":"^5.2.10","@types/file-saver":"^2.0.7","@types/text-to-svg":"^3.1.4","buffer":"^6.0.3","electron":"^37.2.5","parcel":"^2.15.4","path-browserify":"^1.0.1","posthtml-include":"^2.0.1","process":"^0.11.10","sass":"^1.89.2","typescript":"^5.9.2"}}');
+module.exports = JSON.parse('{"name":"circutikz-designer","version":"8.0.1","private":"true","description":"An interactive, visual, online editor for creating electrical circuit diagrams for LaTeX/CircuiTikZ with ease.","license":"GPL-3.0-only","author":"Manuel Kirzinger","contributors":[{"name":"Philipp Wiedemann","email":"jan.p.wiedemann@fau.de"},{"name":"Christof Pfannenm\xfcller","email":"christof.pfannenmueller@fau.de"}],"source":"src/pages/index.html","main":"src/scripts/main.js","targets":{"main":false},"scripts":{"build":"parcel build --public-url ./","update":"npx npm-check-updates -u","prepack":"npm run build","start":"parcel serve --lazy","postversion":"git push && git push origin tag $(git describe --tags --abbrev=0)","standalone":"electron-forge start","electron":"npm run build && electron .","package":"electron-forge package","make":"electron-forge make"},"browserslist":"> 0.5%, last 2 versions, not dead","dependencies":{"@prettier/plugin-xml":"^3.4.2","@svgdotjs/svg.draggable.js":"^3.0.6","@svgdotjs/svg.js":"^3.2.4","@svgdotjs/svg.panzoom.js":"^2.1.2","bootstrap":"^5.3.7","electron-squirrel-startup":"^1.0.1","file-saver":"^2.0.5","hotkeys-js":"^3.13.15","prettier":"^3.6.2","text-to-svg":"^3.1.5"},"devDependencies":{"@electron-forge/cli":"^7.8.2","@electron-forge/maker-deb":"^7.8.2","@electron-forge/maker-rpm":"^7.8.2","@electron-forge/maker-squirrel":"^7.8.2","@electron-forge/maker-wix":"^7.8.2","@electron-forge/maker-zip":"^7.8.2","@electron-forge/plugin-auto-unpack-natives":"^7.8.2","@electron-forge/plugin-fuses":"^7.8.2","@electron/fuses":"^2.0.0","@parcel/config-default":"^2.15.4","@parcel/packager-raw-url":"^2.16.1","@parcel/plugin":"^2.15.4","@parcel/transformer-css":"^2.15.4","@parcel/transformer-html":"^2.15.4","@parcel/transformer-js":"^2.15.4","@parcel/transformer-posthtml":"^2.15.4","@parcel/transformer-sass":"^2.15.4","@parcel/transformer-svg":"^2.15.4","@parcel/transformer-typescript-tsc":"^2.15.4","@parcel/transformer-webmanifest":"^2.16.1","@parcel/transformer-xml":"^2.15.4","@types/bootstrap":"^5.2.10","@types/file-saver":"^2.0.7","@types/text-to-svg":"^3.1.4","buffer":"^6.0.3","electron":"^37.2.5","parcel":"^2.15.4","path-browserify":"^1.0.1","posthtml-include":"^2.0.1","process":"^0.11.10","sass":"^1.89.2","typescript":"^5.9.2"}}');
 
 },{}],"3nlqp":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
@@ -15990,8 +16037,18 @@ class ExportController {
         img.onload = ()=>{
             try {
                 console.log("Image loaded successfully, bbox:", bbox);
-                // Create canvas with appropriate size (2x for better quality)
-                const scale = 2;
+                // Create canvas with appropriate size
+                // Use higher scale for small circuits to prevent blurry images
+                // Minimum dimension of 800px to ensure good quality even for single components
+                const minDimension = 800;
+                const baseScale = 4; // Higher base scale for better quality
+                let scale = baseScale;
+                // If bbox is very small, scale up more to reach minimum dimension
+                if (bbox.width * scale < minDimension || bbox.height * scale < minDimension) {
+                    const scaleForWidth = minDimension / bbox.width;
+                    const scaleForHeight = minDimension / bbox.height;
+                    scale = Math.max(scaleForWidth, scaleForHeight);
+                }
                 const canvas = document.createElement("canvas");
                 canvas.width = bbox.width * scale;
                 canvas.height = bbox.height * scale;
@@ -33074,10 +33131,10 @@ function Voltageable(Base) {
                     d: d
                 });
                 path.fill("none").stroke({
-                    color: (0, _internal.defaultStroke),
+                    color: "var(--bs-body-color)",
                     width: arrowStrokeWidth
                 });
-                const arrowTip = (0, _internal.CanvasController).instance.canvas.use("currarrow").fill((0, _internal.defaultStroke));
+                const arrowTip = (0, _internal.CanvasController).instance.canvas.use("currarrow").fill("var(--bs-body-color)");
                 const arrowTipTransform = new _svgJs.Matrix({
                     translate: [
                         -1.7 + 2 * arrowStrokeWidth / arrowScale,
@@ -33261,7 +33318,7 @@ function Currentable(Base) {
         }
         generateCurrentRender() {
             this.currentLabelRendering = (0, _internal.generateLabelRender)(this.currentLabelRendering, this.currentLabel);
-            this.currentLabelRendering.fill((0, _internal.defaultStroke));
+            this.currentLabelRendering.fill("var(--bs-body-color)");
             this.currentRendering = new _svgJs.G();
             this.currentRendering.add(this.currentLabelRendering);
             this.visualization.add(this.currentRendering);
@@ -33305,11 +33362,11 @@ function Currentable(Base) {
                 d: pathData
             });
             arrowLine.fill("none").stroke({
-                color: (0, _internal.defaultStroke),
+                color: "var(--bs-body-color)",
                 width: this.currentArrowWidth.value.value
             });
             // Draw the arrow tip
-            const arrowTip = (0, _internal.CanvasController).instance.canvas.use("currarrow").fill((0, _internal.defaultStroke));
+            const arrowTip = (0, _internal.CanvasController).instance.canvas.use("currarrow").fill("var(--bs-body-color)");
             const arrowTipTransform = new _svgJs.Matrix({
                 translate: [
                     -0.85,
@@ -34887,7 +34944,7 @@ class PathSymbolComponent extends (0, _internal.Currentable)((0, _internal.Volta
         this.relSymbolEnd = this.componentVariant.pins.at(endPinIndex).point;
         this.startLine = (0, _internal.CanvasController).instance.canvas.line().fill("none").stroke({
             color: (0, _internal.defaultStroke),
-            width: 0.5
+            width: 1.0
         });
         this.endLine = this.startLine.clone(true);
         this.dragStartLine = (0, _internal.CanvasController).instance.canvas.line().fill("none").stroke({
@@ -35052,8 +35109,26 @@ class PathSymbolComponent extends (0, _internal.Currentable)((0, _internal.Volta
         this.rotationDeg = angle * 180 / Math.PI;
         let m = this.getTransformMatrix();
         this.componentVisualization.transform(m);
-        let startLineEndPoint = this.relSymbolStart.add(this.componentVariant.mid).transform(m);
-        let endLineStartPoint = this.relSymbolEnd.add(this.componentVariant.mid).transform(m);
+        // For rmeter and rmeterwa, calculate line endpoints differently since symbol doesn't rotate
+        const keepHorizontal = this.referenceSymbol.tikzName === "rmeter" || this.referenceSymbol.tikzName === "rmeterwa";
+        let startLineEndPoint;
+        let endLineStartPoint;
+        if (keepHorizontal) {
+            // For horizontal meters, the connection points are at the left and right edges of the symbol
+            // We need to calculate where the wires meet the symbol circle
+            const symbolMid = this.componentVariant.mid;
+            const radius = Math.abs(this.relSymbolStart.x); // Distance from center to edge
+            // Calculate the angle from center to each reference point
+            const angleToStart = Math.atan2(this.referencePoints[0].y - this.position.y, this.referencePoints[0].x - this.position.x);
+            const angleToEnd = Math.atan2(this.referencePoints[1].y - this.position.y, this.referencePoints[1].x - this.position.x);
+            // Connection points on the circle edge
+            startLineEndPoint = new _svgJs.Point(this.position.x + radius * Math.cos(angleToStart) * this.scaleState.x, this.position.y + radius * Math.sin(angleToStart) * this.scaleState.y);
+            endLineStartPoint = new _svgJs.Point(this.position.x + radius * Math.cos(angleToEnd) * this.scaleState.x, this.position.y + radius * Math.sin(angleToEnd) * this.scaleState.y);
+        } else {
+            // Normal behavior for other components
+            startLineEndPoint = this.relSymbolStart.add(this.componentVariant.mid).transform(m);
+            endLineStartPoint = this.relSymbolEnd.add(this.componentVariant.mid).transform(m);
+        }
         if (this.invert.value) {
             let switchPos = startLineEndPoint;
             startLineEndPoint = endLineStartPoint;
@@ -35089,6 +35164,9 @@ class PathSymbolComponent extends (0, _internal.Currentable)((0, _internal.Volta
      * For tikz path symbols, this getTransformMatrix returns the transformation necessary for the symbol from local symbol coodinates to world coordinates
      */ getTransformMatrix() {
         const symbolRel = this.componentVariant.mid;
+        // For rmeter and rmeterwa, keep the symbol horizontal (don't rotate)
+        const keepHorizontal = this.referenceSymbol.tikzName === "rmeter" || this.referenceSymbol.tikzName === "rmeterwa";
+        const rotationAngle = keepHorizontal ? 0 : -this.rotationDeg;
         return new _svgJs.Matrix({
             scaleX: this.scaleState.x,
             scaleY: this.scaleState.y,
@@ -35101,7 +35179,7 @@ class PathSymbolComponent extends (0, _internal.Currentable)((0, _internal.Volta
                 symbolRel.y
             ]
         }).lmultiply(new _svgJs.Matrix({
-            rotate: -this.rotationDeg,
+            rotate: rotationAngle,
             translate: [
                 this.position.x,
                 this.position.y
@@ -35184,6 +35262,11 @@ class PathSymbolComponent extends (0, _internal.Currentable)((0, _internal.Volta
             options: options,
             name: this.name.value
         };
+        // For rmeter and rmeterwa, add the 't' parameter for text inside meter
+        if (this.referenceSymbol.tikzName === "rmeter") // rmeter is for voltage measurement, add t=V
+        options.push("t=V");
+        else if (this.referenceSymbol.tikzName === "rmeterwa") // rmeterwa is for current measurement, add t=A
+        options.push("t=A");
         this.buildTikzPathLabel(to);
         this.buildTikzVoltage(to);
         this.buildTikzCurrent(to);
@@ -35440,7 +35523,7 @@ class WireComponent extends (0, _internal.Currentable)((0, _internal.Strokable)(
             "stroke-width": (0, _selectionHelper.selectionSize)
         });
         // override default value
-        this.strokeWidthProperty.value = new _svgJs.Number("0.4pt");
+        this.strokeWidthProperty.value = new _svgJs.Number("1.0pt");
         this.strokeInfo.width = this.strokeWidthProperty.value;
         this.visualization.add(this.wire);
         this.visualization.add(this.draggableWire);
@@ -35541,7 +35624,7 @@ class WireComponent extends (0, _internal.Currentable)((0, _internal.Strokable)(
     }
     updateTheme() {
         let strokeColor = this.strokeInfo.color;
-        if (strokeColor == "default") strokeColor = (0, _internal.defaultStroke);
+        if (strokeColor == "default") strokeColor = "var(--bs-body-color)";
         this.updateArrowTypesAndColors();
         this.wire.stroke({
             color: strokeColor,
