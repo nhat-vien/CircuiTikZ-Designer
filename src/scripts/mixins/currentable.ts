@@ -220,8 +220,11 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 			const arrowLine = new SVG.Path({ d: pathData })
 			arrowLine.fill("none").stroke({ color: "var(--bs-body-color)", width: this.currentArrowWidth.value.value })
 
-			// Draw the arrow tip
-			const arrowTip = CanvasController.instance.canvas.use("currarrow").fill("var(--bs-body-color)")
+			// Draw the arrow tip (use stroke instead of fill so tip follows shaft style)
+			const arrowTip = CanvasController.instance.canvas
+				.use("currarrow")
+				.fill("none")
+				.stroke({ color: "var(--bs-body-color)", width: this.currentArrowWidth.value.value })
 			const arrowTipTransform = new SVG.Matrix({
 				translate: [-0.85, -0.8],
 			}).lmultiply({
