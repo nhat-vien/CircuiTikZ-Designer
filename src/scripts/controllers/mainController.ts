@@ -126,13 +126,14 @@ export class MainController {
 
 		// dark mode init
 		const htmlElement = document.documentElement
-		const switchElement = document.getElementById("darkModeSwitch") as HTMLInputElement
 		const defaultTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
 		this.currentTheme = localStorage.getItem("circuitikz-designer-theme") || defaultTheme
 		htmlElement.setAttribute("data-bs-theme", this.currentTheme)
 		this.darkModeLast = false
 		this.darkMode = this.currentTheme === "dark"
-		switchElement.checked = this.darkMode
+		document.addEventListener("DOMContentLoaded", () => {
+			this.updateThemeIcon()
+		})
 
 		let mathJaxPromise = this.loadMathJax()
 		let canvasPromise = this.initCanvas()
@@ -219,17 +220,15 @@ export class MainController {
 				this.preprocessSymbolColors(g)
 			}
 
-			const htmlElement = document.documentElement
-			const switchElement = document.getElementById("darkModeSwitch") as HTMLInputElement
-			switchElement.addEventListener("change", function () {
-				if ((MainController.instance.darkMode = switchElement.checked)) {
-					htmlElement.setAttribute("data-bs-theme", "dark")
-					localStorage.setItem("circuitikz-designer-theme", "dark")
-				} else {
-					htmlElement.setAttribute("data-bs-theme", "light")
-					localStorage.setItem("circuitikz-designer-theme", "light")
-				}
-				MainController.instance.updateTheme()
+			const themeBtn = document.getElementById("themeToggleBtn")
+			themeBtn?.addEventListener("click", () => {
+				const htmlElement = document.documentElement
+				this.darkMode = !this.darkMode
+				const nextTheme = this.darkMode ? "dark" : "light"
+				htmlElement.setAttribute("data-bs-theme", nextTheme)
+				localStorage.setItem("circuitikz-designer-theme", nextTheme)
+				this.updateThemeIcon()
+				this.updateTheme()
 			})
 			MainController.instance.updateTheme()
 			PropertyController.instance.update()
@@ -1538,7 +1537,28 @@ export class MainController {
 		}
 	}
 
+	public updateThemeIcon(): void {
+		const icon = document.getElementById("themeToggleIcon")
+		const text = document.getElementById("themeToggleText")
+		const btn = document.getElementById("themeToggleBtn")
+		if (icon) {
+			icon.textContent = this.darkMode ? "dark_mode" : "light_mode"
+		}
+		if (text) {
+			text.textContent = this.darkMode ? "Dark theme" : "Light theme"
+		}
+		if (btn) {
+			const tooltipTitle = this.darkMode ? "Switch to light theme" : "Switch to dark theme"
+			btn.setAttribute("data-bs-title", tooltipTitle)
+			const tooltip = Tooltip.getInstance(btn)
+			if (tooltip) {
+				tooltip.setContent({ ".tooltip-inner": tooltipTitle })
+			}
+		}
+	}
+
 	public updateTheme() {
+		this.updateThemeIcon()
 		if (this.darkModeLast == this.darkMode) {
 			return
 		}

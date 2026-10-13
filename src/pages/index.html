@@ -155,21 +155,17 @@
 								<div class="vr d-none d-md-flex h-100 mx-md-2"></div>
 								<hr class="d-md-none my-2" />
 							</li>
-							<li class="nav-item col-12 col-md-auto align-self-md-center">
-								<div class="form-check form-switch d-flex ps-0 m-0 fs-3 gap-2">
-									<label
-										class="form-check-label material-symbols-outlined toolbarButton"
-										for="darkModeSwitch"
-										id="darkModeLabel">
-										dark_mode
-									</label>
-									<input
-										class="form-check-input m-0 align-self-center"
-										type="checkbox"
-										id="darkModeSwitch"
-										checked />
-									<label class="d-md-none fs-4" for="darkModeSwitch">Toggle dark mode</label>
-								</div>
+							<li class="nav-item col-12 col-md-auto">
+								<button
+									type="button"
+									class="dropdown-item"
+									id="themeToggleBtn"
+									data-bs-toggle="tooltip"
+									data-bs-placement="bottom"
+									data-bs-title="Switch theme">
+									<span class="material-symbols-outlined toolbarButton" id="themeToggleIcon">dark_mode</span>
+									<span class="d-md-none fs-4" id="themeToggleText"> Dark theme </span>
+								</button>
 							</li>
 							<li class="nav-item py-2 py-md-1 col-12 col-md-auto">
 								<div class="vr d-none d-md-flex h-100 mx-md-2"></div>
