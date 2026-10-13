@@ -71,6 +71,7 @@ export interface Voltageable {
 	voltageShift: SliderProperty
 	switchSide: ChoiceProperty<ChoiceEntry>
 	switchDirection: ChoiceProperty<ChoiceEntry>
+	voltageShow: BooleanProperty
 }
 
 export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Base: TBase) {
@@ -86,6 +87,7 @@ export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Ba
 		protected voltagePosition: ChoiceProperty<ChoiceEntry>
 		protected voltageDirection: ChoiceProperty<ChoiceEntry>
 		protected voltageStyle: ChoiceProperty<ChoiceEntry>
+		protected voltageShow: BooleanProperty
 
 		constructor(...args: any[]) {
 			super(...args)
@@ -93,6 +95,10 @@ export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				PropertyCategories.voltage,
 				new SectionHeaderProperty("Voltage label", undefined, "voltage:header")
 			)
+
+			this.voltageShow = new BooleanProperty("Show voltage", false, undefined, undefined, "voltage:show")
+			this.voltageShow.addChangeListener((ev) => this.updateVoltageRender())
+			this.properties.add(PropertyCategories.voltage, this.voltageShow)
 
 			this.voltageLabel = new MathJaxProperty(undefined, undefined, "voltage:label")
 			this.voltageLabel.addChangeListener((ev) => this.generateVoltageRender())
@@ -411,8 +417,8 @@ export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Ba
 					}
 
 					const path = new SVG.Path({ d: d })
-					path.fill("none").stroke({ color: defaultStroke, width: arrowStrokeWidth })
-					const arrowTip = CanvasController.instance.canvas.use("currarrow").fill(defaultStroke)
+					path.fill("none").stroke({ color: "var(--bs-body-color)", width: arrowStrokeWidth })
+					const arrowTip = CanvasController.instance.canvas.use("currarrow").fill("var(--bs-body-color)")
 					const arrowTipTransform = new SVG.Matrix({
 						translate: [-1.7 + (2 * arrowStrokeWidth) / arrowScale, -0.8],
 					}).lmultiply({
@@ -603,7 +609,8 @@ export function Voltageable<TBase extends AbstractConstructor<PathComponent>>(Ba
 		}
 
 		protected buildTikzVoltage(to: CircuitikzTo): void {
-			if (this.voltageLabel.value != "") {
+			// Only export voltage if show property is enabled
+			if (this.voltageShow.value && this.voltageLabel.value != "") {
 				const options = to.options
 
 				let voltageString = "v"

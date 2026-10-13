@@ -23,6 +23,8 @@ export type CurrentLabel = {
 	start?: boolean
 	below?: boolean
 	backwards?: boolean
+	shift?: number
+	arrowWidth?: number
 }
 
 export type CurrentOptions = {
@@ -45,6 +47,9 @@ export interface Currentable {
 	currentPosition: BooleanProperty
 	currentDirection: BooleanProperty
 	currentLabelPosition: BooleanProperty
+	currentShift: SliderProperty
+	currentArrowWidth: SliderProperty
+	currentShow: BooleanProperty
 }
 
 export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Base: TBase) {
@@ -58,6 +63,9 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 		protected currentPosition: BooleanProperty
 		protected currentDirection: BooleanProperty
 		protected currentLabelPosition: BooleanProperty
+		protected currentShift: SliderProperty
+		protected currentArrowWidth: SliderProperty
+		protected currentShow: BooleanProperty
 
 		private defaultDirectionIsBackwards = false
 		private defaultPositionIsAtStart = false
@@ -68,6 +76,10 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				PropertyCategories.current,
 				new SectionHeaderProperty("Current label", undefined, "current:header")
 			)
+
+			this.currentShow = new BooleanProperty("Show current", false, undefined, undefined, "current:show")
+			this.currentShow.addChangeListener((ev) => this.updateCurrentRender())
+			this.properties.add(PropertyCategories.current, this.currentShow)
 
 			this.currentLabel = new MathJaxProperty(undefined, undefined, "current:label")
 			this.currentLabel.addChangeListener((ev) => this.generateCurrentRender())
@@ -101,6 +113,32 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 			)
 			this.currentDistance.addChangeListener((ev) => this.updateCurrentRender())
 			this.properties.add(PropertyCategories.current, this.currentDistance)
+
+			this.currentShift = new SliderProperty(
+				"Shift",
+				-1,
+				1,
+				0.1,
+				new SVG.Number(0, ""),
+				true,
+				"Shift arrow and label perpendicular to the component.",
+				"current:shift"
+			)
+			this.currentShift.addChangeListener((ev) => this.updateCurrentRender())
+			this.properties.add(PropertyCategories.current, this.currentShift)
+
+			this.currentArrowWidth = new SliderProperty(
+				"Arrow width",
+				0.1,
+				2,
+				0.1,
+				new SVG.Number(0.5, ""),
+				true,
+				"Width of the current arrow line.",
+				"current:arrowWidth"
+			)
+			this.currentArrowWidth.addChangeListener((ev) => this.updateCurrentRender())
+			this.properties.add(PropertyCategories.current, this.currentArrowWidth)
 		}
 
 		protected generateCurrentRender(): void {
@@ -175,18 +213,36 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 
 			const arrowScale = (cmtopx * defaultRlen) / (currentArrowScale / scaleFactor) + 2 * arrowStrokeWidth
 
+			let shift = this.currentShift.value.value
+
 			let arrowPositionTrans =
 				positionStart ? interpolate(start, compStart, distance) : interpolate(compEnd, endTrans, distance)
 			if (options.isShort) {
 				arrowPositionTrans = interpolate(start, endTrans, distance)
 			}
-			const arrowPos = arrowPositionTrans.rotate(-angle, start, true)
+
+			// Apply shift perpendicular to the component
+			const shiftOffset = new SVG.Point(0, shift * cmtopx)
+			const arrowPos = arrowPositionTrans.add(shiftOffset).rotate(-angle, start, true)
 
 			const labelOffset = new SVG.Point(0, -labelBelow * 0.12 * cmtopx)
 			let labPos: SVG.Point = arrowPos.add(labelOffset.rotate(-angle, undefined, true))
 
-			const arrowTip = CanvasController.instance.canvas.use("currarrow").fill(defaultStroke)
+			// Draw the arrow line (shaft)
+			const arrowLength = 15 // Length of the arrow shaft in pixels
 			const arrowAngle = angle + (directionBackwards ? Math.PI : 0)
+
+			// Calculate line start and end positions along the component direction
+			const lineStart = arrowPos.add(new SVG.Point(-arrowLength / 2, 0).rotate(angle, undefined, true))
+			const lineEnd = arrowPos.add(new SVG.Point(arrowLength / 2, 0).rotate(angle, undefined, true))
+
+			// Create the arrow line using Path (more reliable than Line)
+			const pathData = `M ${lineStart.x} ${lineStart.y} L ${lineEnd.x} ${lineEnd.y}`
+			const arrowLine = new SVG.Path({ d: pathData })
+			arrowLine.fill("none").stroke({ color: "var(--bs-body-color)", width: this.currentArrowWidth.value.value })
+
+			// Draw the arrow tip as a filled triangle to avoid double-outline appearance
+			const arrowTip = CanvasController.instance.canvas.use("currarrow").fill("var(--bs-body-color)")
 			const arrowTipTransform = new SVG.Matrix({
 				translate: [-0.85, -0.8],
 			}).lmultiply({
@@ -195,6 +251,8 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				translate: arrowPos,
 			})
 			arrowTip.transform(arrowTipTransform)
+
+			group.add(arrowLine)
 			group.add(arrowTip)
 
 			return {
@@ -214,6 +272,9 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				currentLabel.backwards = this.currentDirection.value != null ? this.currentDirection.value : undefined
 				currentLabel.start = this.currentPosition.value != null ? this.currentPosition.value : undefined
 				currentLabel.below = this.currentLabelPosition.value ? true : undefined
+				currentLabel.shift = this.currentShift.value.value != 0 ? this.currentShift.value.value : undefined
+				currentLabel.arrowWidth =
+					this.currentArrowWidth.value.value != 0.5 ? this.currentArrowWidth.value.value : undefined
 				data.current = currentLabel
 			}
 
@@ -234,12 +295,19 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 				if (saveObject.current.below) {
 					this.currentLabelPosition.value = true
 				}
+				if (saveObject.current.shift !== undefined) {
+					this.currentShift.value = new SVG.Number(saveObject.current.shift, "")
+				}
+				if (saveObject.current.arrowWidth !== undefined) {
+					this.currentArrowWidth.value = new SVG.Number(saveObject.current.arrowWidth, "")
+				}
 				this.generateCurrentRender()
 			}
 		}
 
 		protected buildTikzCurrent(to: CircuitikzTo): void {
-			if (this.currentLabel.value != "") {
+			// Only export current if show property is enabled
+			if (this.currentShow.value && this.currentLabel.value != "") {
 				const options = to.options
 
 				// init default values
@@ -288,7 +356,7 @@ export function Currentable<TBase extends AbstractConstructor<PathComponent>>(Ba
 					}
 				}
 
-				currentString += "=$" + this.currentLabel.value + "$"
+				currentString += "={$" + this.currentLabel.value + "$}"
 				options.push(currentString)
 
 				if (this.currentDistance.value.value != 0.5) {

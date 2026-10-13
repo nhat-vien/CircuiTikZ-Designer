@@ -605,6 +605,12 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 	 */
 	public getTransformMatrix(): SVG.Matrix {
 		const symbolRel = this.componentVariant.mid
+
+		// For rmeter and rmeterwa, keep the symbol horizontal (don't rotate)
+		const keepHorizontal =
+			this.referenceSymbol.tikzName === "rmeter" || this.referenceSymbol.tikzName === "rmeterwa"
+		const rotationAngle = keepHorizontal ? 0 : -this.rotationDeg
+
 		return new SVG.Matrix({
 			scaleX: this.scaleState.x,
 			scaleY: this.scaleState.y,
@@ -612,7 +618,7 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 			origin: [symbolRel.x, symbolRel.y],
 		}).lmultiply(
 			new SVG.Matrix({
-				rotate: -this.rotationDeg,
+				rotate: rotationAngle,
 				translate: [this.position.x, this.position.y],
 			})
 		)
@@ -707,6 +713,10 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 	}
 
 	public toTikzString(): string {
+		// Skip invalid components that don't have two reference points
+		if (!this.referencePoints || this.referencePoints.length < 2) {
+			return ""
+		}
 		let command: TikzPathCommand = {
 			options: ["draw"],
 			additionalNodes: [],
@@ -743,10 +753,23 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 		}
 
 		let to: CircuitikzTo = { options: options, name: this.name.value }
+
+		// For rmeter and rmeterwa, add the 't' parameter for text inside meter
+		if (this.referenceSymbol.tikzName === "rmeter") {
+			// rmeter is for voltage measurement, add t=V
+			options.push("t=V")
+		} else if (this.referenceSymbol.tikzName === "rmeterwa") {
+			// rmeterwa is for current measurement, add t=A
+			options.push("t=A")
+		}
+
 		this.buildTikzPathLabel(to)
 		this.buildTikzVoltage(to)
 		this.buildTikzCurrent(to)
-		command.connectors.push(to)
+		// Only add connector when we have at least two coordinates
+		if (command.coordinates.length >= 2) {
+			command.connectors.push(to)
+		}
 	}
 
 	public remove(): void {
