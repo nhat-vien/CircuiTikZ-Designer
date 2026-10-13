@@ -15,6 +15,7 @@ import {
 	ChoiceEntry,
 	approxCompare,
 	interpolate,
+	BooleanProperty,
 	EnvironmentVariableController,
 } from "../internal"
 

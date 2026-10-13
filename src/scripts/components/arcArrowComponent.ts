@@ -53,7 +53,7 @@ export class ArcArrowComponent extends ShapeComponent {
 		this.visualization.add(this.dragElement)
 	}
 
-	protected update(): void {
+	public update(): void {
 		// Don't call super.update() because it tries to use .size() and .center() which Path doesn't have
 		// Instead, manually do what we need
 		

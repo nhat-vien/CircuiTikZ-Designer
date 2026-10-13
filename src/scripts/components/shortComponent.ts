@@ -124,7 +124,7 @@ export class ShortComponent extends Currentable(PathLabelable(PathComponent)) {
 
 	protected updateCurrentRender(): void {
 		this.currentArrowRendering?.remove()
-		if (this.currentLabel.value != "") {
+		if (this.currentLabel.value != "" && this.referencePoints.length >= 2 && this.currentRendering) {
 			let currentArrow = this.generateCurrentArrow(
 				this.referencePoints[0],
 				this.referencePoints[1],
@@ -241,6 +241,9 @@ export class ShortComponent extends Currentable(PathLabelable(PathComponent)) {
 	}
 
 	public update(): void {
+		if (this.referencePoints.length < 2) {
+			return
+		}
 		this.position = this.referencePoints[0].add(this.referencePoints[1]).div(2)
 
 		const angle = Math.atan2(

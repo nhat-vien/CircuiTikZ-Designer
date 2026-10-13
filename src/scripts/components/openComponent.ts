@@ -239,6 +239,9 @@ export class OpenComponent extends Voltageable(PathLabelable(PathComponent)) {
 	}
 
 	public update(): void {
+		if (this.referencePoints.length < 2) {
+			return
+		}
 		this.position = this.referencePoints[0].add(this.referencePoints[1]).div(2)
 
 		const angle = Math.atan2(
