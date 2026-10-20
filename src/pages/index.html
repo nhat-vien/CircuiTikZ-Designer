@@ -129,6 +129,20 @@
 								<button
 									type="button"
 									class="dropdown-item"
+									id="importTikzButton"
+									data-bs-toggle="tooltip"
+									data-bs-placement="bottom"
+									data-bs-title="Import or paste CircuiTikZ code (Ctrl/⌘ + I)">
+									<span class="material-symbols-outlined toolbarButton">post_add</span>
+									<span class="d-md-none fs-4">
+										<div>Import CircuiTi<i>k</i>Z code</div>
+									</span>
+								</button>
+							</li>
+							<li class="nav-item col-12 col-md-auto">
+								<button
+									type="button"
+									class="dropdown-item"
 									id="exportCircuiTikZButton"
 									data-bs-toggle="tooltip"
 									data-bs-placement="bottom"
@@ -435,6 +449,111 @@
 			</div>
 		</div>
 
+		<!-- Modal (import tikz) -->
+		<div
+			class="modal fade"
+			id="importTikzModal"
+			aria-labelledby="importTikzModalLabel"
+			aria-hidden="true"
+			tabindex="-1"
+			role="dialog">
+			<div class="modal-dialog modal-lg">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h1 class="modal-title fs-3" id="importTikzModalLabel">
+							<span class="material-symbols-outlined align-middle me-1">post_add</span>
+							Import CircuiTi<i>k</i>Z code
+						</h1>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body d-flex flex-column gap-3">
+						<!-- Toolbar buttons -->
+						<div class="d-flex flex-wrap gap-2 align-items-center">
+							<button
+								type="button"
+								class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+								id="importTikzPasteClipboard"
+								data-bs-toggle="tooltip"
+								data-bs-title="Paste code from clipboard">
+								<span class="material-symbols-outlined fs-5">content_paste</span>Paste
+							</button>
+							<button
+								type="button"
+								class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+								id="importTikzLoadCurrent"
+								data-bs-toggle="tooltip"
+								data-bs-title="Load current canvas circuit into editor">
+								<span class="material-symbols-outlined fs-5">sync</span>Load Current Canvas
+							</button>
+							<label
+								class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 mb-0"
+								for="importTikzFileInput"
+								data-bs-toggle="tooltip"
+								data-bs-title="Open TikZ/LaTeX file (.tikz, .tex, .pgf, .txt)"
+								role="button">
+								<span class="material-symbols-outlined fs-5">folder_open</span>Browse File
+							</label>
+							<input id="importTikzFileInput" type="file" accept=".tikz,.tex,.pgf,.txt" style="display: none" />
+							<button
+								type="button"
+								class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 ms-auto"
+								id="importTikzClear"
+								data-bs-toggle="tooltip"
+								data-bs-title="Clear editor">
+								<span class="material-symbols-outlined fs-5">clear_all</span>Clear
+							</button>
+						</div>
+
+						<!-- Textarea editor -->
+						<div class="position-relative">
+							<textarea
+								id="importTikzContent"
+								class="form-control font-monospace"
+								rows="12"
+								style="font-size: 14px; tab-size: 4; resize: vertical; max-height: 50vh; white-space: pre"
+								placeholder="\begin{tikzpicture}
+	\draw (0, 0) to[resistor, l=$R_1$] (3, 0);
+	\draw (3, 0) to[capacitor, l=$C_1$] (6, 0);
+	\draw (6, 0) -- (6, -2);
+	\draw (6, -2) to[battery2, l=$V_1$] (0, -2);
+	\draw (0, -2) -- (0, 0);
+	\draw (3, 0) to[short, *-*] (3, -2);
+	\node[ground] at (0, -2) {};
+\end{tikzpicture}"
+								spellcheck="false"></textarea>
+						</div>
+
+						<!-- Feedback alert -->
+						<div id="importTikzFeedback" class="alert alert-info py-2 px-3 mb-0 d-none" role="alert"></div>
+
+						<!-- Options -->
+						<div class="d-flex flex-wrap gap-3 align-items-center pt-2 border-top">
+							<div
+								class="form-check"
+								data-bs-toggle="tooltip"
+								data-bs-title="Clear existing components before importing">
+								<input class="form-check-input" type="checkbox" id="importTikzCheckRemove" checked />
+								<label class="form-check-label" for="importTikzCheckRemove">Remove existing components</label>
+							</div>
+							<div
+								class="form-check"
+								data-bs-toggle="tooltip"
+								data-bs-title="Automatically fit canvas view to show all imported components">
+								<input class="form-check-input" type="checkbox" id="importTikzCheckFitView" checked />
+								<label class="form-check-label" for="importTikzCheckFitView">Fit view to circuit</label>
+							</div>
+						</div>
+					</div>
+					<div class="modal-footer justify-content-between">
+						<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+						<button type="button" class="btn btn-primary icon-button" id="importTikzSubmitButton">
+							<span class="material-symbols-outlined">play_arrow</span>Import & Render
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
 		<!-- Modal (export dialog) -->
 		<div
 			class="modal fade"
@@ -460,6 +579,14 @@
 						<textarea id="exportedContent" spellcheck="false"></textarea>
 					</div>
 					<div class="modal-footer">
+						<button
+							type="button"
+							class="btn btn-outline-primary icon-button me-auto"
+							id="exportModalApplyToCanvas"
+							data-bs-toggle="tooltip"
+							data-bs-title="Apply edited TikZ code directly back to canvas">
+							<span class="material-symbols-outlined">refresh</span>Apply to Canvas
+						</button>
 						<div class="input-group w-px-200 flex-grow-1">
 							<input
 								type="text"

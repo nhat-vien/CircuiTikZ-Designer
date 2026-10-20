@@ -36,6 +36,7 @@ import {
 	ShortComponent,
 	OpenComponent,
 	ArcArrowComponent,
+	ImportController,
 } from "../internal"
 
 type TabState = {
@@ -196,6 +197,9 @@ export class MainController {
 		loadButton.addEventListener("click", SaveController.instance.load.bind(SaveController.instance), {
 			passive: true,
 		})
+
+		// init import
+		ImportController.instance
 
 		canvasPromise.then(() => {
 			EraseController.instance
@@ -768,6 +772,10 @@ export class MainController {
 		})
 		hotkeys("ctrl+o,command+o", () => {
 			SaveController.instance.load()
+			return false
+		})
+		hotkeys("ctrl+i,command+i", () => {
+			ImportController.instance.showModal()
 			return false
 		})
 		hotkeys("ctrl+e,command+e", () => {

@@ -1,12 +1,14 @@
 // Styles for the export dialog/modal
 
-#exportedContent {
+#exportedContent,
+#importTikzContent {
 	width: 100%;
 	height: auto;
 	max-height: calc(100vh - 250px); // 184.5px
 	white-space: pre;
 	background-color: var(--bs-body-bg);
-	resize: none;
+	color: var(--bs-body-color);
+	resize: vertical;
 }
 
 .copyContentIcon {
