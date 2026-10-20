@@ -251,6 +251,16 @@ export class TikzParser {
 		}
 
 		try {
+			// Extract scale if present in environment options
+			let globalScale = 1.0
+			const envMatch = code.match(/\\begin\s*\{(?:tikzpicture|circuitikz)\}\s*\[([^\]]*)\]/i)
+			if (envMatch) {
+				const envOpts = this.parseBracketOptions(envMatch[0])
+				if (envOpts.kv.has("scale")) {
+					globalScale = parseFloat(envOpts.kv.get("scale")!) || 1.0
+				}
+			}
+
 			const statements = this.splitStatements(code)
 			const namedCoords = new Map<string, { x: number; y: number }>()
 
@@ -260,18 +270,18 @@ export class TikzParser {
 
 				try {
 					if (trimmed.startsWith("\\coordinate")) {
-						this.parseCoordinateStatement(trimmed, namedCoords)
+						this.parseCoordinateStatement(trimmed, namedCoords, globalScale)
 					} else if (trimmed.startsWith("\\draw") || trimmed.startsWith("\\path")) {
-						const objs = this.parsePathStatement(trimmed, namedCoords, result)
+						const objs = this.parsePathStatement(trimmed, namedCoords, result, globalScale)
 						result.components.push(...objs)
 					} else if (trimmed.startsWith("\\node")) {
 						// Convert \node ... to \path node ...
 						const asPath = "\\path " + trimmed.substring(1)
-						const objs = this.parsePathStatement(asPath, namedCoords, result)
+						const objs = this.parsePathStatement(asPath, namedCoords, result, globalScale)
 						result.components.push(...objs)
 					} else if (trimmed.startsWith("\\fill") || trimmed.startsWith("\\filldraw")) {
 						// Junction dots like \fill (0,0) circle (2pt);
-						const dotObj = this.parseFillCircleStatement(trimmed, namedCoords)
+						const dotObj = this.parseFillCircleStatement(trimmed, namedCoords, globalScale)
 						if (dotObj) {
 							result.components.push(dotObj)
 							result.stats.nodes++
@@ -392,7 +402,21 @@ export class TikzParser {
 
 		let pt: { x: number; y: number } | null = null
 
-		if (coordStr.includes(":")) {
+		// 1. Check for coordinate intersections: |- and -|
+		if (coordStr.includes("|-") || coordStr.includes("-|")) {
+			const isVH = coordStr.includes("|-")
+			const sep = isVH ? "|-" : "-|"
+			const parts = coordStr.split(sep)
+			if (parts.length === 2) {
+				const p1Res = this.parseCoordinate(parts[0].trim(), currentPoint, namedCoords, globalScale)
+				const p2Res = this.parseCoordinate(parts[1].trim(), currentPoint, namedCoords, globalScale)
+				if (p1Res.point && p2Res.point) {
+					pt = isVH
+						? { x: p1Res.point.x, y: p2Res.point.y }
+						: { x: p2Res.point.x, y: p1Res.point.y }
+				}
+			}
+		} else if (coordStr.includes(":")) {
 			// Polar coordinate: (angle:radius)
 			const [angleStr, rStr] = coordStr.split(":")
 			const angleDeg = parseFloat(angleStr) || 0
@@ -413,12 +437,14 @@ export class TikzParser {
 				y: -yCm * CM_TO_PX * globalScale,
 			}
 		} else {
-			// Named coordinate/node
-			const baseName = coordStr.split(".")[0]
-			if (namedCoords.has(baseName)) {
-				pt = { ...namedCoords.get(baseName)! }
-			} else if (namedCoords.has(coordStr)) {
+			// Named coordinate/node: check exact name first (e.g. "Q1.B", "L1_top")
+			if (namedCoords.has(coordStr)) {
 				pt = { ...namedCoords.get(coordStr)! }
+			} else {
+				const baseName = coordStr.split(".")[0]
+				if (namedCoords.has(baseName)) {
+					pt = { ...namedCoords.get(baseName)! }
+				}
 			}
 		}
 
@@ -431,6 +457,91 @@ export class TikzParser {
 		}
 
 		return { point: pt, isRelUpdate, isRelNoUpdate }
+	}
+
+	/**
+	 * Registers known pin anchors for a node symbol into namedCoords.
+	 */
+	public static registerNodeAnchors(
+		nodeName: string,
+		symbolId: string,
+		pos: { x: number; y: number },
+		namedCoords: Map<string, { x: number; y: number }>,
+		rotationDeg: number = 0,
+		scale?: { x: number; y: number }
+	): void {
+		if (!nodeName) return
+		namedCoords.set(nodeName, pos)
+		namedCoords.set(`${nodeName}.center`, pos)
+
+		const sx = scale?.x ?? 1
+		const sy = scale?.y ?? 1
+		const rad = (-rotationDeg * Math.PI) / 180
+		const cos = Math.cos(rad)
+		const sin = Math.sin(rad)
+
+		const addAnchor = (name: string, dx: number, dy: number) => {
+			const scaledX = dx * sx
+			const scaledY = dy * sy
+			const rx = scaledX * cos - scaledY * sin
+			const ry = scaledX * sin + scaledY * cos
+			namedCoords.set(`${nodeName}.${name}`, { x: pos.x + rx, y: pos.y + ry })
+		}
+
+		// Try dynamic lookup from MainController symbols if available
+		if (MainController.instance && MainController.instance.symbols) {
+			const sym = MainController.instance.symbols.find(
+				(s) => s.tikzName === symbolId || (s.displayName && s.displayName.toLowerCase() === symbolId.toLowerCase())
+			)
+			if (sym && sym._mapping && sym._mapping.size > 0) {
+				const firstVariant = sym._mapping.values().toArray()[0]
+				if (firstVariant && firstVariant.pins) {
+					for (const pin of firstVariant.pins) {
+						if (pin.name && pin.point) {
+							addAnchor(pin.name, pin.point.x, pin.point.y)
+						}
+					}
+				}
+			}
+		}
+
+		// Static fallbacks for transistors & common components
+		const symLower = symbolId.toLowerCase()
+		if (symLower === "npn") {
+			addAnchor("B", -31.74819, 0)
+			addAnchor("base", -31.74819, 0)
+			addAnchor("C", 0, -29.10236)
+			addAnchor("collector", 0, -29.10236)
+			addAnchor("E", 0, 29.10238)
+			addAnchor("emitter", 0, 29.10238)
+		} else if (symLower === "pnp") {
+			addAnchor("B", -31.74819, 0)
+			addAnchor("base", -31.74819, 0)
+			addAnchor("C", 0, 29.10238)
+			addAnchor("collector", 0, 29.10238)
+			addAnchor("E", 0, -29.10236)
+			addAnchor("emitter", 0, -29.10236)
+		} else if (symLower === "nmos") {
+			addAnchor("G", -37.03903, 0)
+			addAnchor("gate", -37.03903, 0)
+			addAnchor("D", 0, -29.10236)
+			addAnchor("drain", 0, -29.10236)
+			addAnchor("S", 0, 29.10238)
+			addAnchor("source", 0, 29.10238)
+		} else if (symLower === "pmos") {
+			addAnchor("G", -37.03903, 0)
+			addAnchor("gate", -37.03903, 0)
+			addAnchor("D", 0, 29.10238)
+			addAnchor("drain", 0, 29.10238)
+			addAnchor("S", 0, -29.10236)
+			addAnchor("source", 0, -29.10236)
+		} else if (symLower.includes("op amp") || symLower === "op amp" || symLower === "fd op amp") {
+			addAnchor("+", -44.97607, 18.51952)
+			addAnchor("-", -44.97607, -18.51952)
+			addAnchor("out", 44.97610, 0)
+			addAnchor("up", -3.14850, -20.37160)
+			addAnchor("down", -3.14850, 20.37160)
+		}
 	}
 
 	/**
@@ -510,6 +621,18 @@ export class TikzParser {
 	}
 
 	/**
+	 * Strips outer { } while preserving $ if present.
+	 */
+	public static stripOuterBraces(str: string): string {
+		if (!str) return ""
+		str = str.trim()
+		while (str.startsWith("{") && str.endsWith("}")) {
+			str = str.substring(1, str.length - 1).trim()
+		}
+		return str
+	}
+
+	/**
 	 * Extracts balanced opening and closing delimiters from a string starting at startIndex.
 	 */
 	public static extractBalanced(
@@ -573,13 +696,18 @@ export class TikzParser {
 	 */
 	private static parseCoordinateStatement(
 		stmt: string,
-		namedCoords: Map<string, { x: number; y: number }>
+		namedCoords: Map<string, { x: number; y: number }>,
+		globalScale: number = 1
 	): void {
-		const match = stmt.match(/\\coordinate(?:\s*\[[^\]]*\])?\s*\(([^)]+)\)\s*at\s*(\([^)]+\))/)
-		if (match) {
-			const name = match[1].trim()
-			const coordStr = match[2].trim()
-			const res = this.parseCoordinate(coordStr, null, namedCoords)
+		const nameMatch = stmt.match(/\\coordinate(?:\s*\[[^\]]*\])?\s*\(([^)]+)\)/)
+		if (!nameMatch) return
+		const name = nameMatch[1].trim()
+		const atIdx = stmt.indexOf(" at ")
+		if (atIdx === -1) return
+		const afterAt = stmt.substring(atIdx + 4).trim()
+		const coordExt = this.extractBalanced(afterAt, "(", ")")
+		if (coordExt) {
+			const res = this.parseCoordinate(coordExt.full, null, namedCoords, globalScale)
 			if (res.point) {
 				namedCoords.set(name, res.point)
 			}
@@ -591,12 +719,13 @@ export class TikzParser {
 	 */
 	private static parseFillCircleStatement(
 		stmt: string,
-		namedCoords: Map<string, { x: number; y: number }>
+		namedCoords: Map<string, { x: number; y: number }>,
+		globalScale: number = 1
 	): ComponentSaveObject | null {
-		const match = stmt.match(/\\(?:fill|filldraw)(?:\[[^\]]*\])?\s*(\([^)]+\))\s*circle/)
-		if (match) {
-			const coordStr = match[1].trim()
-			const res = this.parseCoordinate(coordStr, null, namedCoords)
+		const afterFill = stmt.replace(/^\\(?:fill|filldraw)(?:\[[^\]]*\])?\s*/, "")
+		const parenExt = this.extractBalanced(afterFill, "(", ")")
+		if (parenExt && afterFill.includes("circle")) {
+			const res = this.parseCoordinate(parenExt.full, null, namedCoords, globalScale)
 			if (res.point) {
 				return {
 					type: "nodeSymbol",
@@ -614,7 +743,8 @@ export class TikzParser {
 	public static parsePathStatement(
 		stmt: string,
 		namedCoords: Map<string, { x: number; y: number }>,
-		result: TikzParseResult
+		result?: TikzParseResult | null,
+		globalScale: number = 1
 	): ComponentSaveObject[] {
 		let rest = stmt.replace(/^\\(?:draw|path|fill|filldraw)\s*/, "").trim()
 		let drawOptions: { flags: string[]; kv: Map<string, string> } | null = null
@@ -646,6 +776,36 @@ export class TikzParser {
 			}
 		}
 
+		// Extract line width and color for wires from draw options
+		let wireStroke: any = undefined
+		if (drawOptions) {
+			let strokeWidth: string | undefined = undefined
+			if (drawOptions.flags.includes("ultra thick")) strokeWidth = "2.4pt"
+			else if (drawOptions.flags.includes("very thick")) strokeWidth = "1.8pt"
+			else if (drawOptions.flags.includes("thick")) strokeWidth = "1.2pt"
+			else if (drawOptions.flags.includes("thin")) strokeWidth = "0.6pt"
+			else if (drawOptions.flags.includes("very thin")) strokeWidth = "0.3pt"
+			else if (drawOptions.kv.has("line width")) strokeWidth = drawOptions.kv.get("line width")
+
+			let strokeColor: string | undefined = undefined
+			for (const f of drawOptions.flags) {
+				if (["red", "green", "blue", "cyan", "magenta", "yellow", "black", "gray", "white"].includes(f)) {
+					strokeColor = f
+					break
+				}
+			}
+			if (drawOptions.kv.has("color") || drawOptions.kv.has("draw")) {
+				strokeColor = drawOptions.kv.get("color") || drawOptions.kv.get("draw")
+			}
+
+			if (strokeWidth || strokeColor) {
+				wireStroke = {
+					width: strokeWidth || undefined,
+					color: strokeColor || undefined,
+				}
+			}
+		}
+
 		const saveObjects: ComponentSaveObject[] = []
 		let currentPoint: { x: number; y: number } | null = null
 
@@ -654,34 +814,64 @@ export class TikzParser {
 			if (rest.length === 0) break
 
 			// 1. Initial or next Coordinate: ( ... ) with possible ++ or +
-			const coordMatch = rest.match(/^(\+{0,2}\s*\([^)]+\))/)
-			if (coordMatch) {
-				const coordStr = coordMatch[1]
-				const res = this.parseCoordinate(coordStr, currentPoint, namedCoords)
-				if (res.point) {
-					currentPoint = res.point
+			let coordPrefix = ""
+			let parenStart = -1
+			if (rest.startsWith("++(")) {
+				coordPrefix = "++"
+				parenStart = 2
+			} else if (rest.startsWith("+(")) {
+				coordPrefix = "+"
+				parenStart = 1
+			} else if (rest.startsWith("(")) {
+				coordPrefix = ""
+				parenStart = 0
+			}
+
+			if (parenStart >= 0) {
+				const parenRes = this.extractBalanced(rest, "(", ")", parenStart)
+				if (parenRes) {
+					const coordStr = coordPrefix + parenRes.full
+					const res = this.parseCoordinate(coordStr, currentPoint, namedCoords, globalScale)
+					if (res.point) {
+						currentPoint = res.point
+					}
+					rest = rest.substring(parenRes.endIndex).trim()
+					continue
 				}
-				rest = rest.substring(coordMatch[0].length).trim()
-				continue
 			}
 
 			// 2. Coordinate declaration: coordinate(A) or coordinate (A) at (x, y)
 			if (rest.startsWith("coordinate")) {
-				const coordDeclMatch = rest.match(/^coordinate(?:\s*\[[^\]]*\])?(?:\s*\(([^)]+)\))?(?:\s*at\s*(\([^)]+\)))?/)
-				if (coordDeclMatch) {
-					const name = coordDeclMatch[1]?.trim()
-					const atStr = coordDeclMatch[2]?.trim()
-					let pos = currentPoint
-					if (atStr) {
-						const parsed = this.parseCoordinate(atStr, currentPoint, namedCoords)
-						if (parsed.point) pos = parsed.point
-					}
-					if (name && pos) {
-						namedCoords.set(name, pos)
-					}
-					rest = rest.substring(coordDeclMatch[0].length).trim()
-					continue
+				let coordRest = rest.substring(10).trim()
+				if (coordRest.startsWith("[")) {
+					const bRes = this.extractBalanced(coordRest, "[", "]")
+					if (bRes) coordRest = coordRest.substring(bRes.endIndex).trim()
 				}
+				let name = ""
+				if (coordRest.startsWith("(")) {
+					const pRes = this.extractBalanced(coordRest, "(", ")")
+					if (pRes) {
+						name = pRes.content.trim()
+						coordRest = coordRest.substring(pRes.endIndex).trim()
+					}
+				}
+				let pos = currentPoint
+				if (coordRest.startsWith("at")) {
+					coordRest = coordRest.substring(2).trim()
+					if (coordRest.startsWith("(")) {
+						const atParen = this.extractBalanced(coordRest, "(", ")")
+						if (atParen) {
+							const parsed = this.parseCoordinate(atParen.full, currentPoint, namedCoords, globalScale)
+							if (parsed.point) pos = parsed.point
+							coordRest = coordRest.substring(atParen.endIndex).trim()
+						}
+					}
+				}
+				if (name && pos) {
+					namedCoords.set(name, pos)
+				}
+				rest = coordRest
+				continue
 			}
 
 			// 3. Node specification: node[...] (name) at (...) {content}
@@ -708,11 +898,13 @@ export class TikzParser {
 				let nodePos = currentPoint
 				if (nodeRest.startsWith("at")) {
 					nodeRest = nodeRest.substring(2).trim()
-					const atParenRes = this.extractBalanced(nodeRest, "(", ")")
-					if (atParenRes) {
-						const parsed = this.parseCoordinate(atParenRes.full, currentPoint, namedCoords)
-						if (parsed.point) nodePos = parsed.point
-						nodeRest = nodeRest.substring(atParenRes.endIndex).trim()
+					if (nodeRest.startsWith("(")) {
+						const atParenRes = this.extractBalanced(nodeRest, "(", ")")
+						if (atParenRes) {
+							const parsed = this.parseCoordinate(atParenRes.full, currentPoint, namedCoords, globalScale)
+							if (parsed.point) nodePos = parsed.point
+							nodeRest = nodeRest.substring(atParenRes.endIndex).trim()
+						}
 					}
 				}
 
@@ -720,7 +912,7 @@ export class TikzParser {
 				if (nodeRest.startsWith("{")) {
 					const braceRes = this.extractBalanced(nodeRest, "{", "}")
 					if (braceRes) {
-						nodeContent = this.stripBracesAndDollars(braceRes.content)
+						nodeContent = this.stripOuterBraces(braceRes.content)
 						nodeRest = nodeRest.substring(braceRes.endIndex).trim()
 					}
 				}
@@ -761,7 +953,8 @@ export class TikzParser {
 						rotationDeg,
 						scale: scaleState,
 					} as any)
-					if (nodeName) namedCoords.set(nodeName, nodePos)
+					this.registerNodeAnchors(nodeName, symbolId, nodePos, namedCoords, rotationDeg || 0, scaleState)
+					currentPoint = nodePos
 				} else if (isRectShape && nodePos) {
 					const wCm = this.parseLengthCm(opt.kv.get("minimum width") || "2cm")
 					const hCm = this.parseLengthCm(opt.kv.get("minimum height") || "1.5cm")
@@ -772,6 +965,7 @@ export class TikzParser {
 						text: nodeContent ? { text: nodeContent } : undefined,
 					} as any)
 					if (nodeName) namedCoords.set(nodeName, nodePos)
+					currentPoint = nodePos
 				} else if ((isCircleShape || isEllipseShape) && nodePos) {
 					const wCm = this.parseLengthCm(opt.kv.get("minimum width") || "2cm")
 					const hCm = isCircleShape ? wCm : this.parseLengthCm(opt.kv.get("minimum height") || "1.5cm")
@@ -782,18 +976,65 @@ export class TikzParser {
 						isCircle: isCircleShape,
 					} as any)
 					if (nodeName) namedCoords.set(nodeName, nodePos)
+					currentPoint = nodePos
 				} else if (nodeContent && nodePos) {
-					// Standalone text label node
+					// Standalone text label node (offset slightly based on direction if specified)
+					let textPos = { ...nodePos }
+					let dx = 0
+					let dy = 0
+
+					const checkDir = (dirName: string): number | null => {
+						if (opt.kv.has(dirName)) {
+							const val = opt.kv.get(dirName)!
+							return TikzParser.parseLengthCm(val) * CM_TO_PX
+						}
+						const flag = opt.flags.find((f) => f === dirName || f.startsWith(dirName + "="))
+						if (flag) {
+							if (flag.includes("=")) {
+								const val = flag.split("=")[1].trim()
+								return TikzParser.parseLengthCm(val) * CM_TO_PX
+							}
+							return 16
+						}
+						return null
+					}
+
+					const leftDist = checkDir("left")
+					const rightDist = checkDir("right")
+					const aboveDist = checkDir("above")
+					const belowDist = checkDir("below")
+
+					if (leftDist !== null) dx -= (leftDist || 16)
+					if (rightDist !== null) dx += (rightDist || 16)
+					if (aboveDist !== null) dy -= (aboveDist || 14) // up in SVG is negative y
+					if (belowDist !== null) dy += (belowDist || 14) // down in SVG is positive y
+
+					textPos.x += dx
+					textPos.y += dy
+
+					let matchedFontSize: string | undefined = undefined
+					const fontMatch = nodeOptStr.match(/\\(tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b/)
+					if (fontMatch) {
+						matchedFontSize = fontMatch[1]
+					}
+
 					saveObjects.push({
 						type: "rect",
-						position: nodePos,
+						position: textPos,
 						size: { x: 80, y: 30 },
+						stroke: { opacity: 0 },
+						fill: { opacity: 0 },
 						text: {
 							text: nodeContent,
+							fontSize: matchedFontSize,
 							showPlaceholderText: true,
 						},
 					} as any)
 					if (nodeName) namedCoords.set(nodeName, nodePos)
+					currentPoint = nodePos
+				} else if (nodeName && nodePos) {
+					namedCoords.set(nodeName, nodePos)
+					currentPoint = nodePos
 				}
 
 				rest = nodeRest
@@ -812,184 +1053,224 @@ export class TikzParser {
 					}
 				}
 
-				const targetCoordMatch = toRest.match(/^(\+{0,2}\s*\([^)]+\))/)
-				if (targetCoordMatch) {
-					const targetCoordStr = targetCoordMatch[1]
-					const res = this.parseCoordinate(targetCoordStr, currentPoint, namedCoords)
-					const nextPoint = res.point
+				let prefix = ""
+				let pStart = -1
+				if (toRest.startsWith("++(")) {
+					prefix = "++"
+					pStart = 2
+				} else if (toRest.startsWith("+(")) {
+					prefix = "+"
+					pStart = 1
+				} else if (toRest.startsWith("(")) {
+					prefix = ""
+					pStart = 0
+				}
 
-					if (currentPoint && nextPoint) {
-						const opt = this.parseBracketOptions("[" + toOptStr + "]")
-						let symName: string | null = null
-						let labelVal: string | null = null
+				if (pStart >= 0) {
+					const parenRes = this.extractBalanced(toRest, "(", ")", pStart)
+					if (parenRes) {
+						const targetCoordStr = prefix + parenRes.full
+						const res = this.parseCoordinate(targetCoordStr, currentPoint, namedCoords, globalScale)
+						const nextPoint = res.point
 
-						// 1. Check flags for symbol name
-						for (const f of opt.flags) {
-							symName = this.resolveSymbol(f, false)
-							if (symName) break
-						}
+						if (currentPoint && nextPoint) {
+							const opt = this.parseBracketOptions("[" + toOptStr + "]")
+							let symName: string | null = null
+							let labelVal: string | null = null
 
-						// 2. Check if a non-reserved key is a shorthand (e.g. R=$10\Omega$, C=10uF)
-						if (!symName) {
-							for (const [k, v] of opt.kv) {
-								const lowerK = k.toLowerCase()
-								if (!reservedOptionKeys.has(lowerK)) {
-									symName = this.resolveSymbol(lowerK, false)
-									if (symName) {
-										labelVal = this.stripBracesAndDollars(v)
-										break
+							// 1. Check flags for symbol name
+							for (const f of opt.flags) {
+								symName = this.resolveSymbol(f, false)
+								if (symName) break
+							}
+
+							// 2. Check if a non-reserved key is a shorthand (e.g. R=$10\Omega$, C=10uF)
+							if (!symName) {
+								for (const [k, v] of opt.kv) {
+									const lowerK = k.toLowerCase()
+									if (!reservedOptionKeys.has(lowerK)) {
+										symName = this.resolveSymbol(lowerK, false)
+										if (symName) {
+											labelVal = this.stripBracesAndDollars(v)
+											break
+										}
 									}
 								}
 							}
-						}
 
-						// 3. Extract label if not already extracted
-						if (!labelVal) {
-							const lKey = ["l", "label", "l_", "l^"].find((k) => opt.kv.has(k))
-							if (lKey) {
-								labelVal = this.stripBracesAndDollars(opt.kv.get(lKey)!)
+							// 3. Extract label if not already extracted
+							if (!labelVal) {
+								const lKey = ["l", "label", "l_", "l^"].find((k) => opt.kv.has(k))
+								if (lKey) {
+									labelVal = this.stripBracesAndDollars(opt.kv.get(lKey)!)
+								}
 							}
-						}
 
-						const otherSide = opt.kv.has("l_")
+							const otherSide = opt.kv.has("l_")
 
-						// 4. Extract voltage
-						let voltageObj: any = undefined
-						const vKey = Array.from(opt.kv.keys()).find((k) => k.startsWith("v"))
-						if (vKey) {
-							const vVal = this.stripBracesAndDollars(opt.kv.get(vKey)!)
-							let pos = ""
-							let dir = ""
-							if (vKey.includes("^")) pos = "^"
-							else if (vKey.includes("_")) pos = "_"
-							if (vKey.includes(">")) dir = ">"
-							else if (vKey.includes("<")) dir = "<"
-							voltageObj = {
-								label: vVal,
-								pos: pos || undefined,
-								dir: dir || undefined,
+							// 4. Extract voltage
+							let voltageObj: any = undefined
+							const vKey = Array.from(opt.kv.keys()).find((k) => k.startsWith("v"))
+							if (vKey) {
+								const vVal = this.stripBracesAndDollars(opt.kv.get(vKey)!)
+								let pos = ""
+								let dir = ""
+								if (vKey.includes("^")) pos = "^"
+								else if (vKey.includes("_")) pos = "_"
+								if (vKey.includes(">")) dir = ">"
+								else if (vKey.includes("<")) dir = "<"
+								voltageObj = {
+									label: vVal,
+									pos: pos || undefined,
+									dir: dir || undefined,
+								}
 							}
-						}
 
-						// 5. Extract current
-						let currentObj: any = undefined
-						const iKey = Array.from(opt.kv.keys()).find((k) => k.startsWith("i"))
-						if (iKey) {
-							const iVal = this.stripBracesAndDollars(opt.kv.get(iKey)!)
-							currentObj = {
-								label: iVal,
-								backwards: iKey.includes("<"),
-								below: iKey.includes("_"),
+							// 5. Extract current
+							let currentObj: any = undefined
+							const iKey = Array.from(opt.kv.keys()).find((k) => k.startsWith("i"))
+							if (iKey) {
+								const iVal = this.stripBracesAndDollars(opt.kv.get(iKey)!)
+								currentObj = {
+									label: iVal,
+									backwards: iKey.includes("<"),
+									below: iKey.includes("_"),
+								}
 							}
-						}
 
-						// 6. Extract poles (e.g. *-*, *-o, bipole nodes={circ}{ocirc})
-						let poles: { start?: string; end?: string } | undefined = undefined
-						const poleFlag = opt.flags.find((f) => /^[o\*ds]-[o\*ds]$/.test(f))
-						if (poleFlag) {
-							const [s, e] = poleFlag.split("-")
-							poles = {
-								start: s === "*" ? "circ" : s === "o" ? "ocirc" : undefined,
-								end: e === "*" ? "circ" : e === "o" ? "ocirc" : undefined,
+							// 6. Extract poles (e.g. *-*, *-, -*, o-o, o-, -o, bipole nodes={circ}{ocirc})
+							let poles: { start?: string; end?: string } | undefined = undefined
+							const poleFlag = opt.flags.find(
+								(f) => /^([*ods]?)-([*ods]?)$/.test(f) && f.length >= 2 && f !== "--"
+							)
+							if (poleFlag) {
+								const dashIdx = poleFlag.indexOf("-")
+								const s = poleFlag.substring(0, dashIdx)
+								const e = poleFlag.substring(dashIdx + 1)
+								poles = {
+									start: s === "*" ? "circ" : s === "o" ? "ocirc" : s === "d" ? "diamondpole" : s === "s" ? "squarepole" : undefined,
+									end: e === "*" ? "circ" : e === "o" ? "ocirc" : e === "d" ? "diamondpole" : e === "s" ? "squarepole" : undefined,
+								}
+							} else if (opt.kv.has("bipole nodes")) {
+								const rawNodes = opt.kv.get("bipole nodes")!
+								const bMatches = rawNodes.match(/\{([^}]+)\}\{([^}]+)\}/)
+								if (bMatches) {
+									poles = { start: bMatches[1], end: bMatches[2] }
+								}
 							}
-						} else if (opt.kv.has("bipole nodes")) {
-							const rawNodes = opt.kv.get("bipole nodes")!
-							const bMatches = rawNodes.match(/\{([^}]+)\}\{([^}]+)\}/)
-							if (bMatches) {
-								poles = { start: bMatches[1], end: bMatches[2] }
+
+							// 7. Scale factor
+							let scaleFactor: number | undefined = undefined
+							if (opt.kv.has("/tikz/circuitikz/bipoles/length") || opt.kv.has("bipoles/length")) {
+								const lenStr = opt.kv.get("/tikz/circuitikz/bipoles/length") || opt.kv.get("bipoles/length")
+								const lenCm = this.parseLengthCm(lenStr!)
+								if (lenCm > 0) scaleFactor = lenCm / 1.4
 							}
+
+							const componentName = opt.kv.get("name") || opt.kv.get("n")
+
+							if (symName === "short") {
+								saveObjects.push({
+									type: "short",
+									points: [currentPoint, nextPoint],
+									poles,
+									current: currentObj,
+									scale: scaleFactor,
+								} as any)
+							} else if (symName === "open") {
+								saveObjects.push({
+									type: "open",
+									points: [currentPoint, nextPoint],
+									poles,
+									voltage: voltageObj,
+									scale: scaleFactor,
+								} as any)
+							} else if (symName) {
+								saveObjects.push({
+									type: "pathSymbol",
+									id: symName,
+									points: [currentPoint, nextPoint],
+									name: componentName || undefined,
+									label: labelVal ? { value: labelVal, otherSide } : undefined,
+									voltage: voltageObj,
+									current: currentObj,
+									mirror: opt.flags.includes("mirror") || undefined,
+									invert: opt.flags.includes("invert") || undefined,
+									poles,
+									scale: scaleFactor,
+								} as any)
+							} else {
+								// Unrecognized or plain wire with options
+								saveObjects.push({
+									type: "wire",
+									points: [currentPoint, nextPoint],
+									directions: [WireDirection.Straight],
+									current: currentObj,
+								} as any)
+							}
+
+							currentPoint = nextPoint
 						}
 
-						// 7. Scale factor
-						let scaleFactor: number | undefined = undefined
-						if (opt.kv.has("/tikz/circuitikz/bipoles/length")) {
-							const lenCm = this.parseLengthCm(opt.kv.get("/tikz/circuitikz/bipoles/length")!)
-							if (lenCm > 0) scaleFactor = lenCm / 1.4
-						}
-
-						const componentName = opt.kv.get("name") || opt.kv.get("n")
-
-						if (symName === "short") {
-							saveObjects.push({
-								type: "short",
-								points: [currentPoint, nextPoint],
-								poles,
-								current: currentObj,
-								scale: scaleFactor,
-							} as any)
-						} else if (symName === "open") {
-							saveObjects.push({
-								type: "open",
-								points: [currentPoint, nextPoint],
-								poles,
-								voltage: voltageObj,
-								scale: scaleFactor,
-							} as any)
-						} else if (symName) {
-							saveObjects.push({
-								type: "pathSymbol",
-								id: symName,
-								points: [currentPoint, nextPoint],
-								name: componentName || undefined,
-								label: labelVal ? { value: labelVal, otherSide } : undefined,
-								voltage: voltageObj,
-								current: currentObj,
-								mirror: opt.flags.includes("mirror") || undefined,
-								invert: opt.flags.includes("invert") || undefined,
-								poles,
-								scale: scaleFactor,
-							} as any)
-						} else {
-							// Unrecognized or plain wire with options
-							saveObjects.push({
-								type: "wire",
-								points: [currentPoint, nextPoint],
-								directions: [WireDirection.Straight],
-								current: currentObj,
-							} as any)
-						}
-
-						currentPoint = nextPoint
+						toRest = toRest.substring(parenRes.endIndex).trim()
+						rest = toRest
+						continue
 					}
-
-					toRest = toRest.substring(targetCoordMatch[0].length).trim()
-					rest = toRest
-					continue
 				}
 			}
 
 			// 5. Wire connector: --, -|, |-
-			const wireMatch = rest.match(/^(--|-\||\|-)\s*(\+{0,2}\s*\([^)]+\))/)
-			if (wireMatch) {
-				const dirStr = wireMatch[1]
-				const targetCoordStr = wireMatch[2]
-				const res = this.parseCoordinate(targetCoordStr, currentPoint, namedCoords)
-				const nextPoint = res.point
-
-				if (currentPoint && nextPoint) {
-					let wireDir = WireDirection.Straight
-					if (dirStr === "-|") wireDir = WireDirection.HV
-					else if (dirStr === "|-") wireDir = WireDirection.VH
-
-					saveObjects.push({
-						type: "wire",
-						points: [currentPoint, nextPoint],
-						directions: [wireDir],
-						startArrow: drawStartArrow,
-						endArrow: drawEndArrow,
-					} as any)
-					currentPoint = nextPoint
+			const wireOpMatch = rest.match(/^(--|-\||\|-)\s*/)
+			if (wireOpMatch) {
+				const dirStr = wireOpMatch[1]
+				let afterOp = rest.substring(wireOpMatch[0].length).trim()
+				let prefix = ""
+				let pStart = -1
+				if (afterOp.startsWith("++(")) {
+					prefix = "++"
+					pStart = 2
+				} else if (afterOp.startsWith("+(")) {
+					prefix = "+"
+					pStart = 1
+				} else if (afterOp.startsWith("(")) {
+					prefix = ""
+					pStart = 0
 				}
 
-				rest = rest.substring(wireMatch[0].length).trim()
-				continue
+				if (pStart >= 0) {
+					const parenRes = this.extractBalanced(afterOp, "(", ")", pStart)
+					if (parenRes) {
+						const targetCoordStr = prefix + parenRes.full
+						const res = this.parseCoordinate(targetCoordStr, currentPoint, namedCoords, globalScale)
+						const nextPoint = res.point
+
+						if (currentPoint && nextPoint) {
+							let wireDir = WireDirection.Straight
+							if (dirStr === "-|") wireDir = WireDirection.HV
+							else if (dirStr === "|-") wireDir = WireDirection.VH
+
+							saveObjects.push({
+								type: "wire",
+								points: [currentPoint, nextPoint],
+								directions: [wireDir],
+								startArrow: drawStartArrow,
+								endArrow: drawEndArrow,
+								stroke: wireStroke,
+							} as any)
+							currentPoint = nextPoint
+						}
+
+						rest = afterOp.substring(parenRes.endIndex).trim()
+						continue
+					}
+				}
 			}
 
 			// 6. Rectangle connector: rectangle (p2)
 			const rectMatch = rest.match(/^rectangle(?:\s*\[([^\]]*)\])?\s*(\+{0,2}\s*\([^)]+\))/)
 			if (rectMatch) {
 				const targetCoordStr = rectMatch[2]
-				const res = this.parseCoordinate(targetCoordStr, currentPoint, namedCoords)
+				const res = this.parseCoordinate(targetCoordStr, currentPoint, namedCoords, globalScale)
 				const p2 = res.point
 
 				if (currentPoint && p2) {
