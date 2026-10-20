@@ -40,6 +40,7 @@ export class NodeSymbolComponent extends NodeComponent {
 	private static jsonID = "node"
 	static {
 		CircuitComponent.jsonSaveMap.set(NodeSymbolComponent.jsonID, NodeSymbolComponent)
+		CircuitComponent.jsonSaveMap.set("nodeSymbol", NodeSymbolComponent)
 	}
 	/**
 	 * All the possible symbol variants for this node component.
@@ -285,7 +286,9 @@ export class NodeSymbolComponent extends NodeComponent {
 		let symbol: ComponentSymbol
 
 		if (SaveController.instance.currentlyLoadedSaveVersion != "") {
-			symbol = MainController.instance.symbols.find((symbol) => symbol.tikzName == saveObject.id)
+			symbol = MainController.instance.symbols.find(
+				(symbol) => symbol.tikzName === saveObject.id || symbol.tikzName.toLowerCase() === saveObject.id.toLowerCase()
+			)
 		} else {
 			let idParts = saveObject.id.split("_")
 			symbol = MainController.instance.symbols.find(

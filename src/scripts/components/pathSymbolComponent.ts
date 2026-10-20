@@ -61,6 +61,7 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 	private static jsonID = "path"
 	static {
 		CircuitComponent.jsonSaveMap.set(PathSymbolComponent.jsonID, PathSymbolComponent)
+		CircuitComponent.jsonSaveMap.set("pathSymbol", PathSymbolComponent)
 	}
 	public referenceSymbol: ComponentSymbol
 
@@ -822,7 +823,9 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 		let symbol: ComponentSymbol
 
 		if (SaveController.instance.currentlyLoadedSaveVersion != "") {
-			symbol = MainController.instance.symbols.find((symbol) => symbol.tikzName == saveObject.id)
+			symbol = MainController.instance.symbols.find(
+				(symbol) => symbol.tikzName === saveObject.id || symbol.tikzName.toLowerCase() === saveObject.id.toLowerCase()
+			)
 		} else {
 			let idParts = saveObject.id.split("_")
 			symbol = MainController.instance.symbols.find(

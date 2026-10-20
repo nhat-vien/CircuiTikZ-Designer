@@ -73,6 +73,7 @@ export class RectangleComponent extends ShapeComponent {
 	private static jsonID = "rect"
 	static {
 		CircuitComponent.jsonSaveMap.set(RectangleComponent.jsonID, RectangleComponent)
+		CircuitComponent.jsonSaveMap.set("rectangle", RectangleComponent)
 	}
 
 	declare protected dragElement: SVG.Rect
@@ -331,9 +332,8 @@ export class RectangleComponent extends ShapeComponent {
 				this.textAreaJustify.options[0]
 
 			this.textFontSize.value =
-				saveObject.text.fontSize ?
-					fontSizes.find((item) => item.key == saveObject.text.fontSize)
-				:	defaultFontSize
+				(saveObject.text.fontSize && fontSizes.find((item) => item.key == saveObject.text.fontSize)) ||
+				defaultFontSize
 
 			if (saveObject.text.innerSep) {
 				if (!(typeof saveObject.text.innerSep == "string")) {

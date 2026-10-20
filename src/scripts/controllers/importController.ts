@@ -207,6 +207,8 @@ export class ImportController {
 			return false
 		}
 
+		SaveController.instance.currentlyLoadedSaveVersion = "1.0.0"
+
 		const parseResult = TikzParser.parse(code)
 
 		if (parseResult.errors.length > 0 && parseResult.components.length === 0) {
@@ -254,6 +256,9 @@ export class ImportController {
 		// Adjust view to fit all components
 		if (fitView) {
 			CanvasController.instance.fitView()
+			setTimeout(() => {
+				CanvasController.instance.fitView()
+			}, 350)
 		}
 
 		const parts: string[] = []

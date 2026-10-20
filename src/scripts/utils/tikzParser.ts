@@ -298,13 +298,13 @@ export class TikzParser {
 
 			// Update stats
 			for (const c of result.components) {
-				if (c.type === "pathSymbol" || c.type === "short" || c.type === "open") {
+				if (c.type === "path" || c.type === "pathSymbol" || c.type === "short" || c.type === "open") {
 					result.stats.bipoles++
 				} else if (c.type === "wire") {
 					result.stats.wires++
-				} else if (c.type === "nodeSymbol") {
+				} else if (c.type === "node" || c.type === "nodeSymbol") {
 					result.stats.nodes++
-				} else if (c.type === "rect" || c.type === "ellipse" || c.type === "arcArrow") {
+				} else if (c.type === "rect" || c.type === "rectangle" || c.type === "ellipse" || c.type === "arcArrow") {
 					result.stats.shapes++
 				}
 			}
@@ -728,7 +728,7 @@ export class TikzParser {
 			const res = this.parseCoordinate(parenExt.full, null, namedCoords, globalScale)
 			if (res.point) {
 				return {
-					type: "nodeSymbol",
+					type: "node",
 					id: "circ",
 					position: res.point,
 				}
@@ -945,7 +945,7 @@ export class TikzParser {
 
 				if (symbolId && nodePos) {
 					saveObjects.push({
-						type: "nodeSymbol",
+						type: "node",
 						id: symbolId,
 						position: nodePos,
 						name: nodeName || undefined,
@@ -1167,6 +1167,11 @@ export class TikzParser {
 								if (lenCm > 0) scaleFactor = lenCm / 1.4
 							}
 
+							let sx = (scaleFactor ?? 1) * (opt.flags.includes("invert") ? -1 : 1)
+							let sy = (scaleFactor ?? 1) * (opt.flags.includes("mirror") ? -1 : 1)
+							let pathScale: { x: number; y: number } | undefined =
+								sx !== 1 || sy !== 1 ? { x: sx, y: sy } : undefined
+
 							const componentName = opt.kv.get("name") || opt.kv.get("n")
 
 							if (symName === "short") {
@@ -1175,7 +1180,7 @@ export class TikzParser {
 									points: [currentPoint, nextPoint],
 									poles,
 									current: currentObj,
-									scale: scaleFactor,
+									scale: pathScale,
 								} as any)
 							} else if (symName === "open") {
 								saveObjects.push({
@@ -1183,11 +1188,11 @@ export class TikzParser {
 									points: [currentPoint, nextPoint],
 									poles,
 									voltage: voltageObj,
-									scale: scaleFactor,
+									scale: pathScale,
 								} as any)
 							} else if (symName) {
 								saveObjects.push({
-									type: "pathSymbol",
+									type: "path",
 									id: symName,
 									points: [currentPoint, nextPoint],
 									name: componentName || undefined,
@@ -1197,7 +1202,7 @@ export class TikzParser {
 									mirror: opt.flags.includes("mirror") || undefined,
 									invert: opt.flags.includes("invert") || undefined,
 									poles,
-									scale: scaleFactor,
+									scale: pathScale,
 								} as any)
 							} else {
 								// Unrecognized or plain wire with options
