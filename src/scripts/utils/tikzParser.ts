@@ -777,17 +777,17 @@ export class TikzParser {
 		}
 
 		// Extract line width and color for wires from draw options
-		let wireStroke: any = undefined
+		let strokeWidth: string = "0.4pt" // Default CircuiTikZ wire width is 0.4pt
+		let strokeColor: string | undefined = undefined
+
 		if (drawOptions) {
-			let strokeWidth: string | undefined = undefined
 			if (drawOptions.flags.includes("ultra thick")) strokeWidth = "2.4pt"
 			else if (drawOptions.flags.includes("very thick")) strokeWidth = "1.8pt"
 			else if (drawOptions.flags.includes("thick")) strokeWidth = "1.2pt"
 			else if (drawOptions.flags.includes("thin")) strokeWidth = "0.6pt"
 			else if (drawOptions.flags.includes("very thin")) strokeWidth = "0.3pt"
-			else if (drawOptions.kv.has("line width")) strokeWidth = drawOptions.kv.get("line width")
+			else if (drawOptions.kv.has("line width")) strokeWidth = drawOptions.kv.get("line width")!
 
-			let strokeColor: string | undefined = undefined
 			for (const f of drawOptions.flags) {
 				if (["red", "green", "blue", "cyan", "magenta", "yellow", "black", "gray", "white"].includes(f)) {
 					strokeColor = f
@@ -797,13 +797,11 @@ export class TikzParser {
 			if (drawOptions.kv.has("color") || drawOptions.kv.has("draw")) {
 				strokeColor = drawOptions.kv.get("color") || drawOptions.kv.get("draw")
 			}
+		}
 
-			if (strokeWidth || strokeColor) {
-				wireStroke = {
-					width: strokeWidth || undefined,
-					color: strokeColor || undefined,
-				}
-			}
+		const wireStroke = {
+			width: strokeWidth,
+			color: strokeColor || undefined,
 		}
 
 		const saveObjects: ComponentSaveObject[] = []

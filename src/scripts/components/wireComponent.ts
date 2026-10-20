@@ -139,7 +139,7 @@ export class WireComponent extends Currentable(Strokable(PathComponent)) {
 		})
 
 		// override default value
-		this.strokeWidthProperty.value = new SVG.Number("1.0pt")
+		this.strokeWidthProperty.value = new SVG.Number("0.4pt")
 		this.strokeInfo.width = this.strokeWidthProperty.value
 
 		this.visualization.add(this.wire)
@@ -835,6 +835,10 @@ export class WireComponent extends Currentable(Strokable(PathComponent)) {
 
 	public applyJson(saveObject: WireSaveObject): void {
 		super.applyJson(saveObject)
+		if (!saveObject.stroke?.width) {
+			this.strokeWidthProperty.value = new SVG.Number("0.4pt")
+			this.strokeInfo.width = this.strokeWidthProperty.value
+		}
 		this.wireDirections = saveObject.directions ?? []
 		while (this.wireDirections.length < this.referencePoints.length - 1) {
 			this.wireDirections.push(WireDirection.Straight)
