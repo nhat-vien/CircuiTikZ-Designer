@@ -2,14 +2,12 @@ import { Modal, Tooltip } from "bootstrap"
 import {
 	SelectionController,
 	MainController,
-	defaultStroke,
-	defaultFill,
 	TextProperty,
 	EnvironmentVariableController,
+	createComponentsSvgText,
 } from "../internal"
 import FileSaver from "file-saver"
 import * as prettier from "prettier"
-import * as SVG from "@svgdotjs/svg.js"
 const parserXML = require("@prettier/plugin-xml").default
 
 /**
@@ -161,59 +159,9 @@ export class ExportController {
 		MainController.instance.darkMode = false
 		MainController.instance.updateTheme()
 
-		//Get the canvas
-		let svgObj = new SVG.Svg()
-		svgObj.node.style.fontSize = "10pt"
-		svgObj.node.style.overflow = "visible"
-
-		// get all used node/symbol names
-		let defsMap: Map<string, SVG.Element> = new Map<string, SVG.Element>()
-		let components: SVG.Element[] = []
-		for (const instance of MainController.instance.circuitComponents) {
-			components.push(instance.toSVG(defsMap))
-		}
-
-		// add to defs
-		if (defsMap.size > 0) {
-			const defs = new SVG.Defs()
-			for (const element of defsMap) {
-				defs.add(element[1])
-			}
-			svgObj.add(defs)
-		}
-
-		for (const component of components) {
-			svgObj.add(component)
-		}
-
-		//basic cleanup of invisible components (fill and stroke both need to be invisible)
-		for (const removeElement of svgObj.find(
-			':is([fill-opacity="0"],[fill="none"],[fill="transparent"]):is([stroke-opacity="0"],[stroke="none"],[stroke-width="0"],[stroke="transparent"])'
-		)) {
-			removeElement.remove()
-		}
-		//basic draggable class
-		for (const removeClass of svgObj.find(".draggable")) {
-			removeClass.removeClass("draggable")
-		}
-
-		// bounding box to include all elements
-		let bbox = svgObj.bbox()
-		if (bbox) {
-			//make bbox 2px larger in every direction to not cut of tiny bits of some objects
-			bbox.x -= 2
-			bbox.y -= 2
-			bbox.width += 4
-			bbox.height += 4
-			svgObj.viewbox(bbox)
-		}
-
-		// convert to text and make pretty
-		let tempDiv = document.createElement("div")
-		tempDiv.appendChild(svgObj.node)
-		tempDiv.innerHTML = tempDiv.innerHTML.replaceAll(defaultStroke, "#000").replaceAll(defaultFill, "#fff")
+		const svgText = createComponentsSvgText(MainController.instance.circuitComponents)
 		prettier
-			.format(tempDiv.innerHTML.replaceAll("<br>", "<br/>"), {
+			.format(svgText.replaceAll("<br>", "<br/>"), {
 				parser: "xml",
 				plugins: [parserXML],
 				tabWidth: 4,
@@ -226,7 +174,6 @@ export class ExportController {
 				const extensions = [".svg", ".txt"]
 				this.export(extensions)
 				SelectionController.instance.activateSelection()
-				tempDiv.remove()
 			})
 		MainController.instance.darkMode = colorTheme
 		MainController.instance.updateTheme()

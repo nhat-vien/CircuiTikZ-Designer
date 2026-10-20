@@ -37,6 +37,8 @@ import {
 	OpenComponent,
 	ArcArrowComponent,
 	ImportController,
+	createFlowchartComponent,
+	FlowchartComponentKind,
 } from "../internal"
 
 type TabState = {
@@ -184,6 +186,11 @@ export class MainController {
 		const exportSVGButton: HTMLButtonElement = document.getElementById("exportSVGButton") as HTMLButtonElement
 		exportSVGButton.addEventListener("click", ExportController.instance.exportSVG.bind(ExportController.instance), {
 			passive: true,
+		})
+
+		const copyImageButton: HTMLButtonElement | null = document.getElementById("copyImageButton") as HTMLButtonElement | null
+		copyImageButton?.addEventListener("click", () => {
+			CopyPaste.copyAsPngImage()
 		})
 
 		// init save and load
@@ -756,6 +763,10 @@ export class MainController {
 			CopyPaste.copy()
 			return false
 		})
+		hotkeys("ctrl+shift+c,command+shift+c", () => {
+			CopyPaste.copyAsPngImage()
+			return false
+		})
 		hotkeys("ctrl+v,command+v", () => {
 			CopyPaste.paste()
 			return false
@@ -920,6 +931,7 @@ export class MainController {
 
 		const accordionGroup = leftOffcanvasAccordion.appendChild(document.createElement("div"))
 		accordionGroup.classList.add("accordion-item")
+		accordionGroup.dataset.categoryName = groupName
 
 		const accordionItemHeader = accordionGroup.appendChild(document.createElement("h2"))
 		accordionItemHeader.classList.add("accordion-header")
@@ -1296,6 +1308,223 @@ export class MainController {
 		}
 	}
 
+	private addFlowchartComponentsToOffcanvas(leftOffcanvasAccordion: HTMLDivElement, leftOffcanvasOC: Offcanvas) {
+		const groupName = "Flowchart"
+		const collapseGroupID = "collapseGroup-" + groupName.replace(/[^\d\w\-\_]+/gi, "-")
+
+		const accordionGroup = leftOffcanvasAccordion.appendChild(document.createElement("div"))
+		accordionGroup.classList.add("accordion-item")
+		accordionGroup.dataset.categoryName = groupName
+
+		const accordionItemHeader = accordionGroup.appendChild(document.createElement("h2"))
+		accordionItemHeader.classList.add("accordion-header")
+
+		const accordionItemButton = accordionItemHeader.appendChild(document.createElement("button"))
+		accordionItemButton.classList.add("accordion-button", "collapsed")
+		accordionItemButton.innerText = groupName
+		accordionItemButton.setAttribute("aria-controls", collapseGroupID)
+		accordionItemButton.setAttribute("aria-expanded", "false")
+		accordionItemButton.setAttribute("data-bs-target", "#" + collapseGroupID)
+		accordionItemButton.setAttribute("data-bs-toggle", "collapse")
+		accordionItemButton.type = "button"
+
+		const accordionItemCollapse = accordionGroup.appendChild(document.createElement("div"))
+		accordionItemCollapse.classList.add("accordion-collapse", "collapse")
+		accordionItemCollapse.id = collapseGroupID
+		accordionItemCollapse.setAttribute("data-bs-parent", "#leftOffcanvasAccordion")
+
+		const accordionItemBody = accordionItemCollapse.appendChild(document.createElement("div"))
+		accordionItemBody.classList.add("accordion-body", "iconLibAccordionBody")
+
+		const createBtn = (searchData: string, title: string, kind: FlowchartComponentKind, renderIcon: (svg: SVG.Svg) => void) => {
+			const addButton: HTMLDivElement = accordionItemBody.appendChild(document.createElement("div"))
+			addButton.classList.add("libComponent")
+			addButton.setAttribute("searchData", searchData)
+			addButton.ariaRoleDescription = "button"
+			addButton.title = title
+
+			const listener = (ev: MouseEvent) => {
+				ev.preventDefault()
+				this.switchMode(Modes.DRAG_PAN)
+				const component = createFlowchartComponent(kind)
+				ComponentPlacer.instance.placeComponent(component)
+				leftOffcanvasOC.hide()
+			}
+			addButton.addEventListener("mouseup", listener)
+			addButton.addEventListener("touchstart", listener, { passive: false })
+
+			const svgIcon = SVG.SVG().addTo(addButton)
+			renderIcon(svgIcon)
+		}
+
+		// 1. Terminator (Start / End)
+		createBtn("flowchart terminator start end capsule rounded", "Start / End", "terminator", (svg) => {
+			svg.viewbox(0, 0, 18, 12)
+			svg.rect(16, 10).move(1, 1).radius(5).fill("none").stroke({ color: defaultStroke, width: 1 })
+		})
+
+		// 2. Process
+		createBtn("flowchart process task action rectangle box", "Process", "process", (svg) => {
+			svg.viewbox(0, 0, 18, 12)
+			svg.rect(16, 10).move(1, 1).fill("none").stroke({ color: defaultStroke, width: 1 })
+		})
+
+		// 3. Decision
+		createBtn("flowchart decision condition if diamond", "Decision", "decision", (svg) => {
+			svg.viewbox(0, 0, 18, 12)
+			svg.polygon([[9, 1], [17, 6], [9, 11], [1, 6]]).fill("none").stroke({ color: defaultStroke, width: 1 })
+		})
+
+		// 4. Input / Output
+		createBtn("flowchart input output data io parallelogram", "Input / Output", "inputOutput", (svg) => {
+			svg.viewbox(0, 0, 18, 12)
+			svg.polygon([[4, 1], [17, 1], [14, 11], [1, 11]]).fill("none").stroke({ color: defaultStroke, width: 1 })
+		})
+
+		// 5. Flow Arrow
+		createBtn("flowchart arrow flow connector path", "Flow Arrow", "flowArrow", (svg) => {
+			svg.viewbox(-1, -2, 12, 8)
+			svg.polyline([[0, 5], [5, 5], [5, 0], [9.1, 0]]).stroke({ color: defaultStroke, width: 0.5 }).fill("none")
+			svg.polygon([[9, -1], [10.5, 0], [9, 1]]).fill({ color: defaultStroke })
+		})
+
+		// 6. Document
+		createBtn("flowchart document file report page", "Document", "document", (svg) => {
+			svg.viewbox(0, 0, 18, 12)
+			svg.path("M 1 1 L 17 1 L 17 9 C 15 10.5, 12.5 11.2, 9 10.1 C 6 9.2, 3.5 10.2, 1 11 Z").fill("none").stroke({ color: defaultStroke, width: 1 })
+		})
+
+		// 7. Database
+		createBtn("flowchart database storage cylinder data", "Database", "database", (svg) => {
+			svg.viewbox(0, 0, 18, 12)
+			svg.path("M 1 3 C 1 1.8, 4.6 1, 9 1 C 13.4 1, 17 1.8, 17 3 L 17 9 C 17 10.2, 13.4 11, 9 11 C 4.6 11, 1 10.2, 1 9 Z M 1 3 C 1 4.2, 4.6 5, 9 5 C 13.4 5, 17 4.2, 17 3").fill("none").stroke({ color: defaultStroke, width: 1 })
+		})
+
+		// 8. Subprocess
+		createBtn("flowchart subprocess predefined process routine", "Subprocess", "subprocess", (svg) => {
+			svg.viewbox(0, 0, 18, 12)
+			svg.rect(16, 10).move(1, 1).fill("none").stroke({ color: defaultStroke, width: 1 })
+			svg.line(4, 2, 4, 10).stroke({ color: defaultStroke, width: 1 })
+			svg.line(14, 2, 14, 10).stroke({ color: defaultStroke, width: 1 })
+		})
+
+		// 9. Connector
+		createBtn("flowchart connector circle jump point", "Connector", "connector", (svg) => {
+			svg.viewbox(0, 0, 18, 12)
+			svg.circle(10).center(9, 6).fill("none").stroke({ color: defaultStroke, width: 1 })
+		})
+
+		// 10. Off-page Connector
+		createBtn("flowchart off page connector pentagon continuation", "Off-page Connector", "offPageConnector", (svg) => {
+			svg.viewbox(0, 0, 18, 12)
+			svg.polygon([[3, 1], [15, 1], [17, 7], [9, 11], [1, 7]]).fill("none").stroke({ color: defaultStroke, width: 1 })
+		})
+	}
+
+	private initShapeLibraryChooser(leftOffcanvasAccordion: HTMLDivElement): void {
+		const moreButton = document.getElementById("shapeLibraryMoreButton") as HTMLButtonElement | null
+		const applyButton = document.getElementById("shapeLibraryApplyButton") as HTMLButtonElement | null
+		const selectAllBtn = document.getElementById("shapeLibrarySelectAllBtn") as HTMLButtonElement | null
+		const deselectAllBtn = document.getElementById("shapeLibraryDeselectAllBtn") as HTMLButtonElement | null
+		const categoryList = document.getElementById("shapeLibraryCategoryList") as HTMLDivElement | null
+		const rememberCheckbox = document.getElementById("shapeLibraryRememberCheckbox") as HTMLInputElement | null
+
+		if (!moreButton || !applyButton || !categoryList) return
+
+		const STORAGE_KEY = "circuittikz_visible_categories"
+		const REMEMBER_KEY = "circuittikz_remember_categories"
+
+		const getCategories = () => {
+			const items = Array.from(leftOffcanvasAccordion.querySelectorAll<HTMLDivElement>(".accordion-item"))
+			return items
+				.map((item) => item.dataset.categoryName)
+				.filter((name): name is string => !!name)
+		}
+
+		const applyVisibility = (visibleCategories: string[]) => {
+			const items = Array.from(leftOffcanvasAccordion.querySelectorAll<HTMLDivElement>(".accordion-item"))
+			for (const item of items) {
+				const catName = item.dataset.categoryName
+				if (catName) {
+					item.style.display = visibleCategories.includes(catName) ? "" : "none"
+				}
+			}
+		}
+
+		const renderOptions = () => {
+			const categories = getCategories()
+			const saved = localStorage.getItem(STORAGE_KEY)
+			let visibleCategories: string[] = categories
+			if (saved && localStorage.getItem(REMEMBER_KEY) === "true") {
+				try {
+					visibleCategories = JSON.parse(saved)
+				} catch {
+					visibleCategories = categories
+				}
+			}
+
+			categoryList.innerHTML = ""
+			for (const catName of categories) {
+				const label = document.createElement("label")
+				label.className = "shape-library-option"
+				const cb = document.createElement("input")
+				cb.type = "checkbox"
+				cb.className = "form-check-input"
+				cb.value = catName
+				cb.checked = visibleCategories.includes(catName)
+				const span = document.createElement("span")
+				span.textContent = catName
+				label.appendChild(cb)
+				label.appendChild(span)
+				categoryList.appendChild(label)
+			}
+		}
+
+		if (localStorage.getItem(REMEMBER_KEY) === "true") {
+			const saved = localStorage.getItem(STORAGE_KEY)
+			if (saved) {
+				try {
+					const visible = JSON.parse(saved)
+					applyVisibility(visible)
+				} catch {
+					// fallback
+				}
+			}
+		}
+
+		moreButton.addEventListener("click", () => {
+			renderOptions()
+			if (rememberCheckbox) {
+				rememberCheckbox.checked = localStorage.getItem(REMEMBER_KEY) === "true"
+			}
+		})
+
+		selectAllBtn?.addEventListener("click", () => {
+			const checkboxes = categoryList.querySelectorAll<HTMLInputElement>("input[type='checkbox']")
+			checkboxes.forEach((cb) => (cb.checked = true))
+		})
+
+		deselectAllBtn?.addEventListener("click", () => {
+			const checkboxes = categoryList.querySelectorAll<HTMLInputElement>("input[type='checkbox']")
+			checkboxes.forEach((cb) => (cb.checked = false))
+		})
+
+		applyButton.addEventListener("click", () => {
+			const checkboxes = Array.from(categoryList.querySelectorAll<HTMLInputElement>("input[type='checkbox']"))
+			const visible = checkboxes.filter((cb) => cb.checked).map((cb) => cb.value)
+
+			applyVisibility(visible)
+
+			if (rememberCheckbox?.checked) {
+				localStorage.setItem(REMEMBER_KEY, "true")
+				localStorage.setItem(STORAGE_KEY, JSON.stringify(visible))
+			} else {
+				localStorage.removeItem(REMEMBER_KEY)
+				localStorage.removeItem(STORAGE_KEY)
+			}
+		})
+	}
+
 	/**
 	 * Init the left add offcanvas.
 	 */
@@ -1342,12 +1571,14 @@ export class MainController {
 		)
 
 		this.addShapeComponentsToOffcanvas(leftOffcanvasAccordion, leftOffcanvasOC)
+		this.addFlowchartComponentsToOffcanvas(leftOffcanvasAccordion, leftOffcanvasOC)
 
 		for (const [groupName, symbols] of groupedSymbols.entries()) {
 			const collapseGroupID = "collapseGroup-" + groupName.replace(/[^\d\w\-\_]+/gi, "-")
 
 			const accordionGroup = leftOffcanvasAccordion.appendChild(document.createElement("div"))
 			accordionGroup.classList.add("accordion-item")
+			accordionGroup.dataset.categoryName = groupName
 
 			const accordionItemHeader = accordionGroup.appendChild(document.createElement("h2"))
 			accordionItemHeader.classList.add("accordion-header")
@@ -1429,6 +1660,8 @@ export class MainController {
 				use.stroke(defaultStroke).fill(defaultFill).node.style.color = defaultStroke
 			}
 		}
+
+		this.initShapeLibraryChooser(leftOffcanvasAccordion)
 	}
 
 	/**

@@ -304,7 +304,13 @@ export class TikzParser {
 					result.stats.wires++
 				} else if (c.type === "node" || c.type === "nodeSymbol") {
 					result.stats.nodes++
-				} else if (c.type === "rect" || c.type === "rectangle" || c.type === "ellipse" || c.type === "arcArrow") {
+				} else if (
+					c.type === "rect" ||
+					c.type === "rectangle" ||
+					c.type === "ellipse" ||
+					c.type === "arcArrow" ||
+					(c.type && c.type.startsWith("flow"))
+				) {
 					result.stats.shapes++
 				}
 			}
@@ -941,6 +947,16 @@ export class TikzParser {
 				const isCircleShape = opt.flags.includes("circle") || opt.kv.get("shape") === "circle"
 				const isEllipseShape = opt.flags.includes("ellipse") || opt.kv.get("shape") === "ellipse"
 
+				const shapeOpt = opt.kv.get("shape")
+				let flowchartType: string | null = null
+				if (shapeOpt === "diamond") flowchartType = "flowDecision"
+				else if (shapeOpt === "trapezium") flowchartType = "flowInputOutput"
+				else if (shapeOpt === "cylinder") flowchartType = "flowDatabase"
+				else if (shapeOpt === "document") flowchartType = "flowDocument"
+				else if (shapeOpt === "regular polygon") flowchartType = "flowOffPageConnector"
+				else if (opt.flags.some((f) => f.includes("rounded corners")) || opt.kv.has("rounded corners")) flowchartType = "flowTerminator"
+				else if (opt.flags.includes("double")) flowchartType = "flowSubprocess"
+
 				if (symbolId && nodePos) {
 					saveObjects.push({
 						type: "node",
@@ -952,6 +968,17 @@ export class TikzParser {
 						scale: scaleState,
 					} as any)
 					this.registerNodeAnchors(nodeName, symbolId, nodePos, namedCoords, rotationDeg || 0, scaleState)
+					currentPoint = nodePos
+				} else if (flowchartType && nodePos) {
+					const wCm = this.parseLengthCm(opt.kv.get("minimum width") || "2cm")
+					const hCm = this.parseLengthCm(opt.kv.get("minimum height") || "1.5cm")
+					saveObjects.push({
+						type: flowchartType,
+						position: nodePos,
+						size: { x: wCm * CM_TO_PX, y: hCm * CM_TO_PX },
+						text: nodeContent ? { text: nodeContent } : undefined,
+					} as any)
+					if (nodeName) namedCoords.set(nodeName, nodePos)
 					currentPoint = nodePos
 				} else if (isRectShape && nodePos) {
 					const wCm = this.parseLengthCm(opt.kv.get("minimum width") || "2cm")
