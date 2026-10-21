@@ -157,6 +157,18 @@
 								<button
 									type="button"
 									class="dropdown-item"
+									id="navbarLiveCodeButton"
+									data-bs-toggle="tooltip"
+									data-bs-placement="bottom"
+									data-bs-title="Toggle Live CircuiTikZ Code Panel">
+									<span class="material-symbols-outlined toolbarButton">terminal</span>
+									<span class="d-md-none fs-4"> Live TikZ Code </span>
+								</button>
+							</li>
+							<li class="nav-item col-12 col-md-auto">
+								<button
+									type="button"
+									class="dropdown-item"
 									id="exportSVGButton"
 									data-bs-toggle="tooltip"
 									data-bs-placement="bottom"
@@ -175,6 +187,18 @@
 									data-bs-title="Copy diagram/selection as PNG image to clipboard (Ctrl/⌘ + Shift + C)">
 									<span class="material-symbols-outlined toolbarButton">content_copy</span>
 									<span class="d-md-none fs-4"> Copy PNG Image </span>
+								</button>
+							</li>
+							<li class="nav-item col-12 col-md-auto">
+								<button
+									type="button"
+									class="dropdown-item"
+									id="navbarCenterOriginButton"
+									data-bs-toggle="tooltip"
+									data-bs-placement="bottom"
+									data-bs-title="Center circuit at origin (0, 0)">
+									<span class="material-symbols-outlined toolbarButton">center_focus_strong</span>
+									<span class="d-md-none fs-4"> Center at origin </span>
 								</button>
 							</li>
 							<li class="nav-item col-12 col-md-auto">
@@ -302,9 +326,71 @@
 							data-bs-title="Redo (Ctrl/⌘+Y)"
 							>redo</a
 						>
+						<div class="vr"></div>
+						<a
+							role="button"
+							class="toolbarButton material-symbols-outlined"
+							id="toolbarRotateLeft"
+							data-bs-toggle="tooltip"
+							data-bs-placement="bottom"
+							data-bs-title="Rotate 90° CCW (Shift+R)">rotate_left</a>
+						<a
+							role="button"
+							class="toolbarButton material-symbols-outlined"
+							id="toolbarRotateRight"
+							data-bs-toggle="tooltip"
+							data-bs-placement="bottom"
+							data-bs-title="Rotate 90° CW (R)">rotate_right</a>
+						<div class="vr"></div>
+						<a
+							role="button"
+							class="toolbarButton material-symbols-outlined"
+							id="toolbarCenterOrigin"
+							data-bs-toggle="tooltip"
+							data-bs-placement="bottom"
+							data-bs-title="Center circuit at (0, 0) origin">center_focus_strong</a>
+						<a
+							role="button"
+							class="toolbarButton material-symbols-outlined"
+							id="toolbarFitView"
+							data-bs-toggle="tooltip"
+							data-bs-placement="bottom"
+							data-bs-title="Fit view to circuit">fit_screen</a>
+						<a
+							role="button"
+							class="toolbarButton material-symbols-outlined"
+							id="toolbarLiveCode"
+							data-bs-toggle="tooltip"
+							data-bs-placement="bottom"
+							data-bs-title="Toggle Live CircuiTi<i>k</i>Z code panel">terminal</a>
 					</div>
 					<!-- The actual canvas -->
 					<include src="pages/canvas.svg"></include>
+					<!-- Real-time cursor coordinates badge (inspired by mangel21) -->
+					<div id="canvasCoordinates" class="canvas-coords-badge unselectable" title="Cursor coordinates in CircuiTikZ units (cm)">
+						X: 0.00 cm, Y: 0.00 cm
+					</div>
+
+					<!-- Live TikZ Code Panel (inspired by mangel21) -->
+					<div id="liveCodePanel" class="live-code-panel d-none">
+						<div class="live-code-header">
+							<div class="d-flex align-items-center gap-2">
+								<span class="material-symbols-outlined fs-6 text-primary">terminal</span>
+								<span class="live-code-title">CircuiTi<i>k</i>Z Live Code</span>
+								<span class="badge text-bg-secondary" id="liveCodeBadge">0 lines</span>
+							</div>
+							<div class="d-flex align-items-center gap-2">
+								<button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 live-code-copy-btn" id="liveCodeCopyBtn" title="Copy code to clipboard">
+									<span class="material-symbols-outlined fs-6 me-1 align-middle">content_copy</span>
+									<span class="align-middle">Copy</span>
+								</button>
+								<button type="button" class="btn-close btn-sm" id="liveCodeCloseBtn" aria-label="Close"></button>
+							</div>
+						</div>
+						<div class="live-code-body">
+							<pre><code id="liveCodeContent">% CircuiTikZ code will appear here live as you build</code></pre>
+						</div>
+					</div>
 					<div class="d-block position-absolute top-50 start-50" id="loadingSpinner">
 						<div class="spinner-border" role="status">
 							<span class="visually-hidden">Loading...</span>
@@ -336,6 +422,24 @@
 											class="btn btn-primary flex-grow-1"
 											id="fitViewButton">
 											Fit view
+										</button>
+									</div>
+									<div class="m-0 p-0 d-flex justify-content-between align-items-center">
+										<button
+											type="button"
+											class="btn btn-outline-primary flex-grow-1"
+											id="centerOriginViewButton">
+											<span class="material-symbols-outlined fs-6 me-1 align-middle">center_focus_strong</span>
+											<span class="align-middle">Center at origin</span>
+										</button>
+									</div>
+									<div class="m-0 p-0 d-flex justify-content-between align-items-center">
+										<button
+											type="button"
+											class="btn btn-outline-danger flex-grow-1"
+											id="clearCanvasViewButton">
+											<span class="material-symbols-outlined fs-6 me-1 align-middle">delete_sweep</span>
+											<span class="align-middle">Clear canvas</span>
 										</button>
 									</div>
 									<div

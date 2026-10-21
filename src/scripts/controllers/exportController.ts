@@ -108,39 +108,44 @@ export class ExportController {
 	/**
 	 * Shows the exportModal with the CitcuiTikZ code.
 	 */
+	/**
+	 * Returns the formatted CircuiTikZ code for the current circuit.
+	 */
+	public getCircuiTikzString(): string {
+		let circuitElements = []
+		let requiredTikzLibraries: Set<string> = new Set<string>()
+		for (const circuitElement of MainController.instance.circuitComponents) {
+			circuitElement.requiredTikzLibraries().forEach((item) => requiredTikzLibraries.add(item))
+			circuitElements.push("\t" + circuitElement.toTikzString())
+		}
+		let libraryStr =
+			requiredTikzLibraries.size > 0 ?
+				"\\usetikzlibrary{" + Array.from(requiredTikzLibraries.values()).join(", ") + "}"
+			:	""
+
+		const tikzSettings = EnvironmentVariableController.instance.getTikzSettings()
+		let arr = [
+			"\\begin{tikzpicture}" + "[" + ["transform shape"].concat(tikzSettings.environment).join(", ") + "]",
+			...tikzSettings.ctikzset.map((setting) => "\t\\ctikzset{" + setting + "}"),
+			"\t% Paths, nodes and wires:",
+			...circuitElements,
+			"\\end{tikzpicture}",
+		]
+		if (libraryStr) {
+			arr = [libraryStr].concat(arr)
+		}
+		return arr.join("\n")
+	}
+
 	exportCircuiTikZ() {
 		this.heading.innerHTML = "Export CircuiTi<i>k</i>Z code"
 		this.exportedContent.parentElement.style.display = this.defaultDisplay
 		// create extension select list
 		const extensions = [".tikz", ".tex", ".pgf"]
 
-		// actually export/create the string
-		{
-			let circuitElements = []
-			let requiredTikzLibraries: Set<string> = new Set<string>()
-			for (const circuitElement of MainController.instance.circuitComponents) {
-				circuitElement.requiredTikzLibraries().forEach((item) => requiredTikzLibraries.add(item))
-				circuitElements.push("\t" + circuitElement.toTikzString())
-			}
-			let libraryStr =
-				requiredTikzLibraries.size > 0 ?
-					"\\usetikzlibrary{" + requiredTikzLibraries.values().toArray().join(", ") + "}"
-				:	""
-
-			const tikzSettings = EnvironmentVariableController.instance.getTikzSettings()
-			let arr = [
-				"\\begin{tikzpicture}" + "[" + ["transform shape"].concat(tikzSettings.environment).join(", ") + "]",
-				...tikzSettings.ctikzset.map((setting) => "\t\\ctikzset{" + setting + "}"),
-				"\t% Paths, nodes and wires:",
-				...circuitElements,
-				"\\end{tikzpicture}",
-			]
-			if (libraryStr) {
-				arr = [libraryStr].concat(arr)
-			}
-			this.exportedContent.rows = arr.length
-			this.exportedContent.value = arr.join("\n")
-		}
+		const tikzCode = this.getCircuiTikzString()
+		this.exportedContent.rows = tikzCode.split("\n").length
+		this.exportedContent.value = tikzCode
 		this.usedIDs.clear()
 		this.export(extensions)
 	}

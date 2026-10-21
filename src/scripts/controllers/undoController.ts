@@ -49,6 +49,7 @@ export class Undo {
 			Undo.states = Undo.states.slice(0, Undo.currentIndex + 1)
 			Undo.states.push(currentState)
 			Undo.currentIndex = Undo.states.length - 1
+			MainController.instance?.updateLiveCode()
 		}
 	}
 
@@ -96,5 +97,7 @@ export class Undo {
 		if (components.length > 0) {
 			SelectionController.instance.selectComponents(components, SelectionMode.RESET)
 		}
+
+		MainController.instance?.updateLiveCode()
 	}
 }

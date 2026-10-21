@@ -243,6 +243,8 @@ export class MainController {
 			})
 			MainController.instance.updateTheme()
 			PropertyController.instance.update()
+			this.initMangelFeatures()
+			this.updateTooltips()
 			this.isInitDone = true
 		})
 	}
@@ -692,8 +694,8 @@ export class MainController {
 		// stop reload behaviour
 		hotkeys("ctrl+r,command+r", () => false)
 
-		// rotate selection
-		hotkeys("ctrl+r,command+r", () => {
+		// rotate selection (R for CW, Shift+R for CCW)
+		const rotateCCW = () => {
 			if (this.mode == Modes.COMPONENT) {
 				ComponentPlacer.instance.placeRotate(-90)
 			} else {
@@ -703,8 +705,8 @@ export class MainController {
 				}
 			}
 			return false
-		})
-		hotkeys("ctrl+shift+r,command+shift+r", () => {
+		}
+		const rotateCW = () => {
 			if (this.mode == Modes.COMPONENT) {
 				ComponentPlacer.instance.placeRotate(90)
 			} else {
@@ -713,6 +715,15 @@ export class MainController {
 					Undo.addState()
 				}
 			}
+			return false
+		}
+
+		hotkeys("ctrl+r,command+r,shift+r", rotateCCW)
+		hotkeys("ctrl+shift+r,command+shift+r,r", rotateCW)
+
+		// live code panel shortcut (Alt+C or Ctrl+`)
+		hotkeys("alt+c,ctrl+`,command+`", () => {
+			this.toggleLiveCodePanel()
 			return false
 		})
 
@@ -864,7 +875,18 @@ export class MainController {
 	 */
 	private async initCanvas() {
 		let canvasElement: SVGSVGElement = await waitForElementLoaded("canvas")
-		if (canvasElement) this.canvasController = new CanvasController(new SVG.Svg(canvasElement))
+		if (canvasElement) {
+			this.canvasController = new CanvasController(new SVG.Svg(canvasElement))
+			const coordsEl = document.getElementById("canvasCoordinates")
+			const cmPx = new SVG.Number(1, "cm").convertToUnit("px").value || 37.795
+			canvasElement.addEventListener("mousemove", (evt) => {
+				if (!coordsEl) return
+				const pt = CanvasController.eventToPoint(evt, false)
+				const x = (pt.x / cmPx).toFixed(2)
+				const y = (-pt.y / cmPx).toFixed(2)
+				coordsEl.textContent = `X: ${x} cm, Y: ${y} cm`
+			})
+		}
 	}
 
 	/**
@@ -1912,5 +1934,165 @@ export class MainController {
 			this.circuitComponents.splice(idx, 1)
 			circuitComponent.remove()
 		}
+	}
+
+	/**
+	 * Center all components and wires in the circuit around (0, 0) origin (inspired by mangel21).
+	 */
+	public centerCircuitAtOrigin(): void {
+		const components = this.circuitComponents
+		if (components.length === 0) {
+			return
+		}
+
+		let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+		for (const comp of components) {
+			const b = comp.bbox
+			if (!b) continue
+			minX = Math.min(minX, b.x)
+			minY = Math.min(minY, b.y)
+			maxX = Math.max(maxX, b.x2)
+			maxY = Math.max(maxY, b.y2)
+		}
+
+		if (!isFinite(minX) || !isFinite(minY)) return
+
+		const cx = (minX + maxX) / 2
+		const cy = (minY + maxY) / 2
+
+		// Snap offset to minor grid distance so pins align cleanly to the grid
+		const minorDist =
+			(CanvasController.instance?.majorGridSizecm || 1) /
+			(CanvasController.instance?.majorGridSubdivisions || 4)
+		const gridStep = new SVG.Number(minorDist, "cm").convertToUnit("px").value || 9.45
+
+		const offsetX = -Math.round(cx / gridStep) * gridStep
+		const offsetY = -Math.round(cy / gridStep) * gridStep
+
+		if (Math.abs(offsetX) < 0.1 && Math.abs(offsetY) < 0.1) {
+			return
+		}
+
+		const delta = new SVG.Point(offsetX, offsetY)
+		for (const comp of components) {
+			comp.moveRel(delta)
+			comp.recalculateSnappingPoints()
+		}
+
+		Undo.addState()
+		this.updateLiveCode()
+		CanvasController.instance?.fitView()
+	}
+
+	/**
+	 * Clear all components and wires from canvas with undo history (inspired by mangel21).
+	 */
+	public clearCanvas(): void {
+		if (this.circuitComponents.length === 0) {
+			return
+		}
+		SelectionController.instance.deactivateSelection()
+		while (this.circuitComponents.length > 0) {
+			this.removeComponent(this.circuitComponents[0])
+		}
+		Undo.addState()
+		PropertyController.instance.update()
+		this.updateLiveCode()
+	}
+
+	/**
+	 * Toggle or set visibility of the live CircuiTikZ code drawer (inspired by mangel21).
+	 */
+	public toggleLiveCodePanel(forceState?: boolean): void {
+		const panel = document.getElementById("liveCodePanel")
+		if (!panel) return
+		const isCurrentlyOpen = !panel.classList.contains("d-none")
+		const shouldOpen = forceState !== undefined ? forceState : !isCurrentlyOpen
+
+		if (shouldOpen) {
+			panel.classList.remove("d-none")
+			this.updateLiveCode()
+			document.getElementById("toolbarLiveCode")?.classList.add("selected")
+		} else {
+			panel.classList.add("d-none")
+			document.getElementById("toolbarLiveCode")?.classList.remove("selected")
+		}
+	}
+
+	private liveCodeTimeout: any = null
+	/**
+	 * Update the live code panel content with latest CircuiTikZ code.
+	 */
+	public updateLiveCode(): void {
+		const panel = document.getElementById("liveCodePanel")
+		if (!panel || panel.classList.contains("d-none")) return
+
+		if (this.liveCodeTimeout) clearTimeout(this.liveCodeTimeout)
+		this.liveCodeTimeout = setTimeout(() => {
+			const codeElement = document.getElementById("liveCodeContent")
+			const badgeElement = document.getElementById("liveCodeBadge")
+			if (!codeElement) return
+
+			const code = ExportController.instance.getCircuiTikzString()
+			codeElement.textContent = code
+			const lineCount = code.split("\n").length
+			if (badgeElement) {
+				badgeElement.textContent = `${lineCount} lines`
+			}
+		}, 80)
+	}
+
+	private initMangelFeatures(): void {
+		// Rotate Left (CCW)
+		const rotateLeftAction = () => {
+			if (this.mode === Modes.COMPONENT) {
+				ComponentPlacer.instance.placeRotate(-90)
+			} else if (SelectionController.instance.hasSelection()) {
+				SelectionController.instance.rotateSelection(-90)
+				Undo.addState()
+			}
+		}
+		// Rotate Right (CW)
+		const rotateRightAction = () => {
+			if (this.mode === Modes.COMPONENT) {
+				ComponentPlacer.instance.placeRotate(90)
+			} else if (SelectionController.instance.hasSelection()) {
+				SelectionController.instance.rotateSelection(90)
+				Undo.addState()
+			}
+		}
+
+		document.getElementById("toolbarRotateLeft")?.addEventListener("click", rotateLeftAction)
+		document.getElementById("toolbarRotateRight")?.addEventListener("click", rotateRightAction)
+
+		// Center at Origin
+		document.getElementById("toolbarCenterOrigin")?.addEventListener("click", () => this.centerCircuitAtOrigin())
+		document.getElementById("navbarCenterOriginButton")?.addEventListener("click", () => this.centerCircuitAtOrigin())
+		document.getElementById("centerOriginViewButton")?.addEventListener("click", () => this.centerCircuitAtOrigin())
+
+		// Fit view
+		document.getElementById("toolbarFitView")?.addEventListener("click", () => CanvasController.instance?.fitView())
+
+		// Clear canvas
+		document.getElementById("clearCanvasViewButton")?.addEventListener("click", () => this.clearCanvas())
+
+		// Live Code panel toggles
+		document.getElementById("toolbarLiveCode")?.addEventListener("click", () => this.toggleLiveCodePanel())
+		document.getElementById("navbarLiveCodeButton")?.addEventListener("click", () => this.toggleLiveCodePanel())
+		document.getElementById("liveCodeCloseBtn")?.addEventListener("click", () => this.toggleLiveCodePanel(false))
+
+		// Copy Live Code
+		const liveCodeCopyBtn = document.getElementById("liveCodeCopyBtn")
+		liveCodeCopyBtn?.addEventListener("click", () => {
+			const code = ExportController.instance.getCircuiTikzString()
+			navigator.clipboard.writeText(code).then(() => {
+				const originalText = liveCodeCopyBtn.innerHTML
+				liveCodeCopyBtn.innerHTML =
+					'<span class="material-symbols-outlined fs-6 me-1 align-middle text-success">check</span><span class="align-middle text-success">Copied!</span>'
+				setTimeout(() => {
+					liveCodeCopyBtn.innerHTML = originalText
+				}, 1800)
+			})
+		})
 	}
 }
