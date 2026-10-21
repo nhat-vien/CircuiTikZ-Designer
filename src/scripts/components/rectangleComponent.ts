@@ -380,6 +380,103 @@ export class RectangleComponent extends ShapeComponent {
 	}
 
 	protected buildTikzCommand(command: TikzNodeCommand): void {
+		const isPureText =
+			this.createAsText || (this.strokeInfo.opacity === 0 && this.fillInfo.opacity === 0)
+
+		if (isPureText && this.textAreaProperty.value) {
+			super.buildTikzCommand(command)
+
+			let options: string[] = []
+
+			// treat justify like left aligned
+			let alignDir =
+				this.textAreaAlign.value.numberID == TextAlign.JUSTIFY ? -1 : this.textAreaAlign.value.numberID - 1
+			let dir = new SVG.Point(alignDir, this.textAreaJustify.value.numberID)
+
+			// which anchor and position corresponds to the direction?
+			let anchor = basicDirections.find((item) => item.direction.eq(dir)).name
+			let pos = this.position.add(dir.mul(this.size.div(2)).rotate(this.rotationDeg))
+			options.push("anchor=" + anchor)
+
+			switch (this.textAreaAlign.value.numberID) {
+				case TextAlign.LEFT:
+					options.push("align=left")
+					break
+				case TextAlign.CENTER:
+					options.push("align=center")
+					break
+				case TextAlign.RIGHT:
+					options.push("align=right")
+					break
+				default:
+					options.push("align=justify")
+					break
+			}
+
+			// text dimensions
+			let innerSep = this.textInnerSep.value.plus(this.strokeInfo.width)
+			let textWidth = new SVG.Number(this.size.x, "px").minus(innerSep.times(2)).convertToUnit("cm")
+
+			// Only enforce 'text width' if text has multiple lines or is justified.
+			// For single-line text/math formulas, omitting 'text width' allows LaTeX to natural-fit
+			// without prematurely breaking equations (e.g. '$n = N_1/N_2$') across lines.
+			if (this.textAreaProperty.value.includes("\n") || this.textAreaAlign.value.numberID == TextAlign.JUSTIFY) {
+				options.push(`text width=${roundTikz(textWidth.value)}cm`)
+			}
+			options.push(`inner sep=${innerSep.toString()}`)
+
+			// rectangle rotation
+			if (this.rotationDeg != 0) {
+				options.push("rotate=" + this.rotationDeg)
+			}
+
+			// escape special characters
+			const replaceDict = {
+				"#": "\\#",
+				"$": "\\$",
+				"%": "\\%",
+				"&": "\\&",
+				"_": "\\_",
+				"{": "\\{",
+				"}": "\\}",
+				"~": "\\textasciitilde",
+				"^": "\\textasciicircum",
+				"\\": "\\textbackslash",
+				"\n": "\\\\",
+			}
+			const mathjaxParser = new MathjaxParser()
+			const lineSections: string[] = []
+			const explicitInputLines = this.textAreaProperty.value.split("\n").map((line) => line.trim())
+			for (const inputLine of explicitInputLines) {
+				const parsedLine = mathjaxParser.parse(inputLine)
+				const lineElements = []
+				for (const element of parsedLine) {
+					if (element.type == "text") {
+						lineElements.push(
+							element.text.replaceAll(/[\#\%\$\&\_\{\}\~\^\\\n]/g, (match) => replaceDict[match])
+						)
+					} else {
+						lineElements.push("$" + element.text + "$")
+					}
+				}
+				lineSections.push(lineElements.join(" "))
+			}
+			let escapedText = lineSections.join("\\\\")
+
+			let fontStr = this.textFontSize.value.key == defaultFontSize.key ? "" : `\\${this.textFontSize.value.name} `
+			let latexStr = `${fontStr}${escapedText}`
+			latexStr =
+				this.textColor.value ?
+					"\\textcolor" + this.textColor.value.toTikzString() + "{" + latexStr + "}"
+				:	latexStr
+
+			command.options = options
+			command.position = pos
+			command.content = latexStr
+			command.additionalNodes = []
+			return
+		}
+
 		command.options.push("shape=rectangle")
 		super.buildTikzCommand(command)
 

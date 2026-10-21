@@ -623,6 +623,17 @@ export class TikzParser {
 				str = str.substring(1, str.length - 1).trim()
 			}
 		}
+		str = str.replace(/\\(tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b\s*/g, "").trim()
+		while (
+			(str.startsWith("{") && str.endsWith("}")) ||
+			(str.startsWith("$") && str.endsWith("$"))
+		) {
+			if (str.startsWith("{") && str.endsWith("}")) {
+				str = str.substring(1, str.length - 1).trim()
+			} else if (str.startsWith("$") && str.endsWith("$")) {
+				str = str.substring(1, str.length - 1).trim()
+			}
+		}
 		return str
 	}
 
@@ -636,6 +647,48 @@ export class TikzParser {
 			str = str.substring(1, str.length - 1).trim()
 		}
 		return str
+	}
+
+	/**
+	 * Cleans LaTeX font size macros (e.g. \small, \scriptsize) and \textcolor from text,
+	 * returning clean text string and matched font size/color metadata.
+	 */
+	public static cleanTextAndFontSize(
+		rawContent: string,
+		optStr: string = ""
+	): { text: string; fontSize?: string; color?: string } {
+		let matchedFontSize: string | undefined = undefined
+		const optFontMatch = optStr.match(
+			/(?:font=)?\\(tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b/
+		)
+		if (optFontMatch) {
+			matchedFontSize = optFontMatch[1]
+		}
+		if (!matchedFontSize) {
+			const contentFontMatch = rawContent.match(
+				/\\(tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b/
+			)
+			if (contentFontMatch) {
+				matchedFontSize = contentFontMatch[1]
+			}
+		}
+
+		let cleanText = rawContent
+			.replace(/\\(tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b\s*/g, "")
+			.trim()
+
+		while (cleanText.startsWith("{") && cleanText.endsWith("}")) {
+			cleanText = cleanText.substring(1, cleanText.length - 1).trim()
+		}
+
+		let textColor: string | undefined = undefined
+		const colorMatch = cleanText.match(/^\\textcolor(?:\[[^\]]*\])?\{([^}]+)\}\{(.*)\}$/s)
+		if (colorMatch) {
+			textColor = colorMatch[1]
+			cleanText = colorMatch[2].trim()
+		}
+
+		return { text: cleanText, fontSize: matchedFontSize, color: textColor }
 	}
 
 	/**
@@ -963,7 +1016,9 @@ export class TikzParser {
 						id: symbolId,
 						position: nodePos,
 						name: nodeName || undefined,
-						label: nodeContent ? { value: nodeContent } : undefined,
+						label: nodeContent
+							? { value: TikzParser.cleanTextAndFontSize(nodeContent, nodeOptStr).text }
+							: undefined,
 						rotationDeg,
 						scale: scaleState,
 					} as any)
@@ -972,25 +1027,50 @@ export class TikzParser {
 				} else if (flowchartType && nodePos) {
 					const wCm = this.parseLengthCm(opt.kv.get("minimum width") || "2cm")
 					const hCm = this.parseLengthCm(opt.kv.get("minimum height") || "1.5cm")
+					const parsedText = nodeContent ? TikzParser.cleanTextAndFontSize(nodeContent, nodeOptStr) : undefined
 					saveObjects.push({
 						type: flowchartType,
 						position: nodePos,
 						size: { x: wCm * CM_TO_PX, y: hCm * CM_TO_PX },
-						text: nodeContent ? { text: nodeContent } : undefined,
+						text: parsedText
+							? { text: parsedText.text, fontSize: parsedText.fontSize, color: parsedText.color }
+							: undefined,
 					} as any)
 					if (nodeName) namedCoords.set(nodeName, nodePos)
 					currentPoint = nodePos
 				} else if (isRectShape && nodePos) {
-					const wCm = this.parseLengthCm(opt.kv.get("minimum width") || "2cm")
-					const hCm = this.parseLengthCm(opt.kv.get("minimum height") || "1.5cm")
-					saveObjects.push({
-						type: "rect",
-						position: nodePos,
-						size: { x: wCm * CM_TO_PX, y: hCm * CM_TO_PX },
-						text: nodeContent ? { text: nodeContent } : undefined,
-					} as any)
-					if (nodeName) namedCoords.set(nodeName, nodePos)
-					currentPoint = nodePos
+					const hasDraw =
+						opt.flags.includes("draw") ||
+						opt.flags.some((f) => f.startsWith("draw=") || f === "draw") ||
+						opt.kv.has("draw")
+					const hasFill =
+						opt.flags.includes("fill") ||
+						opt.flags.some((f) => f.startsWith("fill=") || f === "fill") ||
+						opt.kv.has("fill")
+					const hasText = Boolean(nodeContent && nodeContent.trim())
+
+					if (!hasDraw && !hasFill && !hasText) {
+						// Invisible phantom rectangle node (used as a bounding box anchor or coordinate in TikZ export).
+						// Do NOT create a visible rectangle component for it.
+						if (nodeName) namedCoords.set(nodeName, nodePos)
+						currentPoint = nodePos
+					} else {
+						const wCm = this.parseLengthCm(opt.kv.get("minimum width") || "2cm")
+						const hCm = this.parseLengthCm(opt.kv.get("minimum height") || "1.5cm")
+						const parsedText = hasText ? TikzParser.cleanTextAndFontSize(nodeContent, nodeOptStr) : undefined
+						saveObjects.push({
+							type: "rect",
+							position: nodePos,
+							size: { x: wCm * CM_TO_PX, y: hCm * CM_TO_PX },
+							stroke: { opacity: hasDraw ? 1 : 0 },
+							fill: { opacity: hasFill ? 1 : 0 },
+							text: parsedText
+								? { text: parsedText.text, fontSize: parsedText.fontSize, color: parsedText.color }
+								: undefined,
+						} as any)
+						if (nodeName) namedCoords.set(nodeName, nodePos)
+						currentPoint = nodePos
+					}
 				} else if ((isCircleShape || isEllipseShape) && nodePos) {
 					const wCm = this.parseLengthCm(opt.kv.get("minimum width") || "2cm")
 					const hCm = isCircleShape ? wCm : this.parseLengthCm(opt.kv.get("minimum height") || "1.5cm")
@@ -1037,11 +1117,7 @@ export class TikzParser {
 					textPos.x += dx
 					textPos.y += dy
 
-					let matchedFontSize: string | undefined = undefined
-					const fontMatch = nodeOptStr.match(/\\(tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b/)
-					if (fontMatch) {
-						matchedFontSize = fontMatch[1]
-					}
+					const parsedText = TikzParser.cleanTextAndFontSize(nodeContent, nodeOptStr)
 
 					saveObjects.push({
 						type: "rect",
@@ -1050,8 +1126,9 @@ export class TikzParser {
 						stroke: { opacity: 0 },
 						fill: { opacity: 0 },
 						text: {
-							text: nodeContent,
-							fontSize: matchedFontSize,
+							text: parsedText.text,
+							fontSize: parsedText.fontSize,
+							color: parsedText.color,
 							showPlaceholderText: true,
 						},
 					} as any)
