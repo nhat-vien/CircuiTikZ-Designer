@@ -47,217 +47,295 @@
 	</head>
 
 	<body class="d-flex flex-column w-100 h-100">
-		<header class="navbar navbar-expand-md py-2 px-3 border-bottom shadow-sm brand-header">
-			<nav class="container-xxl flex-nowrap">
-				<a class="navbar-brand unselectable d-flex align-items-center gap-2" href=".">
-					<img src="../icons/favicon.svg" style="width: 1.8em; height: 1.8em" class="d-inline-block" />
-					<span class="fw-bold" style="font-family: var(--font-sans); letter-spacing: -0.5px; color: var(--text-main);">CircuiTi<i>k</i>Z Designer</span>
-					<span class="badge text-bg-secondary version unselectable d-none d-lg-inline"> v0.0.0 </span>
-				</a>
-				<div class="d-flex gap-2 align-items-center ms-md-auto">
+		<header class="navbar navbar-expand-md py-1 px-3 border-bottom shadow-sm brand-header">
+			<nav class="container-fluid flex-nowrap align-items-center justify-content-between gap-2">
+				<div class="d-flex align-items-center gap-2 flex-shrink-0">
+					<a class="navbar-brand unselectable d-flex align-items-center gap-2 m-0 p-0" href=".">
+						<img src="../icons/favicon.svg" style="width: 1.8em; height: 1.8em" class="d-inline-block" />
+						<span class="fw-bold d-none d-lg-inline" style="font-family: var(--font-sans); letter-spacing: -0.5px; color: var(--text-main);">CircuiTi<i>k</i>Z Designer</span>
+						<span class="badge text-bg-secondary version unselectable d-none d-xl-inline"> v0.0.0 </span>
+					</a>
+				</div>
+
+				<div
+					class="d-flex flex-row align-items-center justify-content-center mx-1 mx-md-2"
+					id="controlsContainer">
+					<a
+						id="addComponentButton"
+						class="toolbarButton material-symbols-outlined"
+						role="button"
+						data-bs-toggle="tooltip"
+						data-bs-placement="bottom"
+						data-bs-title="Open component drawer (Q)"
+						aria-controls="leftOffcanvas"
+						>add</a
+					>
+					<div class="vr"></div>
+					<a
+						id="modeDragPan"
+						class="toolbarButton material-symbols-outlined selected"
+						role="button"
+						data-bs-toggle="tooltip"
+						data-bs-placement="bottom"
+						data-bs-title="Pan or zoom the canvas (Esc)"
+						>drag_pan</a
+					>
+					<a
+						id="modeDrawLine"
+						class="toolbarButton material-symbols-outlined"
+						role="button"
+						data-bs-toggle="tooltip"
+						data-bs-placement="bottom"
+						data-bs-title="Draw wires (W)"
+						>draw</a
+					>
+					<a
+						id="modeEraser"
+						class="toolbarButton material-symbols-outlined"
+						role="button"
+						data-bs-toggle="tooltip"
+						data-bs-placement="bottom"
+						data-bs-title="Erase components and wires (Del, Backspace)"
+						>ink_eraser</a
+					>
+					<div class="vr"></div>
 					<a
 						role="button"
 						class="toolbarButton material-symbols-outlined"
-						id="helpButton"
-						data-bs-toggle="modal"
-						data-bs-target="#helpModal"
-						data-bs-toggle-second="tooltip"
-						data-bs-trigger="hover"
+						id="undoButton"
+						data-bs-toggle="tooltip"
 						data-bs-placement="bottom"
-						data-bs-title="Help menu">
-						help
-					</a>
-					<div class="vr me-2 d-block d-md-none"></div>
+						data-bs-title="Undo (Ctrl/⌘+Z)"
+						>undo</a
+					>
+					<a
+						role="button"
+						class="toolbarButton material-symbols-outlined"
+						id="redoButton"
+						data-bs-toggle="tooltip"
+						data-bs-placement="bottom"
+						data-bs-title="Redo (Ctrl/⌘+Y)"
+						>redo</a
+					>
+					<div class="vr"></div>
+					<a
+						role="button"
+						class="toolbarButton material-symbols-outlined"
+						id="toolbarRotateLeft"
+						data-bs-toggle="tooltip"
+						data-bs-placement="bottom"
+						data-bs-title="Rotate 90° CCW (Shift+R)">rotate_left</a>
+					<a
+						role="button"
+						class="toolbarButton material-symbols-outlined"
+						id="toolbarRotateRight"
+						data-bs-toggle="tooltip"
+						data-bs-placement="bottom"
+						data-bs-title="Rotate 90° CW (R)">rotate_right</a>
+					<div class="vr"></div>
+					<a
+						role="button"
+						class="toolbarButton material-symbols-outlined"
+						id="toolbarFitView"
+						data-bs-toggle="tooltip"
+						data-bs-placement="bottom"
+						data-bs-title="Fit view to circuit">fit_screen</a>
+					<a
+						role="button"
+						class="toolbarButton material-symbols-outlined"
+						id="toolbarCenterOrigin"
+						data-bs-toggle="tooltip"
+						data-bs-placement="bottom"
+						data-bs-title="Center circuit at (0, 0) origin">center_focus_strong</a>
+				</div>
+
+				<div class="d-flex align-items-center gap-1 flex-shrink-0">
 					<button
-						class="navbar-toggler d-md-none"
+						class="navbar-toggler d-md-none p-1 border-0"
 						type="button"
 						data-bs-toggle="offcanvas"
 						data-bs-target="#ctNavbar"
 						aria-controls="ctNavbar"
 						aria-label="Toggle navigation">
-						<span class="material-symbols-outlined" id="rightDropdownMenuToggle"> menu </span>
+						<span class="material-symbols-outlined fs-4" id="rightDropdownMenuToggle"> menu </span>
 					</button>
-				</div>
-				<div class="offcanvas-md offcanvas-end" id="ctNavbar">
-					<div class="offcanvas-header px-4 pb-0">
-						<h5 class="offcanvas-title fs-3">
-							<span class="">CircuiTi<i>k</i>Z Designer</span>
-							<span class="badge text-bg-secondary version unselectable"> v0.0.0 </span>
-						</h5>
-						<button
-							type="button"
-							class="btn-close btn-close-white"
-							data-bs-dismiss="offcanvas"
-							aria-label="Close"
-							data-bs-target="#ctNavbar"></button>
-					</div>
-					<div class="offcanvas-body">
-						<ul class="navbar-nav gap-2">
-							<li class="nav-item py-2 py-md-1 col-12 col-md-auto">
-								<div class="vr d-none d-md-flex h-100 mx-md-2"></div>
-								<hr class="d-md-none my-2" />
-							</li>
-							<li class="nav-item col-12 col-md-auto">
-								<button
-									type="button"
-									class="dropdown-item"
-									id="loadButton"
-									data-bs-toggle="tooltip"
-									data-bs-placement="bottom"
-									data-bs-title="Load a circuit (part) from a JSON file (Ctrl/⌘ + O)">
-									<span class="material-symbols-outlined toolbarButton">file_open</span>
-									<span class="d-md-none fs-4"> Load </span>
-								</button>
-							</li>
-							<li class="nav-item col-12 col-md-auto">
-								<button
-									type="button"
-									class="dropdown-item"
-									id="saveButton"
-									data-bs-toggle="tooltip"
-									data-bs-placement="bottom"
-									data-bs-title="Save the circuit in a JSON file (Ctrl/⌘ + S)">
-									<span class="material-symbols-outlined toolbarButton">save</span>
-									<span class="d-md-none fs-4"> Save </span>
-								</button>
-							</li>
-							<li class="nav-item py-2 py-md-1 col-12 col-md-auto">
-								<div class="vr d-none d-md-flex h-100 mx-md-2"></div>
-								<hr class="d-md-none my-2" />
-							</li>
-							<li class="nav-item col-12 col-md-auto">
-								<button
-									type="button"
-									class="dropdown-item"
-									id="importTikzButton"
-									data-bs-toggle="tooltip"
-									data-bs-placement="bottom"
-									data-bs-title="Import or paste CircuiTikZ code (Ctrl/⌘ + I)">
-									<span class="material-symbols-outlined toolbarButton">post_add</span>
-									<span class="d-md-none fs-4">
-										<div>Import CircuiTi<i>k</i>Z code</div>
-									</span>
-								</button>
-							</li>
-							<li class="nav-item col-12 col-md-auto">
-								<button
-									type="button"
-									class="dropdown-item"
-									id="exportCircuiTikZButton"
-									data-bs-toggle="tooltip"
-									data-bs-placement="bottom"
-									data-bs-title="Export the circuit as CircuiTikZ code (Ctrl/⌘ + E)">
-									<span class="material-symbols-outlined toolbarButton">code</span>
-									<span class="d-md-none fs-4">
-										<div>Export CircuiTi<i>k</i>Z code</div>
-									</span>
-								</button>
-							</li>
-							<li class="nav-item col-12 col-md-auto">
-								<button
-									type="button"
-									class="dropdown-item"
-									id="navbarLiveCodeButton"
-									data-bs-toggle="tooltip"
-									data-bs-placement="bottom"
-									data-bs-title="Toggle Live CircuiTikZ Code Panel">
-									<span class="material-symbols-outlined toolbarButton">terminal</span>
-									<span class="d-md-none fs-4"> Live TikZ Code </span>
-								</button>
-							</li>
-							<li class="nav-item col-12 col-md-auto">
-								<button
-									type="button"
-									class="dropdown-item"
-									id="exportSVGButton"
-									data-bs-toggle="tooltip"
-									data-bs-placement="bottom"
-									data-bs-title="Export the circuit as SVG code (Ctrl/⌘ + Shift + E)">
-									<span class="material-symbols-outlined toolbarButton">image</span>
-									<span class="d-md-none fs-4"> Export SVG code </span>
-								</button>
-							</li>
-							<li class="nav-item col-12 col-md-auto">
-								<button
-									type="button"
-									class="dropdown-item"
-									id="copyImageButton"
-									data-bs-toggle="tooltip"
-									data-bs-placement="bottom"
-									data-bs-title="Copy diagram/selection as PNG image to clipboard (Ctrl/⌘ + Shift + C)">
-									<span class="material-symbols-outlined toolbarButton">content_copy</span>
-									<span class="d-md-none fs-4"> Copy PNG Image </span>
-								</button>
-							</li>
-							<li class="nav-item col-12 col-md-auto">
-								<button
-									type="button"
-									class="dropdown-item"
-									id="navbarCenterOriginButton"
-									data-bs-toggle="tooltip"
-									data-bs-placement="bottom"
-									data-bs-title="Center circuit at origin (0, 0)">
-									<span class="material-symbols-outlined toolbarButton">center_focus_strong</span>
-									<span class="d-md-none fs-4"> Center at origin </span>
-								</button>
-							</li>
-							<li class="nav-item col-12 col-md-auto">
-								<button
-									type="button"
-									class="dropdown-item"
-									id="navbarSettingsButton"
-									data-bs-toggle="tooltip"
-									data-bs-placement="bottom"
-									data-bs-title="Canvas & Grid Settings">
-									<span class="material-symbols-outlined toolbarButton">settings</span>
-									<span class="d-md-none fs-4"> Grid Settings </span>
-								</button>
-							</li>
-							<li class="nav-item py-2 py-md-1 col-12 col-md-auto">
-								<div class="vr d-none d-md-flex h-100 mx-md-2"></div>
-								<hr class="d-md-none my-2" />
-							</li>
-							<li class="nav-item col-12 col-md-auto">
-								<button
-									type="button"
-									class="dropdown-item"
-									id="themeToggleBtn"
-									data-bs-toggle="tooltip"
-									data-bs-placement="bottom"
-									data-bs-title="Switch theme">
-									<span class="material-symbols-outlined toolbarButton" id="themeToggleIcon">dark_mode</span>
-									<span class="d-md-none fs-4" id="themeToggleText"> Dark theme </span>
-								</button>
-							</li>
-							<li class="nav-item py-2 py-md-1 col-12 col-md-auto">
-								<div class="vr d-none d-md-flex h-100 mx-md-2"></div>
-								<hr class="d-md-none my-2" />
-							</li>
-							<li class="nav-item col-12 col-md-auto">
-								<button
-									type="button"
-									class="dropdown-item"
-									data-bs-toggle="modal"
-									data-bs-target="#tabManagementModal">
-									<span class="toolbarButton material-symbols-outlined">tab_group</span>
-									<span class="d-md-none fs-4"> Tab management </span>
-								</button>
-							</li>
-							<li class="nav-item py-2 py-md-1 col-12 col-md-auto">
-								<div class="vr d-none d-md-flex h-100 mx-md-2"></div>
-								<hr class="d-md-none my-2" />
-							</li>
-							<li class="nav-item col-12 col-md-auto">
-								<button
-									type="button"
-									class="dropdown-item"
-									data-bs-toggle="modal"
-									data-bs-target="#aboutModal">
-									<span class="toolbarButton material-symbols-outlined">info</span>
-									<span class="d-md-none fs-4"> About </span>
-								</button>
-							</li>
-						</ul>
+
+					<div class="offcanvas-md offcanvas-end" id="ctNavbar">
+						<div class="offcanvas-header px-4 pb-0">
+							<h5 class="offcanvas-title fs-3">
+								<span class="">CircuiTi<i>k</i>Z Designer</span>
+								<span class="badge text-bg-secondary version unselectable"> v0.0.0 </span>
+							</h5>
+							<button
+								type="button"
+								class="btn-close btn-close-white"
+								data-bs-dismiss="offcanvas"
+								aria-label="Close"
+								data-bs-target="#ctNavbar"></button>
+						</div>
+						<div class="offcanvas-body">
+							<ul class="navbar-nav gap-1 align-items-center">
+								<li class="nav-item col-12 col-md-auto">
+									<button
+										type="button"
+										class="dropdown-item"
+										id="loadButton"
+										data-bs-toggle="tooltip"
+										data-bs-placement="bottom"
+										data-bs-title="Load a circuit (part) from a JSON file (Ctrl/⌘ + O)">
+										<span class="material-symbols-outlined toolbarButton">file_open</span>
+										<span class="d-md-none fs-4"> Load </span>
+									</button>
+								</li>
+								<li class="nav-item col-12 col-md-auto">
+									<button
+										type="button"
+										class="dropdown-item"
+										id="saveButton"
+										data-bs-toggle="tooltip"
+										data-bs-placement="bottom"
+										data-bs-title="Save the circuit in a JSON file (Ctrl/⌘ + S)">
+										<span class="material-symbols-outlined toolbarButton">save</span>
+										<span class="d-md-none fs-4"> Save </span>
+									</button>
+								</li>
+								<li class="nav-item py-1 col-12 col-md-auto">
+									<div class="vr d-none d-md-flex h-100 mx-md-1"></div>
+									<hr class="d-md-none my-1" />
+								</li>
+								<li class="nav-item col-12 col-md-auto">
+									<button
+										type="button"
+										class="dropdown-item"
+										id="importTikzButton"
+										data-bs-toggle="tooltip"
+										data-bs-placement="bottom"
+										data-bs-title="Import or paste CircuiTikZ code (Ctrl/⌘ + I)">
+										<span class="material-symbols-outlined toolbarButton">post_add</span>
+										<span class="d-md-none fs-4">
+											<div>Import CircuiTi<i>k</i>Z code</div>
+										</span>
+									</button>
+								</li>
+								<li class="nav-item col-12 col-md-auto">
+									<button
+										type="button"
+										class="dropdown-item"
+										id="exportCircuiTikZButton"
+										data-bs-toggle="tooltip"
+										data-bs-placement="bottom"
+										data-bs-title="Export the circuit as CircuiTikZ code (Ctrl/⌘ + E)">
+										<span class="material-symbols-outlined toolbarButton">code</span>
+										<span class="d-md-none fs-4">
+											<div>Export CircuiTi<i>k</i>Z code</div>
+										</span>
+									</button>
+								</li>
+								<li class="nav-item col-12 col-md-auto">
+									<button
+										type="button"
+										class="dropdown-item"
+										id="navbarLiveCodeButton"
+										data-bs-toggle="tooltip"
+										data-bs-placement="bottom"
+										data-bs-title="Toggle Live CircuiTikZ Code Panel (Alt+C)">
+										<span class="material-symbols-outlined toolbarButton">terminal</span>
+										<span class="d-md-none fs-4"> Live TikZ Code </span>
+									</button>
+								</li>
+								<li class="nav-item col-12 col-md-auto">
+									<button
+										type="button"
+										class="dropdown-item"
+										id="exportSVGButton"
+										data-bs-toggle="tooltip"
+										data-bs-placement="bottom"
+										data-bs-title="Export the circuit as SVG code (Ctrl/⌘ + Shift + E)">
+										<span class="material-symbols-outlined toolbarButton">image</span>
+										<span class="d-md-none fs-4"> Export SVG code </span>
+									</button>
+								</li>
+								<li class="nav-item col-12 col-md-auto">
+									<button
+										type="button"
+										class="dropdown-item"
+										id="copyImageButton"
+										data-bs-toggle="tooltip"
+										data-bs-placement="bottom"
+										data-bs-title="Copy diagram/selection as PNG image to clipboard (Ctrl/⌘ + Shift + C)">
+										<span class="material-symbols-outlined toolbarButton">content_copy</span>
+										<span class="d-md-none fs-4"> Copy PNG Image </span>
+									</button>
+								</li>
+								<li class="nav-item py-1 col-12 col-md-auto">
+									<div class="vr d-none d-md-flex h-100 mx-md-1"></div>
+									<hr class="d-md-none my-1" />
+								</li>
+								<li class="nav-item col-12 col-md-auto">
+									<button
+										type="button"
+										class="dropdown-item"
+										id="navbarSettingsButton"
+										data-bs-toggle="tooltip"
+										data-bs-placement="bottom"
+										data-bs-title="Canvas & Grid Settings">
+										<span class="material-symbols-outlined toolbarButton">settings</span>
+										<span class="d-md-none fs-4"> Grid Settings </span>
+									</button>
+								</li>
+								<li class="nav-item col-12 col-md-auto">
+									<button
+										type="button"
+										class="dropdown-item"
+										id="themeToggleBtn"
+										data-bs-toggle="tooltip"
+										data-bs-placement="bottom"
+										data-bs-title="Switch theme">
+										<span class="material-symbols-outlined toolbarButton" id="themeToggleIcon">dark_mode</span>
+										<span class="d-md-none fs-4" id="themeToggleText"> Dark theme </span>
+									</button>
+								</li>
+								<li class="nav-item py-1 col-12 col-md-auto">
+									<div class="vr d-none d-md-flex h-100 mx-md-1"></div>
+									<hr class="d-md-none my-1" />
+								</li>
+								<li class="nav-item col-12 col-md-auto">
+									<button
+										type="button"
+										class="dropdown-item"
+										data-bs-toggle="modal"
+										data-bs-target="#tabManagementModal">
+										<span class="toolbarButton material-symbols-outlined">tab_group</span>
+										<span class="d-md-none fs-4"> Tab management </span>
+									</button>
+								</li>
+								<li class="nav-item col-12 col-md-auto">
+									<button
+										type="button"
+										class="dropdown-item"
+										data-bs-toggle="modal"
+										data-bs-target="#aboutModal">
+										<span class="toolbarButton material-symbols-outlined">info</span>
+										<span class="d-md-none fs-4"> About </span>
+									</button>
+								</li>
+								<li class="nav-item col-12 col-md-auto">
+									<button
+										type="button"
+										class="dropdown-item"
+										id="helpButton"
+										data-bs-toggle="modal"
+										data-bs-target="#helpModal"
+										data-bs-toggle-second="tooltip"
+										data-bs-trigger="hover"
+										data-bs-placement="bottom"
+										data-bs-title="Help menu">
+										<span class="toolbarButton material-symbols-outlined">help</span>
+										<span class="d-md-none fs-4"> Help </span>
+									</button>
+								</li>
+							</ul>
+						</div>
 					</div>
 				</div>
 			</nav>
@@ -266,104 +344,6 @@
 		<div class="container-fluid flex-grow-1 w-100 position-relative overflow-hidden p-2">
 			<div class="row w-100 h-100 p-0 m-0" id="siteContent">
 				<div class="col-12 col-md position-relative" id="canvasContainer">
-					<div
-						class="z-1 position-absolute border rounded d-flex flex-row justify-content-center align-items-center"
-						id="controlsContainer">
-						<a
-							id="addComponentButton"
-							class="toolbarButton material-symbols-outlined"
-							role="button"
-							data-bs-toggle="tooltip"
-							data-bs-placement="bottom"
-							data-bs-title="Open component drawer (Q)"
-							aria-controls="leftOffcanvas"
-							>add</a
-						>
-						<div class="vr"></div>
-						<a
-							id="modeDragPan"
-							class="toolbarButton material-symbols-outlined selected"
-							role="button"
-							data-bs-toggle="tooltip"
-							data-bs-placement="bottom"
-							data-bs-title="Pan or zoom the canvas (Esc)"
-							>drag_pan</a
-						>
-						<a
-							id="modeDrawLine"
-							class="toolbarButton material-symbols-outlined"
-							role="button"
-							data-bs-toggle="tooltip"
-							data-bs-placement="bottom"
-							data-bs-title="Draw wires (W)"
-							>draw</a
-						>
-						<a
-							id="modeEraser"
-							class="toolbarButton material-symbols-outlined"
-							role="button"
-							data-bs-toggle="tooltip"
-							data-bs-placement="bottom"
-							data-bs-title="Erase components and wires (Del, Backspace)"
-							>ink_eraser</a
-						>
-						<div class="vr"></div>
-						<a
-							role="button"
-							class="toolbarButton material-symbols-outlined"
-							id="undoButton"
-							data-bs-toggle="tooltip"
-							data-bs-placement="bottom"
-							data-bs-title="Undo (Ctrl/⌘+Z)"
-							>undo</a
-						>
-						<a
-							role="button"
-							class="toolbarButton material-symbols-outlined"
-							id="redoButton"
-							data-bs-toggle="tooltip"
-							data-bs-placement="bottom"
-							data-bs-title="Redo (Ctrl/⌘+Y)"
-							>redo</a
-						>
-						<div class="vr"></div>
-						<a
-							role="button"
-							class="toolbarButton material-symbols-outlined"
-							id="toolbarRotateLeft"
-							data-bs-toggle="tooltip"
-							data-bs-placement="bottom"
-							data-bs-title="Rotate 90° CCW (Shift+R)">rotate_left</a>
-						<a
-							role="button"
-							class="toolbarButton material-symbols-outlined"
-							id="toolbarRotateRight"
-							data-bs-toggle="tooltip"
-							data-bs-placement="bottom"
-							data-bs-title="Rotate 90° CW (R)">rotate_right</a>
-						<div class="vr"></div>
-						<a
-							role="button"
-							class="toolbarButton material-symbols-outlined"
-							id="toolbarCenterOrigin"
-							data-bs-toggle="tooltip"
-							data-bs-placement="bottom"
-							data-bs-title="Center circuit at (0, 0) origin">center_focus_strong</a>
-						<a
-							role="button"
-							class="toolbarButton material-symbols-outlined"
-							id="toolbarFitView"
-							data-bs-toggle="tooltip"
-							data-bs-placement="bottom"
-							data-bs-title="Fit view to circuit">fit_screen</a>
-						<a
-							role="button"
-							class="toolbarButton material-symbols-outlined"
-							id="toolbarLiveCode"
-							data-bs-toggle="tooltip"
-							data-bs-placement="bottom"
-							data-bs-title="Toggle Live CircuiTi<i>k</i>Z code panel">terminal</a>
-					</div>
 					<!-- The actual canvas -->
 					<include src="pages/canvas.svg"></include>
 					<!-- Real-time cursor coordinates badge (inspired by mangel21) -->

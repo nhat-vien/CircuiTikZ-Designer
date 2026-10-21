@@ -80,36 +80,36 @@ body {
 .brand-header {
   background-color: var(--bg-panel);
   border-color: var(--border-color) !important;
+  min-height: 48px;
 }
 
 #controlsContainer {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: var(--bg-panel) !important;
+  position: relative;
+  background-color: var(--bg-app) !important;
   border: 1px solid var(--border-color) !important;
-  box-shadow: var(--shadow-md);
   border-radius: 8px !important;
-  padding: 4px 6px !important;
-  gap: 4px !important;
-  height: 42px;
+  padding: 2px 4px !important;
+  gap: 2px !important;
+  height: 36px;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  box-shadow: var(--shadow-sm);
   transition: all 0.2s ease;
-  z-index: 10;
-  max-width: 95vw;
+  flex-shrink: 0;
+  max-width: 100%;
   overflow-x: auto;
 
   .toolbarButton {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    font-size: 19px !important;
     flex-shrink: 0;
   }
 
   .vr {
-    height: 20px;
+    height: 18px;
     align-self: center;
     margin: 0 2px;
     opacity: 0.3;

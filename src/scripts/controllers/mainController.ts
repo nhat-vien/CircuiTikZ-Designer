@@ -2009,13 +2009,14 @@ export class MainController {
 		const isCurrentlyOpen = !panel.classList.contains("d-none")
 		const shouldOpen = forceState !== undefined ? forceState : !isCurrentlyOpen
 
+		const navbarLiveBtn = document.getElementById("navbarLiveCodeButton")?.querySelector(".toolbarButton")
 		if (shouldOpen) {
 			panel.classList.remove("d-none")
 			this.updateLiveCode()
-			document.getElementById("toolbarLiveCode")?.classList.add("selected")
+			navbarLiveBtn?.classList.add("selected")
 		} else {
 			panel.classList.add("d-none")
-			document.getElementById("toolbarLiveCode")?.classList.remove("selected")
+			navbarLiveBtn?.classList.remove("selected")
 		}
 	}
 
