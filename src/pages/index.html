@@ -762,9 +762,20 @@
 									<label class="btn btn-outline-primary py-1 px-2.5 small" for="exportEnvTikzpicture" title="Standard TikZ canvas environment">\begin{tikzpicture}</label>
 								</div>
 							</div>
-							<div class="form-check form-switch mb-0" data-bs-toggle="tooltip" data-bs-title="Recommended: scales symbols, pins, and wires proportionally (prevents broken figures / shifted pins)">
-								<input class="form-check-input" type="checkbox" role="switch" id="exportTransformShapeCheck" checked>
-								<label class="form-check-label small" for="exportTransformShapeCheck">transform shape</label>
+							<div class="d-flex align-items-center gap-3">
+								<div class="d-flex align-items-center gap-1" data-bs-toggle="tooltip" data-bs-title="Specify bipoles/length (e.g. 1.1cm if your LaTeX document uses \ctikzset{bipoles/length=1.1cm})">
+									<span class="small text-secondary">bipoles/length:</span>
+									<select class="form-select form-select-sm py-0 px-2 w-auto" id="exportBipolesLengthSelect" style="font-size: 11px;">
+										<option value="" selected>Default (1.4cm)</option>
+										<option value="1.1cm">1.1cm</option>
+										<option value="1.0cm">1.0cm</option>
+										<option value="1.2cm">1.2cm</option>
+									</select>
+								</div>
+								<div class="form-check form-switch mb-0" data-bs-toggle="tooltip" data-bs-title="Recommended: scales symbols, pins, and wires proportionally (prevents broken figures / shifted pins)">
+									<input class="form-check-input" type="checkbox" role="switch" id="exportTransformShapeCheck" checked>
+									<label class="form-check-label small" for="exportTransformShapeCheck">transform shape</label>
+								</div>
 							</div>
 						</div>
 						<div

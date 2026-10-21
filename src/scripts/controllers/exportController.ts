@@ -45,6 +45,8 @@ export class ExportController {
 		(localStorage.getItem("circutikz_export_env") as any) || "circuitikz"
 	public exportTransformShape: boolean =
 		localStorage.getItem("circutikz_export_transform_shape") !== "false"
+	public exportBipolesLength: string =
+		localStorage.getItem("circutikz_export_bipoles_length") || ""
 
 	public createExportID(prefix = "N"): string {
 		let currentID: number
@@ -104,6 +106,7 @@ export class ExportController {
 		const circRadio = document.getElementById("exportEnvCircuitikz") as HTMLInputElement
 		const tikzRadio = document.getElementById("exportEnvTikzpicture") as HTMLInputElement
 		const transformCheck = document.getElementById("exportTransformShapeCheck") as HTMLInputElement
+		const lengthSelect = document.getElementById("exportBipolesLengthSelect") as HTMLSelectElement
 		const liveCircRadio = document.getElementById("liveEnvCircuitikz") as HTMLInputElement
 		const liveTikzRadio = document.getElementById("liveEnvTikzpicture") as HTMLInputElement
 
@@ -115,6 +118,9 @@ export class ExportController {
 		})
 		transformCheck?.addEventListener("change", () => {
 			this.setExportEnvironment(this.exportEnvironment, transformCheck.checked)
+		})
+		lengthSelect?.addEventListener("change", () => {
+			this.setExportBipolesLength(lengthSelect.value)
 		})
 		liveCircRadio?.addEventListener("change", () => {
 			if (liveCircRadio.checked) this.setExportEnvironment("circuitikz")
@@ -148,7 +154,7 @@ export class ExportController {
 		const excludedAnchors = new Set([
 			"center", "default", "north", "south", "east", "west",
 			"north east", "north west", "south east", "south west",
-			"text", "mid", "base", "mid east", "mid west", "base east", "base west"
+			"text", "mid", "mid east", "mid west", "base east", "base west"
 		])
 
 		for (const comp of MainController.instance.circuitComponents) {
@@ -245,9 +251,14 @@ export class ExportController {
 
 		const optString = envOptions.length > 0 ? "[" + envOptions.join(", ") + "]" : ""
 
+		const ctikzSettings = [...tikzSettings.ctikzset.map((setting) => "\t\\ctikzset{" + setting + "}")]
+		if (this.exportBipolesLength) {
+			ctikzSettings.unshift(`\t\\ctikzset{bipoles/length=${this.exportBipolesLength}}`)
+		}
+
 		let arr = [
 			`\\begin{${targetEnv}}${optString}`,
-			...tikzSettings.ctikzset.map((setting) => "\t\\ctikzset{" + setting + "}"),
+			...ctikzSettings,
 			...(nodeElements.length > 0 ? ["\t% Component nodes:", ...nodeElements] : []),
 			...(pathElements.length > 0 ? ["\t% Paths, bipoles and wires:", ...pathElements] : []),
 			`\\end{${targetEnv}}`,
@@ -256,6 +267,23 @@ export class ExportController {
 			arr = [libraryStr].concat(arr)
 		}
 		return arr.join("\n")
+	}
+
+	public setExportBipolesLength(lengthStr: string): void {
+		this.exportBipolesLength = lengthStr
+		try {
+			localStorage.setItem("circutikz_export_bipoles_length", lengthStr)
+		} catch (e) {}
+
+		this.syncEnvironmentUI()
+
+		if (this.exportedContent && this.modalElement.classList.contains("show")) {
+			const updatedCode = this.getCircuiTikzString()
+			this.exportedContent.rows = updatedCode.split("\n").length
+			this.exportedContent.value = updatedCode
+		}
+
+		MainController.instance?.updateLiveCode()
 	}
 
 	public setExportEnvironment(env: "circuitikz" | "tikzpicture", transformShape?: boolean): void {
@@ -303,10 +331,12 @@ export class ExportController {
 		const transformCheck = document.getElementById("exportTransformShapeCheck") as HTMLInputElement
 		const liveCircRadio = document.getElementById("liveEnvCircuitikz") as HTMLInputElement
 		const liveTikzRadio = document.getElementById("liveEnvTikzpicture") as HTMLInputElement
+		const lengthSelect = document.getElementById("exportBipolesLengthSelect") as HTMLSelectElement
 
 		if (circRadio) circRadio.checked = isCirc
 		if (tikzRadio) tikzRadio.checked = !isCirc
 		if (transformCheck) transformCheck.checked = this.exportTransformShape
+		if (lengthSelect) lengthSelect.value = this.exportBipolesLength
 		if (liveCircRadio) liveCircRadio.checked = isCirc
 		if (liveTikzRadio) liveTikzRadio.checked = !isCirc
 	}
