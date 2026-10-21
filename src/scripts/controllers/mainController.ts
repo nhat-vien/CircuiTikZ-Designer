@@ -1638,7 +1638,8 @@ export class MainController {
 						.join(" ")
 				)
 				addButton.ariaRoleDescription = "button"
-				addButton.title = symbol.displayName || symbol.tikzName
+				const displayName = symbol.displayName || symbol.tikzName
+				addButton.title = displayName
 
 				const listener = (ev: MouseEvent) => {
 					ev.preventDefault()
@@ -1664,7 +1665,8 @@ export class MainController {
 
 				let svgIcon = SVG.SVG().addTo(addButton)
 
-				let viewBox = new SVG.Box(symbol._mapping.values().toArray()[0].viewBox)
+				const firstVariant = Array.from(symbol._mapping.values())[0]
+				let viewBox = new SVG.Box(firstVariant.viewBox)
 
 				//oversize viewbox due to stroke widths
 				viewBox.width += symbol.maxStroke
