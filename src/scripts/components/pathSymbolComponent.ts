@@ -716,7 +716,7 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 		return data
 	}
 
-	public toTikzString(): string {
+	public toTikzString(anchorResolver?: (pt: SVG.Point) => string | null): string {
 		// Skip invalid components that don't have two reference points
 		if (!this.referencePoints || this.referencePoints.length < 2) {
 			return ""
@@ -727,12 +727,12 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 			coordinates: [],
 			connectors: [],
 		}
-		this.buildTikzCommand(command)
+		this.buildTikzCommand(command, anchorResolver)
 		return buildTikzStringFromPathCommand(command)
 	}
 
-	protected buildTikzCommand(command: TikzPathCommand): void {
-		super.buildTikzCommand(command)
+	protected buildTikzCommand(command: TikzPathCommand, anchorResolver?: (pt: SVG.Point) => string | null): void {
+		super.buildTikzCommand(command, anchorResolver)
 		let options: string[] = [this.referenceSymbol.tikzName]
 		options.push(...this.referenceSymbol.optionsToStringArray(this.optionsFromProperties()))
 		if (this.mirror.value) {

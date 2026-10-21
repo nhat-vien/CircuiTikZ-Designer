@@ -217,7 +217,8 @@ export class ImportController {
 		}
 
 		if (parseResult.components.length === 0) {
-			this.showFeedback("No supported components or wires could be parsed from the TikZ code.", "warning")
+			const extra = parseResult.warnings.length > 0 ? ": " + parseResult.warnings.join("; ") : ""
+			this.showFeedback("No supported components or wires could be parsed from the TikZ code." + extra, "warning")
 			return false
 		}
 

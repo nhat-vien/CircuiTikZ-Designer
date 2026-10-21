@@ -369,14 +369,14 @@ export abstract class CircuitComponent {
 	/**
 	 * convert this component into a draw command for CircuiTikz
 	 */
-	public abstract toTikzString(): string
+	public abstract toTikzString(anchorResolver?: (pt: SVG.Point) => string | null): string
 
 	/**
 	 * Override this in subclasses if it should provide a way of building (parts of) a tikz node or path command (remember to always call the superclass via super.buildTikzCommand)
 	 * @param command an object representing the components of a tikz command
-	 * @param contextData the context needed to build (parts of) the command
+	 * @param anchorResolver resolver for pin anchors
 	 */
-	protected buildTikzCommand(command: {}): void {}
+	protected buildTikzCommand(command: {}, anchorResolver?: (pt: SVG.Point) => string | null): void {}
 
 	/**
 	 * convert this component to be used with the svg export, i.e. clones the visualization and handles all use elements. override this to add custom functionality like removing additional elements.

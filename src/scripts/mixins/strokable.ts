@@ -206,8 +206,8 @@ export function Strokable<TBase extends AbstractConstructor<CircuitComponent>>(B
 			}
 		}
 
-		protected buildTikzCommand(command: { options: string[] }): void {
-			super.buildTikzCommand(command)
+		protected buildTikzCommand(command: { options: string[] }, anchorResolver?: (pt: SVG.Point) => string | null): void {
+			super.buildTikzCommand(command, anchorResolver)
 			let width = this.strokeInfo.width.convertToUnit("pt").value
 			if (this.strokeInfo.opacity > 0 && width > 0) {
 				if (this.strokeInfo.color !== "default") {

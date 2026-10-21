@@ -648,8 +648,8 @@ export class WireComponent extends Currentable(Strokable(PathComponent)) {
 		return new WireComponent()
 	}
 
-	protected buildTikzCommand(command: TikzPathCommand): void {
-		super.buildTikzCommand(command)
+	protected buildTikzCommand(command: TikzPathCommand, anchorResolver?: (pt: SVG.Point) => string | null): void {
+		super.buildTikzCommand(command, anchorResolver)
 
 		let arrowOptions: string[] = []
 		if (this.arrowStartChoice.value.key !== defaultArrowTip.key) {

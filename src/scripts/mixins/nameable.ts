@@ -69,12 +69,27 @@ export function Nameable<TBase extends AbstractConstructor<CircuitComponent>>(Ba
 			}
 		}
 
-		protected buildTikzName(ensureID = true): string {
+		protected buildTikzName(ensureID = true, prefix = "N"): string {
 			let id = this.name.value
 			if (!id && ensureID) {
-				id = ExportController.instance.createExportID("N")
+				let p = prefix
+				if ((this as any).referenceSymbol?.tikzName) {
+					const t = ((this as any).referenceSymbol.tikzName as string).toLowerCase()
+					if (t.includes("npn") || t.includes("pnp") || t.includes("mos") || t.includes("bjt") || t.includes("transistor") || t.includes("igbt")) p = "Q"
+					else if (t.includes("op amp") || t.includes("amplifier") || t.includes("opamp")) p = "OA"
+					else if (t.includes("port") || t.includes("gate")) p = "G"
+					else if (t.includes("transformer")) p = "T"
+				}
+				id = ExportController.instance.createExportID(p)
 			}
 			return id
+		}
+
+		public getTikzExportName(prefix = "N"): string {
+			if (!this.name.value) {
+				this.name.value = this.buildTikzName(true, prefix)
+			}
+			return this.name.value
 		}
 	}
 	return Nameable

@@ -5,9 +5,11 @@ import {
 	TextProperty,
 	EnvironmentVariableController,
 	createComponentsSvgText,
+	NodeComponent,
 } from "../internal"
 import FileSaver from "file-saver"
 import * as prettier from "prettier"
+import * as SVG from "@svgdotjs/svg.js"
 const parserXML = require("@prettier/plugin-xml").default
 
 /**
@@ -38,6 +40,12 @@ export class ExportController {
 	private defaultDisplay: string
 
 	private usedIDs: Map<string, number>
+
+	public exportEnvironment: "circuitikz" | "tikzpicture" =
+		(localStorage.getItem("circutikz_export_env") as any) || "circuitikz"
+	public exportTransformShape: boolean =
+		localStorage.getItem("circutikz_export_transform_shape") !== "false"
+
 	public createExportID(prefix = "N"): string {
 		let currentID: number
 		if (this.usedIDs.has(prefix)) {
@@ -91,10 +99,37 @@ export class ExportController {
 		this.copyTooltip = new Tooltip(this.copyButton)
 
 		this.usedIDs = new Map<string, number>()
+
+		// Initialize Environment Selection listeners
+		const circRadio = document.getElementById("exportEnvCircuitikz") as HTMLInputElement
+		const tikzRadio = document.getElementById("exportEnvTikzpicture") as HTMLInputElement
+		const transformCheck = document.getElementById("exportTransformShapeCheck") as HTMLInputElement
+		const liveCircRadio = document.getElementById("liveEnvCircuitikz") as HTMLInputElement
+		const liveTikzRadio = document.getElementById("liveEnvTikzpicture") as HTMLInputElement
+
+		circRadio?.addEventListener("change", () => {
+			if (circRadio.checked) this.setExportEnvironment("circuitikz")
+		})
+		tikzRadio?.addEventListener("change", () => {
+			if (tikzRadio.checked) this.setExportEnvironment("tikzpicture")
+		})
+		transformCheck?.addEventListener("change", () => {
+			this.setExportEnvironment(this.exportEnvironment, transformCheck.checked)
+		})
+		liveCircRadio?.addEventListener("change", () => {
+			if (liveCircRadio.checked) this.setExportEnvironment("circuitikz")
+		})
+		liveTikzRadio?.addEventListener("change", () => {
+			if (liveTikzRadio.checked) this.setExportEnvironment("tikzpicture")
+		})
+
+		this.syncEnvironmentUI()
 	}
 
 	exportJSON(text: string) {
 		this.heading.textContent = "Save JSON"
+		const envBar = document.getElementById("exportEnvBar")
+		if (envBar) envBar.classList.add("d-none")
 
 		// create extension select list
 		const extensions = [".json", ".txt"]
@@ -106,30 +141,116 @@ export class ExportController {
 	}
 
 	/**
-	 * Shows the exportModal with the CitcuiTikZ code.
+	 * Creates an anchor resolver mapping endpoints to node pin anchors (e.g. Q1.B, OA1.out)
 	 */
+	public createAnchorResolver(): (pt: SVG.Point) => string | null {
+		const pinEntries: { anchorStr: string; x: number; y: number }[] = []
+		const excludedAnchors = new Set([
+			"center", "default", "north", "south", "east", "west",
+			"north east", "north west", "south east", "south west",
+			"text", "mid", "base", "mid east", "mid west", "base east", "base west"
+		])
+
+		for (const comp of MainController.instance.circuitComponents) {
+			// Only multi-terminal circuit symbols (transistors, opamps, gates, etc.) have pin anchors
+			if ((comp as any).referenceSymbol || (comp as any).componentVariant?.pins) {
+				const pins = comp.snappingPoints
+				if (pins && pins.length > 0) {
+					const meaningfulPins = pins.filter(
+						(p) => p.anchorName && !excludedAnchors.has(p.anchorName.toLowerCase())
+					)
+					if (meaningfulPins.length > 0) {
+						let nodeName = comp.name?.value
+						if (!nodeName && typeof (comp as any).getTikzExportName === "function") {
+							nodeName = (comp as any).getTikzExportName()
+						}
+						if (nodeName) {
+							for (const pin of meaningfulPins) {
+								pinEntries.push({
+									anchorStr: `(${nodeName}.${pin.anchorName})`,
+									x: pin.x,
+									y: pin.y,
+								})
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if (pinEntries.length === 0) {
+			return () => null
+		}
+
+		const toleranceSq = 2.5 * 2.5 // ~0.66mm snap tolerance (prevents snapping distinct adjacent coordinates)
+
+		return (pt: SVG.Point): string | null => {
+			if (!pt) return null
+			let closestEntry: string | null = null
+			let minDistSq = toleranceSq
+
+			for (const entry of pinEntries) {
+				const dx = pt.x - entry.x
+				const dy = pt.y - entry.y
+				const distSq = dx * dx + dy * dy
+				if (distSq <= minDistSq) {
+					minDistSq = distSq
+					closestEntry = entry.anchorStr
+				}
+			}
+
+			return closestEntry
+		}
+	}
+
 	/**
-	 * Returns the formatted CircuiTikZ code for the current circuit.
+	 * Returns the formatted CircuiTikZ or TikZ code for the current circuit.
 	 */
-	public getCircuiTikzString(): string {
-		let circuitElements = []
+	public getCircuiTikzString(env?: "circuitikz" | "tikzpicture", transformShape?: boolean): string {
+		const targetEnv = env || this.exportEnvironment || "circuitikz"
+		const withTransform = transformShape !== undefined ? transformShape : this.exportTransformShape
+
+		this.usedIDs.clear()
+		const anchorResolver = this.createAnchorResolver()
+
+		const nodeElements: string[] = []
+		const pathElements: string[] = []
 		let requiredTikzLibraries: Set<string> = new Set<string>()
+
 		for (const circuitElement of MainController.instance.circuitComponents) {
 			circuitElement.requiredTikzLibraries().forEach((item) => requiredTikzLibraries.add(item))
-			circuitElements.push("\t" + circuitElement.toTikzString())
+			const elStr = circuitElement.toTikzString(anchorResolver)
+			if (elStr && elStr.trim()) {
+				const trimmed = elStr.trim()
+				if (trimmed.startsWith("\\node")) {
+					nodeElements.push("\t" + elStr)
+				} else {
+					pathElements.push("\t" + elStr)
+				}
+			}
 		}
 		let libraryStr =
-			requiredTikzLibraries.size > 0 ?
-				"\\usetikzlibrary{" + Array.from(requiredTikzLibraries.values()).join(", ") + "}"
-			:	""
+			requiredTikzLibraries.size > 0
+				? "\\usetikzlibrary{" + Array.from(requiredTikzLibraries.values()).join(", ") + "}"
+				: ""
 
 		const tikzSettings = EnvironmentVariableController.instance.getTikzSettings()
+		const envOptions: string[] = []
+		if (withTransform) {
+			envOptions.push("transform shape")
+		}
+		if (tikzSettings.environment.length > 0) {
+			envOptions.push(...tikzSettings.environment)
+		}
+
+		const optString = envOptions.length > 0 ? "[" + envOptions.join(", ") + "]" : ""
+
 		let arr = [
-			"\\begin{tikzpicture}" + "[" + ["transform shape"].concat(tikzSettings.environment).join(", ") + "]",
+			`\\begin{${targetEnv}}${optString}`,
 			...tikzSettings.ctikzset.map((setting) => "\t\\ctikzset{" + setting + "}"),
-			"\t% Paths, nodes and wires:",
-			...circuitElements,
-			"\\end{tikzpicture}",
+			...(nodeElements.length > 0 ? ["\t% Component nodes:", ...nodeElements] : []),
+			...(pathElements.length > 0 ? ["\t% Paths, bipoles and wires:", ...pathElements] : []),
+			`\\end{${targetEnv}}`,
 		]
 		if (libraryStr) {
 			arr = [libraryStr].concat(arr)
@@ -137,9 +258,70 @@ export class ExportController {
 		return arr.join("\n")
 	}
 
+	public setExportEnvironment(env: "circuitikz" | "tikzpicture", transformShape?: boolean): void {
+		this.exportEnvironment = env
+		if (transformShape !== undefined) {
+			this.exportTransformShape = transformShape
+		}
+		try {
+			localStorage.setItem("circutikz_export_env", env)
+			localStorage.setItem("circutikz_export_transform_shape", String(this.exportTransformShape))
+		} catch (e) {}
+
+		this.syncEnvironmentUI()
+
+		if (this.exportedContent && this.modalElement.classList.contains("show")) {
+			const updatedCode = this.getCircuiTikzString()
+			this.exportedContent.rows = updatedCode.split("\n").length
+			this.exportedContent.value = updatedCode
+		}
+
+		MainController.instance?.updateLiveCode()
+	}
+
+	public setExportTransformShape(transformShape: boolean): void {
+		this.exportTransformShape = transformShape
+		try {
+			localStorage.setItem("circutikz_export_transform_shape", String(this.exportTransformShape))
+		} catch (e) {}
+
+		this.syncEnvironmentUI()
+
+		if (this.exportedContent && this.modalElement.classList.contains("show")) {
+			const updatedCode = this.getCircuiTikzString()
+			this.exportedContent.rows = updatedCode.split("\n").length
+			this.exportedContent.value = updatedCode
+		}
+
+		MainController.instance?.updateLiveCode()
+	}
+
+	public syncEnvironmentUI(): void {
+		const isCirc = this.exportEnvironment === "circuitikz"
+		const circRadio = document.getElementById("exportEnvCircuitikz") as HTMLInputElement
+		const tikzRadio = document.getElementById("exportEnvTikzpicture") as HTMLInputElement
+		const transformCheck = document.getElementById("exportTransformShapeCheck") as HTMLInputElement
+		const liveCircRadio = document.getElementById("liveEnvCircuitikz") as HTMLInputElement
+		const liveTikzRadio = document.getElementById("liveEnvTikzpicture") as HTMLInputElement
+
+		if (circRadio) circRadio.checked = isCirc
+		if (tikzRadio) tikzRadio.checked = !isCirc
+		if (transformCheck) transformCheck.checked = this.exportTransformShape
+		if (liveCircRadio) liveCircRadio.checked = isCirc
+		if (liveTikzRadio) liveTikzRadio.checked = !isCirc
+	}
+
 	exportCircuiTikZ() {
-		this.heading.innerHTML = "Export CircuiTi<i>k</i>Z code"
+		this.heading.innerHTML =
+			this.exportEnvironment === "circuitikz"
+				? "Export CircuiTi<i>k</i>Z code"
+				: "Export Ti<i>k</i>Z code"
 		this.exportedContent.parentElement.style.display = this.defaultDisplay
+		const envBar = document.getElementById("exportEnvBar")
+		if (envBar) envBar.classList.remove("d-none")
+
+		this.syncEnvironmentUI()
+
 		// create extension select list
 		const extensions = [".tikz", ".tex", ".pgf"]
 
@@ -156,6 +338,9 @@ export class ExportController {
 	exportSVG() {
 		this.heading.textContent = "Export SVG"
 		this.exportedContent.parentElement.style.display = this.defaultDisplay
+		const envBar = document.getElementById("exportEnvBar")
+		if (envBar) envBar.classList.add("d-none")
+
 		// prepare selection and bounding box
 		SelectionController.instance.selectAll()
 		SelectionController.instance.deactivateSelection()

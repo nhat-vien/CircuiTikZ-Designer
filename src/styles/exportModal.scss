@@ -40,3 +40,19 @@
 	--bs-body-color: #{$secondary};
 	--bs-border-color: #{$secondary};
 }
+
+.export-env-bar {
+	font-size: 0.875rem;
+
+	.btn-group .btn {
+		font-family: monospace;
+		font-size: 0.8rem;
+		font-weight: 500;
+	}
+
+	.form-check-label {
+		font-family: monospace;
+		font-size: 0.8rem;
+	}
+}
+

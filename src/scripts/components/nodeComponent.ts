@@ -220,7 +220,10 @@ export abstract class NodeComponent extends PositionLabelable(Nameable(CircuitCo
 		}
 
 		const shouldAddLabel = this.mathJaxLabel.value !== ""
-		command.name = this.buildTikzName(shouldAddLabel)
+		const hasPins =
+			((this as any).componentVariant?.pins?.length ?? 0) > 1 ||
+			(this.snappingPoints && this.snappingPoints.length > 1)
+		command.name = this.buildTikzName(shouldAddLabel || Boolean(hasPins))
 		if (shouldAddLabel) {
 			command.additionalNodes.push(this.buildTikzNodeLabel(command.name))
 		}

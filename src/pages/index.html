@@ -378,6 +378,12 @@
 								<span class="material-symbols-outlined fs-6 text-primary">terminal</span>
 								<span class="live-code-title">CircuiTi<i>k</i>Z Live Code</span>
 								<span class="badge text-bg-secondary" id="liveCodeBadge">0 lines</span>
+								<div class="btn-group btn-group-sm ms-2" role="group" aria-label="Live code environment">
+									<input type="radio" class="btn-check" name="liveCodeEnvRadio" id="liveEnvCircuitikz" autocomplete="off" checked>
+									<label class="btn btn-outline-secondary py-0 px-2" for="liveEnvCircuitikz" style="font-size: 11px;" title="Switch live preview to \begin{circuitikz}">circuitikz</label>
+									<input type="radio" class="btn-check" name="liveCodeEnvRadio" id="liveEnvTikzpicture" autocomplete="off">
+									<label class="btn btn-outline-secondary py-0 px-2" for="liveEnvTikzpicture" style="font-size: 11px;" title="Switch live preview to \begin{tikzpicture}">tikzpicture</label>
+								</div>
 							</div>
 							<div class="d-flex align-items-center gap-2">
 								<button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 live-code-copy-btn" id="liveCodeCopyBtn" title="Copy code to clipboard">
@@ -745,6 +751,22 @@
 						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 					</div>
 					<div class="modal-body">
+						<!-- LaTeX Environment Selector -->
+						<div class="export-env-bar d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2 pb-2 border-bottom" id="exportEnvBar">
+							<div class="d-flex align-items-center gap-2">
+								<span class="small fw-semibold text-secondary">LaTeX Environment:</span>
+								<div class="btn-group btn-group-sm" role="group" aria-label="Export LaTeX Environment">
+									<input type="radio" class="btn-check" name="exportEnvRadio" id="exportEnvCircuitikz" autocomplete="off" checked>
+									<label class="btn btn-outline-primary py-1 px-2.5 small" for="exportEnvCircuitikz" title="Standard CircuiTikZ environment (recommended for circuit diagrams)">\begin{circuitikz}</label>
+									<input type="radio" class="btn-check" name="exportEnvRadio" id="exportEnvTikzpicture" autocomplete="off">
+									<label class="btn btn-outline-primary py-1 px-2.5 small" for="exportEnvTikzpicture" title="Standard TikZ canvas environment">\begin{tikzpicture}</label>
+								</div>
+							</div>
+							<div class="form-check form-switch mb-0" data-bs-toggle="tooltip" data-bs-title="Recommended: scales symbols, pins, and wires proportionally (prevents broken figures / shifted pins)">
+								<input class="form-check-input" type="checkbox" role="switch" id="exportTransformShapeCheck" checked>
+								<label class="form-check-label small" for="exportTransformShapeCheck">transform shape</label>
+							</div>
+						</div>
 						<div
 							id="copyExportedContent"
 							class="copyContentIcon material-symbols-outlined"

@@ -104,8 +104,8 @@ export function Fillable<TBase extends AbstractConstructor<CircuitComponent>>(Ba
 			}
 		}
 
-		protected buildTikzCommand(command: { options: string[] }): void {
-			super.buildTikzCommand(command)
+		protected buildTikzCommand(command: { options: string[] }, anchorResolver?: (pt: SVG.Point) => string | null): void {
+			super.buildTikzCommand(command, anchorResolver)
 			if (this.fillInfo.opacity > 0) {
 				if (this.fillInfo.color !== "default") {
 					let c = new SVG.Color(this.fillInfo.color)

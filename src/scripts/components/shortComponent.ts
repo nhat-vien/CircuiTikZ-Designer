@@ -334,19 +334,28 @@ export class ShortComponent extends Currentable(PathLabelable(PathComponent)) {
 		return data
 	}
 
-	public toTikzString(): string {
+	public toTikzString(anchorResolver?: (pt: SVG.Point) => string | null): string {
+		if (!this.referencePoints || this.referencePoints.length < 2) {
+			return ""
+		}
 		let command: TikzPathCommand = {
 			options: ["draw"],
 			additionalNodes: [],
 			coordinates: [],
 			connectors: [],
 		}
-		this.buildTikzCommand(command)
+		this.buildTikzCommand(command, anchorResolver)
+		if (command.coordinates.length < 2) {
+			return ""
+		}
+		if (command.coordinates.length === 2 && command.coordinates[0] === command.coordinates[1]) {
+			return ""
+		}
 		return buildTikzStringFromPathCommand(command)
 	}
 
-	protected buildTikzCommand(command: TikzPathCommand): void {
-		super.buildTikzCommand(command)
+	protected buildTikzCommand(command: TikzPathCommand, anchorResolver?: (pt: SVG.Point) => string | null): void {
+		super.buildTikzCommand(command, anchorResolver)
 		let options: string[] = ["short"]
 
 		if (this.poleStartElement || this.poleEndElement) {

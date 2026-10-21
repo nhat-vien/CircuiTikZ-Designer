@@ -185,7 +185,7 @@ export class ComponentSymbol extends SVG.Symbol {
 			this._mapping.set(this.optionsToStringArray(symbolOptions).join(", "), variantObject)
 		}
 
-		const first = this._mapping.values().toArray()[0]
+		const first = Array.from(this._mapping.values())[0]
 		this.symbolElement = first.symbol
 		this.maxStroke = first.maxStroke
 	}

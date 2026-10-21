@@ -500,7 +500,7 @@ export class TikzParser {
 				(s) => s.tikzName === symbolId || (s.displayName && s.displayName.toLowerCase() === symbolId.toLowerCase())
 			)
 			if (sym && sym._mapping && sym._mapping.size > 0) {
-				const firstVariant = sym._mapping.values().toArray()[0]
+				const firstVariant = Array.from(sym._mapping.values())[0]
 				if (firstVariant && firstVariant.pins) {
 					for (const pin of firstVariant.pins) {
 						if (pin.name && pin.point) {

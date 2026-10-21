@@ -103,10 +103,11 @@ export class SubcircuitComponent extends GroupComponent {
 		return sub
 	}
 
-	public toTikzString(): string {
+	public toTikzString(anchorResolver?: (pt: SVG.Point) => string | null): string {
 		let outStr = []
 		for (const component of this.groupedComponents) {
-			outStr.push(component.toTikzString())
+			const str = component.toTikzString(anchorResolver)
+			if (str) outStr.push(str)
 		}
 		return outStr.join("\n\t")
 	}

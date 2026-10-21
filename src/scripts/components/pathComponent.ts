@@ -186,20 +186,32 @@ export abstract class PathComponent extends CircuitComponent {
 		this.update()
 	}
 
-	public toTikzString(): string {
+	public toTikzString(anchorResolver?: (pt: SVG.Point) => string | null): string {
+		if (!this.referencePoints || this.referencePoints.length < 2) {
+			return ""
+		}
 		let command: TikzPathCommand = {
 			options: [],
 			additionalNodes: [],
 			connectors: [],
 			coordinates: [],
 		}
-		this.buildTikzCommand(command)
+		this.buildTikzCommand(command, anchorResolver)
+		if (command.coordinates.length < 2) {
+			return ""
+		}
+		if (command.coordinates.length === 2 && command.coordinates[0] === command.coordinates[1]) {
+			return ""
+		}
 		return buildTikzStringFromPathCommand(command)
 	}
 
-	protected buildTikzCommand(command: TikzPathCommand): void {
-		super.buildTikzCommand(command)
+	protected buildTikzCommand(command: TikzPathCommand, anchorResolver?: (pt: SVG.Point) => string | null): void {
+		super.buildTikzCommand(command, anchorResolver)
 
-		command.coordinates.push(...this.referencePoints)
+		for (const pt of this.referencePoints) {
+			const resolved = anchorResolver ? anchorResolver(pt) : null
+			command.coordinates.push(resolved || pt)
+		}
 	}
 }
