@@ -1,27 +1,101 @@
-// $material-symbols-font-path: "../../node_modules/material-symbols/";
-// @import "material-symbols/outlined";
-// TODO clean up all css
-
-// Bootstrap
-// preset bootstrap (scss) variables:
-// scss-docs-start theme-color-variables
-$primary: #2f586e; // #204251;
-//$secondary: #2f586e;
-$primary-bg-subtle: #d3dde6;
-//$success: #7BB725;
-$danger: #c50f3c;
-
+// Sourced and aligned with brand-guidelines.md
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
 @import url("https://cdn.jsdelivr.net/gh/vsalvino/computer-modern@main/fonts/serif.css");
+@import url("https://cdn.jsdelivr.net/gh/vsalvino/computer-modern@main/fonts/sans.css");
+
+// Bootstrap presets
+$primary: #1E70E6; // Primary theme blue (matching HSL 215, 90%, 52%)
+$primary-bg-subtle: #e6effd;
+$danger: #d9383a;
+$success: #22c55e;
+$warning: #f59e0b;
+
+// HSL Tailored academic custom properties in CSS root
+:root {
+  /* HSL Tailored Academic Light Theme */
+  --primary-h: 215;
+  --primary-s: 90%;
+  --primary-l: 52%;
+  
+  /* Primary & Accent Colors */
+  --primary: hsl(var(--primary-h), var(--primary-s), var(--primary-l));
+  --primary-hover: hsl(var(--primary-h), var(--primary-s), calc(var(--primary-l) - 8%));
+  --primary-light: hsl(var(--primary-h), var(--primary-s), 95%);
+  
+  /* Status / Feedback Colors */
+  --success: hsl(142, 70%, 45%);
+  --danger: hsl(350, 80%, 55%);
+  --warning: hsl(38, 92%, 50%);
+  
+  /* Background Colors */
+  --bg-app: hsl(210, 20%, 98%);
+  --bg-panel: hsl(0, 0%, 100%);
+  --bg-editor: hsl(210, 25%, 99%);
+  
+  /* Typography Colors */
+  --text-main: hsl(210, 30%, 15%);
+  --text-muted: hsl(210, 15%, 45%);
+  --text-light: hsl(210, 10%, 70%);
+  
+  /* Border Colors */
+  --border-color: hsl(210, 14%, 90%);
+  --border-focus: var(--primary);
+
+  /* Fonts */
+  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.02);
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.04);
+}
+
+[data-bs-theme="dark"] {
+  /* HSL Tailored Academic Dark Theme overrides */
+  --bg-app: hsl(215, 20%, 10%);
+  --bg-panel: hsl(215, 20%, 14%);
+  --bg-editor: hsl(215, 25%, 8%);
+
+  --text-main: hsl(210, 15%, 90%);
+  --text-muted: hsl(210, 10%, 65%);
+  --text-light: hsl(210, 5%, 45%);
+
+  --border-color: hsl(215, 14%, 22%);
+  --primary-light: hsl(var(--primary-h), var(--primary-s), 20%);
+}
+
+// Global font styling overrides
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
 
 @import "dropdown_variables.scss";
-// import bootstrap:
 @import "../../node_modules/bootstrap/scss/bootstrap";
-// override some bootstrap classes
 @import "dropdown_classes.scss";
-// @import "floatingActionButton.scss";
 
-// additional bootstrap compatible classes:
-// material-alike button with symbol on left side
+.brand-header {
+  background-color: var(--bg-panel);
+  border-color: var(--border-color) !important;
+}
+
+#controlsContainer {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--bg-panel) !important;
+  border-color: var(--border-color) !important;
+  box-shadow: var(--shadow-md);
+  border-radius: 8px !important;
+  padding: 4px 10px !important;
+  gap: 8px !important;
+  transition: all 0.2s ease;
+}
+
 .btn.icon-button {
 	@extend .d-inline-flex;
 	@extend .align-items-center;
@@ -29,19 +103,29 @@ $danger: #c50f3c;
 	padding-right: 24px;
 	gap: 8px;
 
-	// button icon
 	span,
 	i {
 		width: 24px;
 		height: 24px;
 	}
 }
-// preset with to 200px; useful for flex in combination with grow
+
+.btn-sm.icon-button {
+	padding-left: 8px;
+	padding-right: 8px;
+	gap: 4px;
+
+	span,
+	i {
+		width: 18px;
+		height: 18px;
+	}
+}
+
 .w-px-200 {
 	width: 200px !important;
 }
 
-// all svg text should also be unselectable
 .unselectable,
 svg text {
 	-webkit-touch-callout: none;
@@ -56,13 +140,6 @@ svg text {
 	cursor: pointer;
 }
 
-// .vertical-line{
-// 	width: 1px; /* Line width */
-// 	min-width: 1px;
-// 	background-color: var(--bs-secondary-color); /* Line color */
-// 	align-self: stretch;
-// }
-
 .rotateText {
 	transform: rotate(90deg);
 }
@@ -72,7 +149,6 @@ svg text {
 	margin-left: -50%;
 }
 
-// main content:
 html,
 body {
 	min-width: 300px;
@@ -93,11 +169,14 @@ body {
 	height: 65%;
 	margin: 0;
 	padding: 0 0 0.5em 0;
-	// flex-shrink: 0;
+	transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 #propertiesContainer {
 	flex: 1 1;
+	transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 @include media-breakpoint-up(md) {
 	#siteContent {
 		flex-direction: row;

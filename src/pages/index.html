@@ -47,11 +47,11 @@
 	</head>
 
 	<body class="d-flex flex-column w-100 h-100">
-		<header class="navbar navbar-expand-md bg-body-secondary py-1">
-			<nav class="container-xxl flex-wrap flex-lg-nowrap">
-				<a class="navbar-brand unselectable" href=".">
-					<img src="../icons/favicon.svg" style="width: 1.5em; height: 1.5em" class="d-inline-block" />
-					<span class="">CircuiTi<i>k</i>Z Designer</span>
+		<header class="navbar navbar-expand-md py-2 px-3 border-bottom shadow-sm brand-header">
+			<nav class="container-xxl flex-nowrap">
+				<a class="navbar-brand unselectable d-flex align-items-center gap-2" href=".">
+					<img src="../icons/favicon.svg" style="width: 1.8em; height: 1.8em" class="d-inline-block" />
+					<span class="fw-bold" style="font-family: var(--font-sans); letter-spacing: -0.5px; color: var(--text-main);">CircuiTi<i>k</i>Z Designer</span>
 					<span class="badge text-bg-secondary version unselectable d-none d-lg-inline"> v0.0.0 </span>
 				</a>
 				<div class="d-flex gap-2 align-items-center ms-md-auto">
@@ -177,6 +177,18 @@
 									<span class="d-md-none fs-4"> Copy PNG Image </span>
 								</button>
 							</li>
+							<li class="nav-item col-12 col-md-auto">
+								<button
+									type="button"
+									class="dropdown-item"
+									id="navbarSettingsButton"
+									data-bs-toggle="tooltip"
+									data-bs-placement="bottom"
+									data-bs-title="Canvas & Grid Settings">
+									<span class="material-symbols-outlined toolbarButton">settings</span>
+									<span class="d-md-none fs-4"> Grid Settings </span>
+								</button>
+							</li>
 							<li class="nav-item py-2 py-md-1 col-12 col-md-auto">
 								<div class="vr d-none d-md-flex h-100 mx-md-2"></div>
 								<hr class="d-md-none my-2" />
@@ -231,7 +243,7 @@
 			<div class="row w-100 h-100 p-0 m-0" id="siteContent">
 				<div class="col-12 col-md position-relative" id="canvasContainer">
 					<div
-						class="z-1 position-absolute border rounded bg-body d-flex flex-row justify-content-center gap-3 align-items-center p-2"
+						class="z-1 position-absolute border rounded d-flex flex-row justify-content-center align-items-center"
 						id="controlsContainer">
 						<a
 							id="addComponentButton"
@@ -299,21 +311,21 @@
 						</div>
 					</div>
 				</div>
-				<div class="col-12 col-md-5 col-lg-4 col-xxl-3 m-0 p-0 overflow-y-auto" id="propertiesContainer">
+				<div class="col-12 col-md-4 col-lg-3 col-xxl-2 m-0 p-0 overflow-y-auto d-none" id="propertiesContainer">
 					<div
-						class="w-100 h-100 bg-body-tertiary border border-secondary rounded d-flex flex-column"
-						id="properties">
+						class="w-100 h-100 border-start d-flex flex-column"
+						id="properties"
+						style="background-color: var(--bg-panel); border-color: var(--border-color) !important;">
 						<h2 class="align-self-center text-center mb-0 p-2 unselectable" id="propertiesTitle">
 							Properties
 						</h2>
-						<hr class="m-0" />
-						<div class="d-flex flex-column w-100 px-3 fs-5" id="properties-content">
+						<div class="d-flex flex-column w-100 px-3" id="properties-content">
 							<div class="d-none pt-2" id="view-properties">
 								<div class="d-flex flex-column w-100 h-auto gap-3">
 									<div class="m-0 p-0 d-flex justify-content-between align-items-center">
 										<button
 											type="button"
-											class="btn btn-primary flex-grow-1 fs-5"
+											class="btn btn-primary flex-grow-1"
 											id="resetViewButton">
 											Reset view
 										</button>
@@ -321,7 +333,7 @@
 									<div class="m-0 p-0 d-flex justify-content-between align-items-center">
 										<button
 											type="button"
-											class="btn btn-primary flex-grow-1 fs-5"
+											class="btn btn-primary flex-grow-1"
 											id="fitViewButton">
 											Fit view
 										</button>
@@ -379,7 +391,7 @@
 		</div>
 
 		<!-- Left offcanvas (symbol DB) -->
-		<div id="leftOffcanvas" class="offcanvas offcanvas-start" tabindex="-1">
+		<div id="leftOffcanvas" class="offcanvas offcanvas-end" tabindex="-1">
 			<div class="offcanvas-header flex-column gap-3">
 				<div class="d-flex justify-content-between align-items-center w-100">
 					<h5 class="offcanvas-title" id="offcanvasLabel">Symbols</h5>

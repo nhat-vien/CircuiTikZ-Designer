@@ -10,6 +10,7 @@ import {
 	MainController,
 	SectionHeaderProperty,
 	SelectionController,
+	SelectionMode,
 	Undo,
 } from "../internal"
 
@@ -69,13 +70,16 @@ export class PropertyController {
 		return PropertyController._instance
 	}
 
+	private propertiesContainer: HTMLDivElement | null
 	private viewProperties: HTMLDivElement
 	private propertiesEntries: HTMLDivElement
 	private propertiesTitle: HTMLElement
+	private showGeneralSettings = false
 
 	private multies: EditableProperty<any>[] = []
 
 	private constructor() {
+		this.propertiesContainer = document.getElementById("propertiesContainer") as HTMLDivElement | null
 		this.propertiesTitle = document.getElementById("propertiesTitle") as HTMLElement
 		this.viewProperties = document.getElementById("view-properties") as HTMLDivElement
 		this.viewProperties.firstElementChild.prepend(MainController.instance.designName.getHTMLElement())
@@ -86,11 +90,41 @@ export class PropertyController {
 		;(document.getElementById("fitViewButton") as HTMLButtonElement).addEventListener("click", (ev) => {
 			CanvasController.instance.fitView()
 		})
+
+		const settingsBtn = document.getElementById("navbarSettingsButton") as HTMLButtonElement | null
+		settingsBtn?.addEventListener("click", () => {
+			this.showGeneralSettings = !this.showGeneralSettings
+			if (this.showGeneralSettings) {
+				SelectionController.instance.selectComponents([], SelectionMode.RESET)
+			} else {
+				this.update()
+			}
+		})
 	}
 
 	update() {
 		let components = SelectionController.instance.currentlySelectedComponents
 		this.clearForm()
+
+		if (components.length === 1) {
+			this.showGeneralSettings = false
+		}
+
+		const shouldShow =
+			components.length === 1 ||
+			components.length > 1 ||
+			(components.length === 0 && this.showGeneralSettings)
+
+		if (this.propertiesContainer) {
+			const wasVisible = !this.propertiesContainer.classList.contains("d-none")
+			this.propertiesContainer.classList.toggle("d-none", !shouldShow)
+
+			if (wasVisible !== shouldShow) {
+				requestAnimationFrame(() => {
+					window.dispatchEvent(new Event("resize"))
+				})
+			}
+		}
 
 		if (components.length > 1) {
 			this.setMultiForm(components)
