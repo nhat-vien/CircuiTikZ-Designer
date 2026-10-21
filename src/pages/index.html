@@ -762,8 +762,8 @@
 									<label class="btn btn-outline-primary py-1 px-2.5 small" for="exportEnvTikzpicture" title="Standard TikZ canvas environment">\begin{tikzpicture}</label>
 								</div>
 							</div>
-							<div class="d-flex align-items-center gap-3">
-								<div class="d-flex align-items-center gap-1" data-bs-toggle="tooltip" data-bs-title="Specify bipoles/length (e.g. 1.1cm if your LaTeX document uses \ctikzset{bipoles/length=1.1cm})">
+							<div class="d-flex flex-wrap align-items-center gap-3">
+								<div class="d-flex align-items-center gap-1" data-bs-toggle="tooltip" data-bs-title="Specify bipoles/length (1.4cm protects geometry when LaTeX preamble has \ctikzset{bipoles/length=...})">
 									<span class="small text-secondary">bipoles/length:</span>
 									<select class="form-select form-select-sm py-0 px-2 w-auto" id="exportBipolesLengthSelect" style="font-size: 11px;">
 										<option value="1.4cm" selected>1.4cm (Standard / Protected)</option>
@@ -771,6 +771,23 @@
 										<option value="1.1cm">1.1cm</option>
 										<option value="1.0cm">1.0cm</option>
 										<option value="none">Inherit (No override)</option>
+									</select>
+								</div>
+								<div class="d-flex align-items-center gap-1" data-bs-toggle="tooltip" data-bs-title="Line width for connecting wires (semithick/0.7pt balances wires with component strokes)">
+									<span class="small text-secondary">Wire width:</span>
+									<select class="form-select form-select-sm py-0 px-2 w-auto" id="exportLineWidthSelect" style="font-size: 11px;">
+										<option value="" selected>Default (0.4pt)</option>
+										<option value="semithick">semithick (0.6pt)</option>
+										<option value="0.7pt">0.7pt (Balanced)</option>
+										<option value="thick">thick (0.8pt)</option>
+									</select>
+								</div>
+								<div class="d-flex align-items-center gap-1" data-bs-toggle="tooltip" data-bs-title="bipoles/thickness scale (default 2.0; set 1.2 or 1.0 for balanced/uniform stroke weight)">
+									<span class="small text-secondary">bipoles/thickness:</span>
+									<select class="form-select form-select-sm py-0 px-2 w-auto" id="exportBipolesThicknessSelect" style="font-size: 11px;">
+										<option value="" selected>Default (2.0)</option>
+										<option value="1.2">1.2 (Balanced)</option>
+										<option value="1">1.0 (Uniform)</option>
 									</select>
 								</div>
 								<div class="form-check form-switch mb-0" data-bs-toggle="tooltip" data-bs-title="Recommended: scales symbols, pins, and wires proportionally (prevents broken figures / shifted pins)">

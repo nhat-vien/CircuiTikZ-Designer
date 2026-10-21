@@ -47,6 +47,10 @@ export class ExportController {
 		localStorage.getItem("circutikz_export_transform_shape") !== "false"
 	public exportBipolesLength: string =
 		localStorage.getItem("circutikz_export_bipoles_length") || "1.4cm"
+	public exportLineWidth: string =
+		localStorage.getItem("circutikz_export_line_width") || ""
+	public exportBipolesThickness: string =
+		localStorage.getItem("circutikz_export_bipoles_thickness") || ""
 
 	public createExportID(prefix = "N"): string {
 		let currentID: number
@@ -107,6 +111,8 @@ export class ExportController {
 		const tikzRadio = document.getElementById("exportEnvTikzpicture") as HTMLInputElement
 		const transformCheck = document.getElementById("exportTransformShapeCheck") as HTMLInputElement
 		const lengthSelect = document.getElementById("exportBipolesLengthSelect") as HTMLSelectElement
+		const lineWidthSelect = document.getElementById("exportLineWidthSelect") as HTMLSelectElement
+		const thicknessSelect = document.getElementById("exportBipolesThicknessSelect") as HTMLSelectElement
 		const liveCircRadio = document.getElementById("liveEnvCircuitikz") as HTMLInputElement
 		const liveTikzRadio = document.getElementById("liveEnvTikzpicture") as HTMLInputElement
 
@@ -121,6 +127,12 @@ export class ExportController {
 		})
 		lengthSelect?.addEventListener("change", () => {
 			this.setExportBipolesLength(lengthSelect.value)
+		})
+		lineWidthSelect?.addEventListener("change", () => {
+			this.setExportLineWidth(lineWidthSelect.value)
+		})
+		thicknessSelect?.addEventListener("change", () => {
+			this.setExportBipolesThickness(thicknessSelect.value)
 		})
 		liveCircRadio?.addEventListener("change", () => {
 			if (liveCircRadio.checked) this.setExportEnvironment("circuitikz")
@@ -245,6 +257,13 @@ export class ExportController {
 		if (withTransform) {
 			envOptions.push("transform shape")
 		}
+		if (this.exportLineWidth) {
+			if (this.exportLineWidth === "semithick" || this.exportLineWidth === "thick") {
+				envOptions.push(this.exportLineWidth)
+			} else {
+				envOptions.push(`line width=${this.exportLineWidth}`)
+			}
+		}
 		if (tikzSettings.environment.length > 0) {
 			envOptions.push(...tikzSettings.environment)
 		}
@@ -254,6 +273,9 @@ export class ExportController {
 		const ctikzSettings = [...tikzSettings.ctikzset.map((setting) => "\t\\ctikzset{" + setting + "}")]
 		if (this.exportBipolesLength && this.exportBipolesLength !== "none") {
 			ctikzSettings.unshift(`\t\\ctikzset{bipoles/length=${this.exportBipolesLength}}`)
+		}
+		if (this.exportBipolesThickness) {
+			ctikzSettings.push(`\t\\ctikzset{bipoles/thickness=${this.exportBipolesThickness}}`)
 		}
 
 		let arr = [
@@ -273,6 +295,40 @@ export class ExportController {
 		this.exportBipolesLength = lengthStr
 		try {
 			localStorage.setItem("circutikz_export_bipoles_length", lengthStr)
+		} catch (e) {}
+
+		this.syncEnvironmentUI()
+
+		if (this.exportedContent && this.modalElement.classList.contains("show")) {
+			const updatedCode = this.getCircuiTikzString()
+			this.exportedContent.rows = updatedCode.split("\n").length
+			this.exportedContent.value = updatedCode
+		}
+
+		MainController.instance?.updateLiveCode()
+	}
+
+	public setExportLineWidth(widthStr: string): void {
+		this.exportLineWidth = widthStr
+		try {
+			localStorage.setItem("circutikz_export_line_width", widthStr)
+		} catch (e) {}
+
+		this.syncEnvironmentUI()
+
+		if (this.exportedContent && this.modalElement.classList.contains("show")) {
+			const updatedCode = this.getCircuiTikzString()
+			this.exportedContent.rows = updatedCode.split("\n").length
+			this.exportedContent.value = updatedCode
+		}
+
+		MainController.instance?.updateLiveCode()
+	}
+
+	public setExportBipolesThickness(thicknessStr: string): void {
+		this.exportBipolesThickness = thicknessStr
+		try {
+			localStorage.setItem("circutikz_export_bipoles_thickness", thicknessStr)
 		} catch (e) {}
 
 		this.syncEnvironmentUI()
@@ -332,11 +388,15 @@ export class ExportController {
 		const liveCircRadio = document.getElementById("liveEnvCircuitikz") as HTMLInputElement
 		const liveTikzRadio = document.getElementById("liveEnvTikzpicture") as HTMLInputElement
 		const lengthSelect = document.getElementById("exportBipolesLengthSelect") as HTMLSelectElement
+		const lineWidthSelect = document.getElementById("exportLineWidthSelect") as HTMLSelectElement
+		const thicknessSelect = document.getElementById("exportBipolesThicknessSelect") as HTMLSelectElement
 
 		if (circRadio) circRadio.checked = isCirc
 		if (tikzRadio) tikzRadio.checked = !isCirc
 		if (transformCheck) transformCheck.checked = this.exportTransformShape
 		if (lengthSelect) lengthSelect.value = this.exportBipolesLength
+		if (lineWidthSelect) lineWidthSelect.value = this.exportLineWidth
+		if (thicknessSelect) thicknessSelect.value = this.exportBipolesThickness
 		if (liveCircRadio) liveCircRadio.checked = isCirc
 		if (liveTikzRadio) liveTikzRadio.checked = !isCirc
 	}
