@@ -953,6 +953,12 @@ export class MainController {
 		const accordionItemBody = accordionItemCollapse.appendChild(document.createElement("div"))
 		accordionItemBody.classList.add("accordion-body", "iconLibAccordionBody")
 
+		const appendLabel = (btn: HTMLElement, text: string) => {
+			const span = btn.appendChild(document.createElement("span"))
+			span.classList.add("libComponent-name")
+			span.textContent = text
+		}
+
 		//Add Short
 		{
 			const addButton: HTMLDivElement = accordionItemBody.appendChild(document.createElement("div"))
@@ -977,6 +983,7 @@ export class MainController {
 			let svgIcon = SVG.SVG().addTo(addButton)
 			svgIcon.viewbox(-1, -14, 30, 15)
 			svgIcon.line(0, -7, 29, -7).stroke({ color: defaultStroke, width: 2 })
+			appendLabel(addButton, "Short")
 		}
 
 		//Add Open
@@ -1004,6 +1011,7 @@ export class MainController {
 			svgIcon.viewbox(-1, -14, 30, 15)
 			svgIcon.circle(5).fill("none").stroke({ color: defaultStroke, width: 1 }).center(4, -7)
 			svgIcon.circle(5).fill("none").stroke({ color: defaultStroke, width: 1 }).center(25, -7)
+			appendLabel(addButton, "Open")
 		}
 
 		//Add Text
@@ -1032,6 +1040,7 @@ export class MainController {
 			svgIcon.text((add) => {
 				add.tspan("Text").fill({ color: defaultStroke })
 			})
+			appendLabel(addButton, "Text")
 		}
 
 		//Add rectangle
@@ -1061,6 +1070,7 @@ export class MainController {
 				color: defaultStroke,
 				width: 1,
 			})
+			appendLabel(addButton, "Rectangle")
 		}
 		//Add Ellipse
 		{
@@ -1093,6 +1103,7 @@ export class MainController {
 				color: defaultStroke,
 				width: 1,
 			})
+			appendLabel(addButton, "Ellipse")
 		}
 
 		//Add Polygon
@@ -1135,6 +1146,7 @@ export class MainController {
 					color: defaultStroke,
 					width: 1,
 				})
+			appendLabel(addButton, "Polygon")
 		}
 
 		//Add Arc Arrow (AC current symbol)
@@ -1201,6 +1213,7 @@ export class MainController {
 					[a2x, a2y],
 				])
 				.fill(defaultStroke)
+			appendLabel(addButton, "Arc Arrow")
 		}
 
 		//Add straight line
@@ -1227,6 +1240,7 @@ export class MainController {
 			let svgIcon = SVG.SVG().addTo(addButton)
 			svgIcon.viewbox(0, 0, 17, 12)
 			svgIcon.line(2, 10, 15, 2).stroke({ color: defaultStroke, width: 1, opacity: 1 })
+			appendLabel(addButton, "Line")
 		}
 
 		//Add straight arrow
@@ -1264,6 +1278,7 @@ export class MainController {
 				])
 				.rotate(-30, 5, 2)
 				.fill({ color: defaultStroke })
+			appendLabel(addButton, "Arrow")
 		}
 
 		//Add arrow
@@ -1305,6 +1320,7 @@ export class MainController {
 					[9, 1],
 				])
 				.fill({ color: defaultStroke })
+			appendLabel(addButton, "Curved Arrow")
 		}
 	}
 
@@ -1355,6 +1371,10 @@ export class MainController {
 
 			const svgIcon = SVG.SVG().addTo(addButton)
 			renderIcon(svgIcon)
+
+			const labelSpan = addButton.appendChild(document.createElement("span"))
+			labelSpan.classList.add("libComponent-name")
+			labelSpan.textContent = title
 		}
 
 		// 1. Terminator (Start / End)
@@ -1658,6 +1678,10 @@ export class MainController {
 				let use = svgIcon.use(symbol.symbolElement.id())
 				use.width(symbol.viewBox.width).height(symbol.viewBox.height) // use should have original size values
 				use.stroke(defaultStroke).fill(defaultFill).node.style.color = defaultStroke
+
+				const labelSpan = addButton.appendChild(document.createElement("span"))
+				labelSpan.classList.add("libComponent-name")
+				labelSpan.textContent = displayName
 			}
 		}
 
@@ -1702,7 +1726,7 @@ export class MainController {
 			let showCount = 0
 			Array.prototype.forEach.call(libComponents, (libComponent: HTMLDivElement) => {
 				if (text) {
-					if (!(regex.test(libComponent.title) || regex.test(libComponent.getAttribute("searchData")))) {
+					if (!(regex.test(libComponent.title) || regex.test(libComponent.getAttribute("searchData")) || regex.test(libComponent.textContent))) {
 						libComponent.classList.add("d-none")
 						return
 					}

@@ -88,12 +88,29 @@ body {
   left: 50%;
   transform: translateX(-50%);
   background-color: var(--bg-panel) !important;
-  border-color: var(--border-color) !important;
+  border: 1px solid var(--border-color) !important;
   box-shadow: var(--shadow-md);
   border-radius: 8px !important;
-  padding: 4px 10px !important;
-  gap: 8px !important;
+  padding: 4px 6px !important;
+  gap: 4px !important;
+  height: 42px;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   transition: all 0.2s ease;
+  z-index: 10;
+
+  .toolbarButton {
+    width: 32px;
+    height: 32px;
+  }
+
+  .vr {
+    height: 20px;
+    align-self: center;
+    margin: 0 2px;
+    opacity: 0.3;
+  }
 }
 
 .btn.icon-button {
@@ -190,6 +207,49 @@ body {
 	#propertiesContainer {
 		height: 100% !important;
 		flex: none;
+	}
+
+	#ctNavbar {
+		.navbar-nav {
+			align-items: center;
+			gap: 4px !important;
+
+			.nav-item {
+				display: flex;
+				align-items: center;
+			}
+
+			.dropdown-item {
+				height: 32px;
+				width: 32px;
+				padding: 0;
+				margin: 0;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				border: none;
+				border-radius: 6px;
+				background: transparent;
+				color: var(--text-main);
+				transition: background-color 0.15s ease, color 0.15s ease;
+
+				&:hover {
+					background-color: var(--primary-light);
+					color: var(--primary);
+				}
+
+				.toolbarButton {
+					margin: 0;
+				}
+			}
+
+			.vr {
+				height: 20px;
+				align-self: center;
+				margin: 0 4px;
+				opacity: 0.3;
+			}
+		}
 	}
 }
 

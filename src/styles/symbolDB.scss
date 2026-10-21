@@ -1,66 +1,173 @@
-// Styles for the left offcanvas resp. the symbol/components DB
+// Styles for the left offcanvas resp. the symbol/components DB (inspired by mangel21/CircuiTikz-Editor)
 
 #leftOffcanvas {
-	max-width: 400px;
-	min-width: min(100vw, 300px);
-	width: 33.3vw;
+	max-width: 420px;
+	min-width: min(100vw, 320px);
+	width: 380px;
+	background-color: var(--bg-panel);
+	border-left: 1px solid var(--border-color);
+
+	.offcanvas-header {
+		padding: 10px 14px;
+		border-bottom: 1px solid var(--border-color);
+
+		.offcanvas-title {
+			font-size: 14.5px;
+			font-weight: 700;
+			color: var(--text-main);
+		}
+	}
+
+	.offcanvas-body {
+		padding: 8px 10px !important;
+	}
 }
 
 .offcanvas-search {
 	position: relative;
+	margin-bottom: 8px;
 
 	span {
 		position: absolute;
-		top: calc(50% - 12px);
-		left: 13px;
+		top: 50%;
+		transform: translateY(-50%);
+		left: 10px;
+		font-size: 18px !important;
+		color: var(--text-muted);
+		pointer-events: none;
 	}
 
 	input {
 		display: block;
 		width: 100%;
-		padding-left: 50px;
+		height: 32px;
+		padding: 4px 10px 4px 34px;
+		font-size: 12.5px;
+		border-radius: 6px;
+		border: 1px solid var(--border-color);
+		background-color: var(--bg-app);
+		color: var(--text-main);
+
+		&:focus {
+			border-color: var(--primary);
+			outline: none;
+			box-shadow: 0 0 0 2px var(--primary-light);
+		}
 	}
 }
 
-// fix style when searching for symbols of first shown group
-.accordion-item:nth-child(1 of :not(.d-none)) {
-	border-top-left-radius: var(--bs-accordion-border-radius);
-	border-top-right-radius: var(--bs-accordion-border-radius);
-	border: var(--bs-accordion-border-width) solid var(--bs-accordion-border-color);
+// Compact, clean accordion items and headers
+#leftOffcanvasAccordion {
+	.accordion-item {
+		background-color: var(--bg-panel);
+		border: 1px solid var(--border-color);
+		border-radius: 6px !important;
+		margin-bottom: 5px;
+		overflow: hidden;
+	}
 
-	// .accordion-header>button {
-	// 	background-color: transparent;
-	// }
+	.accordion-header {
+		margin: 0;
+	}
+
+	.accordion-button {
+		font-size: 12px !important;
+		font-weight: 600;
+		padding: 6px 10px !important;
+		background-color: var(--bg-app);
+		color: var(--text-main);
+		box-shadow: none !important;
+		line-height: 1.3;
+		transition: background-color 0.15s ease, color 0.15s ease;
+
+		&:not(.collapsed) {
+			background-color: var(--primary-light);
+			color: var(--primary);
+		}
+
+		&::after {
+			width: 12px;
+			height: 12px;
+			background-size: 12px;
+			opacity: 0.6;
+			transition: transform 0.2s ease;
+		}
+
+		&:hover {
+			background-color: var(--primary-light);
+			color: var(--primary);
+		}
+	}
 }
 
-// fix style when searching for symbols of last shown group
-.accordion-item:nth-last-child(1 of :not(.d-none)) {
-	border-bottom-left-radius: var(--bs-accordion-border-radius);
-	border-bottom-right-radius: var(--bs-accordion-border-radius);
-
-	// .accordion-header>button {
-	// 	background-color: transparent;
-	// }
-}
-
+// Grid layout for component cards (matching mangel21 style)
 .iconLibAccordionBody {
-	display: flex;
-	flex-flow: row wrap;
-	justify-content: space-between;
-	align-items: center;
-	gap: 10px;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+	gap: 6px;
+	padding: 8px !important;
+	background-color: var(--bg-panel);
 }
 
+// Component card styling
 div.libComponent {
-	padding: 2px;
-	> svg {
-		min-width: 28px;
-		min-height: 28px;
-	}
-}
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 6px 3px 4px;
+	background-color: var(--bg-app);
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	min-height: 58px;
+	cursor: pointer;
+	user-select: none;
+	transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+	text-align: center;
+	box-sizing: border-box;
+	position: relative;
 
-div.libComponent:hover {
-	box-shadow: 3px 3px 7px 1px #cccc;
+	&:hover {
+		background-color: var(--primary-light);
+		border-color: var(--primary);
+		transform: translateY(-2px);
+		box-shadow: var(--shadow-sm);
+
+		.libComponent-name {
+			color: var(--primary);
+			font-weight: 600;
+		}
+	}
+
+	&:active {
+		transform: translateY(0);
+	}
+
+	> svg {
+		width: 100% !important;
+		max-width: 46px !important;
+		height: 30px !important;
+		min-height: 24px;
+		flex-shrink: 0;
+		pointer-events: none;
+	}
+
+	.libComponent-name {
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		font-size: 10px;
+		font-weight: 500;
+		line-height: 1.15;
+		color: var(--text-muted);
+		text-align: center;
+		width: 100%;
+		margin-top: 3px;
+		pointer-events: none;
+		word-break: break-word;
+	}
 }
 
 .shape-library-more-button {
@@ -68,7 +175,10 @@ div.libComponent:hover {
 	align-items: center;
 	justify-content: center;
 	gap: 6px;
-	border-radius: 8px;
+	border-radius: 6px;
+	font-size: 11.5px;
+	font-weight: 500;
+	padding: 6px 12px;
 }
 
 .shape-library-category-list {
