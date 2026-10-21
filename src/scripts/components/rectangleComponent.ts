@@ -428,7 +428,12 @@ export class RectangleComponent extends ShapeComponent {
 			let innerSep = this.textInnerSep.value.plus(this.strokeInfo.width)
 			let textWidth = new SVG.Number(this.size.x, "px").minus(innerSep.times(2)).convertToUnit("cm")
 
-			options.push(`text width=${roundTikz(textWidth.value)}cm`)
+			// Only enforce 'text width' if text has multiple lines or is justified.
+			// For single-line text/math formulas, omitting 'text width' allows LaTeX to natural-fit
+			// without prematurely breaking equations (e.g. '$n = N_1/N_2$') across lines.
+			if (this.textAreaProperty.value.includes("\n") || this.textAreaAlign.value.numberID == TextAlign.JUSTIFY) {
+				options.push(`text width=${roundTikz(textWidth.value)}cm`)
+			}
 			options.push(`inner sep=${innerSep.toString()}`)
 
 			// rectangle rotation

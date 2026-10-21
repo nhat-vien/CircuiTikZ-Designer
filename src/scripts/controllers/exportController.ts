@@ -46,7 +46,7 @@ export class ExportController {
 	public exportTransformShape: boolean =
 		localStorage.getItem("circutikz_export_transform_shape") !== "false"
 	public exportBipolesLength: string =
-		localStorage.getItem("circutikz_export_bipoles_length") || ""
+		localStorage.getItem("circutikz_export_bipoles_length") || "1.4cm"
 
 	public createExportID(prefix = "N"): string {
 		let currentID: number
@@ -252,7 +252,7 @@ export class ExportController {
 		const optString = envOptions.length > 0 ? "[" + envOptions.join(", ") + "]" : ""
 
 		const ctikzSettings = [...tikzSettings.ctikzset.map((setting) => "\t\\ctikzset{" + setting + "}")]
-		if (this.exportBipolesLength) {
+		if (this.exportBipolesLength && this.exportBipolesLength !== "none") {
 			ctikzSettings.unshift(`\t\\ctikzset{bipoles/length=${this.exportBipolesLength}}`)
 		}
 
