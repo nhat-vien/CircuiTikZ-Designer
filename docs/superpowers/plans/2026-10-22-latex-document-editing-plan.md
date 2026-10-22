@@ -53,3 +53,21 @@ State serialize qua `SaveFileFormat.documentState` (compIndices → undo/file sa
 - Pre-existing parser bug đã sửa: `\ctikzset{...}` không có `;` khiến statement sau nó bị dropped.
 
 **Trạng thái:** Phase 1–4 đã commit; Phase 5 = docs + checklist thủ công.
+
+---
+
+## Checklist kiểm tra thủ công (chạy trên máy thật)
+
+Chuẩn bị: máy phải có Tectonic hoặc pdflatex + (pdftocairo hoặc pdf2svg). Máu test: pdflatex (TeX Live 2025) + pdftocairo 25.02 ✓, tectonic/pdf2svg ✗ (dùng nhánh fallback).
+
+1. **Panel document** — mở panel (Tab/mũi tên trong header `CircuiTikZ Document`), CodeMirror hiện preamble + `\begin{circuitikz}` + statements + `\end{circuitikz}`.
+2. **Canvas → code:** đặt 10+ component (R, C, wire, node, label), kéo/di tag — badge "synced", nội dung panel cập nhật đúng, vị trí các dòng không nhảy loạn.
+3. **Comment sống sót:** thêm dòng `% đây là comment của tôi` + `\coordinate (A) at (3,3);` bất kỳ đâu trong body → thực hiện ≥10 thao tác canvas (kéo元件, di component, center view…) → comment + coordinate vẫn nguyên vị trí tương đối.
+4. **Code → canvas:** sửa giá trị `l=$R_1$` thành `l=$R_7$` trong editor → chờ ~0.5s → canvas cập nhật label; sửa tọa độ statement → component dịch chuyển.
+5. **Statement lỗi:** gõ 1 dòng rác `foo bar baz;` trong body → canvas giữ nguyên, badge hiện warning; dòng rác vẫn còn (free entry).
+6. **Undo across layer:** sau khi sửa code (4) → Ctrl+Z → quay lại trạng thái trước cả khi code và canvas đồng bộ.
+7. **LaTeX preview:** bấm `LaTeX` trong header panel (chỉ bật được khi có engine) → layer preview hiện SVG compile đè lên graphics; sửa code → preview refresh tự động sau ~0.4s + ~1–2s compile; lỗi compile → banner đỏ giữ preview cũ.
+8. **Căn chuẩn:** preview đè trùng khít lên component graphics của canvas (sai < 1px theo verify số liệu).
+9. **Wire split:** vẽ wire ≥3 đoạn, click phải → "Split wire at nearest vertex" → wire thành 2, chia đúng, stroke/arrow giữ; Ctrl+Z hoàn tác được.
+10. **Save/Load:** lưu JSON → load lại → document layer (entries + attachments) phục hồi đúng.
+11. **Electron smoke:** app mở không lỗi console; `window.latexRenderer` tồn tại (DevTools).
