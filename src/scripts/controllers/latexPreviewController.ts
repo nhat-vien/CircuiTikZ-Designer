@@ -1,8 +1,12 @@
 import { DocumentController } from "../internal"
+import { collectErrorLines, describeCompileStatus, type CompilePhase } from "../utils/latexCompileStatus"
 
 const PT_PER_CM = 28.3465 // 1cm in pt (svg native unit after PDF->SVG conversion)
 const PX_PER_CM = 4800 / 127 // canvas px per cm
 const SCALE = PX_PER_CM / PT_PER_CM // canvas px per svg pt
+
+/** Web compile budget: the render server engine caps at 90s, plus a free-plan cold start. */
+const COMPILE_TIMEOUT_MS = 150000
 
 export interface CompiledBBox {
 	picMinX: number
@@ -40,6 +44,18 @@ export class LaTeXPreviewController {
 	private active = false
 	private unavailable = false
 
+	private phase: CompilePhase = "idle"
+	private manualCompile = false
+	private elapsedMs = 0
+	private lastErrors: string[] = []
+	private startedAt = 0
+	private tickTimer: any = null
+	private revertTimer: any = null
+	private statusEl: HTMLSpanElement | null = null
+	private spinnerEl: HTMLSpanElement | null = null
+	private iconEl: HTMLElement | null = null
+	private availabilityTitle = "Toggle compiled LaTeX preview"
+
 	/** Web render server base URL (localStorage config, empty = not configured). */
 	private static readonly SERVER_KEY = "ctd-latex-server"
 
@@ -76,6 +92,7 @@ export class LaTeXPreviewController {
 	private constructor() {
 		this.button = document.getElementById("latexPreviewBtn") as HTMLButtonElement
 		this.errorBanner = document.getElementById("latexPreviewError") as HTMLDivElement
+		this.initStatusUI()
 		this.button?.addEventListener("click", () => this.toggle())
 		window.addEventListener("document-changed", () => {
 			if (this.active) this.scheduleRender()
@@ -102,7 +119,7 @@ export class LaTeXPreviewController {
 			}
 			this.unavailable = false
 			this.button?.classList.remove("disabled")
-			this.button?.setAttribute("title", `Compiled LaTeX preview via render server ${this.getServerUrl()}`)
+			this.setAvailabilityTitle(`Compiled LaTeX preview via render server ${this.getServerUrl()}`)
 			return true
 		}
 		try {
@@ -119,7 +136,7 @@ export class LaTeXPreviewController {
 			}
 			this.unavailable = false
 			this.button?.classList.remove("disabled")
-			this.button?.setAttribute("title", "Compiled LaTeX preview available")
+			this.setAvailabilityTitle("Compiled LaTeX preview available")
 			return true
 		} catch {
 			this.unavailable = true
@@ -129,7 +146,7 @@ export class LaTeXPreviewController {
 
 	private setUnavailable(reason: string): void {
 		this.button?.classList.add("disabled")
-		this.button?.setAttribute("title", `${reason} — install Tectonic + pdftocairo for true LaTeX preview`)
+		this.setAvailabilityTitle(`${reason} — install Tectonic + pdftocairo for true LaTeX preview`)
 	}
 
 	public isActive(): boolean {
@@ -147,6 +164,7 @@ export class LaTeXPreviewController {
 			this.ensureLayer()
 			this.scheduleRender(true)
 		} else {
+			this.resetStatus()
 			this.hideBanner()
 			this.layer?.remove()
 			this.layer = null
@@ -187,6 +205,8 @@ export class LaTeXPreviewController {
 		this.cacheKey = key
 
 		this.inFlight = true
+		this.manualCompile = force
+		this.beginCompile()
 		try {
 			const bridge = (window as any).latexRenderer
 			let reply: RenderReply
@@ -195,33 +215,50 @@ export class LaTeXPreviewController {
 			} else {
 				const url = this.getServerUrl()
 				if (!url) {
-					this.showBanner("No render server configured (General settings)")
+					this.reportFailure(["No render server configured (General settings)"])
 					return
 				}
-				const res = await fetch(`${url}/compile`, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ latex: source }),
-				})
-				reply = (await res.json()) as RenderReply
+				reply = await this.postCompile(url, source)
 			}
 			if (reply.ok && reply.svg) {
 				this.lastGoodSvg = reply.svg
 				this.lastGoodBBox = reply.bbox ?? null
 				this.project(reply.svg, reply.bbox ?? null)
-				this.hideBanner()
+				this.reportSuccess()
 			} else {
-				this.showBanner(reply.error ?? (reply.errors?.[0] ?? "compilation failed"))
+				this.reportFailure(collectErrorLines(reply))
 				// keep the last good preview on screen (never leave a blank canvas)
 			}
 		} catch (err: any) {
-			this.showBanner(String(err?.message ?? err))
+			this.reportFailure([String(err?.message ?? err)])
 		} finally {
 			this.inFlight = false
 			if (this.pending) {
 				this.pending = false
 				this.scheduleRender()
 			}
+		}
+	}
+
+	/** POSTs the source to the web render server under a client-side deadline. */
+	private async postCompile(serverUrl: string, source: string): Promise<RenderReply> {
+		const abort = new AbortController()
+		const deadline = setTimeout(() => abort.abort(), COMPILE_TIMEOUT_MS)
+		try {
+			const res = await fetch(`${serverUrl}/compile`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ latex: source }),
+				signal: abort.signal,
+			})
+			return (await res.json()) as RenderReply
+		} catch (err: any) {
+			if (err?.name === "AbortError") {
+				throw new Error(`render server did not respond in ${COMPILE_TIMEOUT_MS / 1000}s (cold start? try again)`)
+			}
+			throw err
+		} finally {
+			clearTimeout(deadline)
 		}
 	}
 
@@ -307,12 +344,108 @@ export class LaTeXPreviewController {
 
 	private showBanner(message: string): void {
 		if (!this.errorBanner) return
-		this.errorBanner.textContent = message.length > 140 ? message.slice(0, 140) + "…" : message
+		this.errorBanner.textContent = message
 		this.errorBanner.classList.remove("d-none")
 	}
 
 	private hideBanner(): void {
 		this.errorBanner?.classList.add("d-none")
+	}
+
+	/** Adds the spinner and status badge children to the preview button. */
+	private initStatusUI(): void {
+		if (!this.button) return
+		this.availabilityTitle = this.button.getAttribute("title") || this.availabilityTitle
+		this.iconEl = this.button.querySelector(".material-symbols-outlined")
+
+		this.spinnerEl = document.createElement("span")
+		this.spinnerEl.className = "spinner-border spinner-border-sm latex-btn-spinner d-none"
+		this.spinnerEl.setAttribute("role", "status")
+		if (this.iconEl) this.iconEl.insertAdjacentElement("afterend", this.spinnerEl)
+		else this.button.prepend(this.spinnerEl)
+
+		this.statusEl = document.createElement("span")
+		this.statusEl.className = "latex-btn-status d-none"
+		this.button.appendChild(this.statusEl)
+	}
+
+	private setAvailabilityTitle(title: string): void {
+		this.availabilityTitle = title
+		if (this.phase !== "error") this.button?.setAttribute("title", title)
+	}
+
+	private setPhase(phase: CompilePhase): void {
+		this.phase = phase
+		this.applyStatus()
+	}
+
+	private beginCompile(): void {
+		this.clearTick()
+		this.startedAt = performance.now()
+		this.setPhase("compiling")
+		if (this.manualCompile) this.tickTimer = setInterval(() => this.applyStatus(), 1000)
+	}
+
+	private reportSuccess(): void {
+		this.lastErrors = []
+		this.elapsedMs = performance.now() - this.startedAt
+		this.clearTick()
+		this.setPhase("ok")
+		if (this.manualCompile) {
+			clearTimeout(this.revertTimer)
+			this.revertTimer = setTimeout(() => {
+				if (this.phase === "ok") this.setPhase("idle")
+			}, 4000)
+		}
+	}
+
+	private reportFailure(errors: string[]): void {
+		this.lastErrors = errors.filter((line) => line.length > 0)
+		this.clearTick()
+		this.setPhase("error")
+	}
+
+	private resetStatus(): void {
+		this.clearTick()
+		clearTimeout(this.revertTimer)
+		this.revertTimer = null
+		this.phase = "idle"
+		this.manualCompile = false
+		this.elapsedMs = 0
+		this.lastErrors = []
+		this.applyStatus()
+	}
+
+	private clearTick(): void {
+		if (this.tickTimer) {
+			clearInterval(this.tickTimer)
+			this.tickTimer = null
+		}
+	}
+
+	/** Paints the current compile phase onto the button, the banner and the tooltip. */
+	private applyStatus(): void {
+		if (!this.button || !this.statusEl || !this.spinnerEl || !this.iconEl) return
+		const view = describeCompileStatus({
+			phase: this.phase,
+			manual: this.manualCompile,
+			elapsedMs: this.phase === "compiling" ? performance.now() - this.startedAt : this.elapsedMs,
+			errors: this.lastErrors,
+		})
+		this.spinnerEl.classList.toggle("d-none", !view.spinner)
+		this.iconEl.classList.toggle("d-none", view.spinner)
+		this.button.classList.toggle("is-compiling", view.buttonClasses.includes("is-compiling"))
+		this.statusEl.textContent = view.label
+		this.statusEl.className = view.label
+			? `latex-btn-status ${view.badgeClasses.join(" ")}`
+			: "latex-btn-status d-none"
+		if (view.hideBanner) this.hideBanner()
+		else if (view.bannerText !== null) this.showBanner(view.bannerText)
+		// the banner cannot be hovered (pointer-events: none), so the full log goes on the button
+		this.button.setAttribute(
+			"title",
+			this.phase === "error" && this.lastErrors.length > 0 ? this.lastErrors.join("\n") : this.availabilityTitle
+		)
 	}
 
 	/**
@@ -349,18 +482,24 @@ export class LaTeXPreviewController {
 		const status = document.createElement("div")
 		status.id = "latexServerStatus"
 		status.className = "form-text mb-0"
+		const dot = document.createElement("span")
+		dot.className = "settings-status-dot"
+		const statusText = document.createElement("span")
+		status.append(dot, statusText)
 		section.appendChild(status)
 
 		const updateStatus = async () => {
 			const url = this.getServerUrl()
 			if (!url) {
-				status.innerText = "Empty = LaTeX preview off in web mode"
+				dot.className = "settings-status-dot"
+				statusText.innerText = "Empty = LaTeX preview off in web mode"
 				return
 			}
-			status.innerText = "Probing…"
+			dot.className = "settings-status-dot is-probing"
+			statusText.innerText = "Probing…"
 			const probe = await this.probeServer()
-			status.innerHTML = ""
-			status.appendChild(document.createTextNode(`Server ${url} — ${probe.message}`))
+			dot.className = `settings-status-dot ${probe.ok ? "is-ok" : "is-error"}`
+			statusText.innerText = `Server ${url} — ${probe.message}`
 		}
 
 		saveBtn.addEventListener("click", () => {

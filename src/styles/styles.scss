@@ -26,6 +26,13 @@ $warning: #f59e0b;
   --success: hsl(142, 70%, 45%);
   --danger: hsl(350, 80%, 55%);
   --warning: hsl(38, 92%, 50%);
+
+  /* State-only colors (low saturation, same family as --primary-light).
+     Used for compile/availability results, never for decoration. */
+  --state-ok: hsl(142, 45%, 32%);
+  --state-ok-bg: hsl(142, 60%, 95%);
+  --state-err: hsl(350, 65%, 42%);
+  --state-err-bg: hsl(350, 80%, 96%);
   
   /* Background Colors */
   --bg-app: hsl(210, 20%, 98%);
@@ -63,6 +70,11 @@ $warning: #f59e0b;
 
   --border-color: hsl(215, 14%, 22%);
   --primary-light: hsl(var(--primary-h), var(--primary-s), 20%);
+
+  --state-ok: hsl(142, 50%, 70%);
+  --state-ok-bg: hsl(142, 40%, 14%);
+  --state-err: hsl(350, 70%, 72%);
+  --state-err-bg: hsl(350, 45%, 18%);
 }
 
 // Global font styling overrides
@@ -145,12 +157,50 @@ body {
   max-width: 70%;
   padding: 6px 14px;
   font-size: 11.5px;
-  background-color: var(--bs-danger-bg-subtle, #dc3545);
-  color: var(--bs-danger-emphasis, #fff);
+  background-color: var(--state-err-bg);
+  color: var(--state-err);
+  border: 1px solid var(--state-err);
   border-radius: 6px;
   z-index: 40;
   pointer-events: none;
   white-space: pre-wrap;
+}
+
+/* LaTeX compile status on the preview button */
+#latexPreviewBtn {
+  &.is-compiling {
+    border-color: var(--primary);
+    background-color: var(--primary-light);
+  }
+
+  .latex-btn-spinner {
+    width: 13px;
+    height: 13px;
+    border-width: 0.11em;
+    margin-right: 5px;
+  }
+
+  .latex-btn-status {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 2px 5px;
+    margin-left: 5px;
+    border-radius: 4px;
+    color: var(--primary);
+    background-color: var(--primary-light);
+
+    &.latex-status-ok {
+      color: var(--state-ok);
+      background-color: var(--state-ok-bg);
+    }
+
+    &.latex-status-error {
+      color: var(--state-err);
+      background-color: var(--state-err-bg);
+    }
+  }
 }
 
 // LaTeX preview layer

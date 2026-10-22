@@ -127,6 +127,88 @@
 		}
 	}
 
+	// Same palette as the Symbols library: neutral surface, light-blue accent on
+	// hover (the recipe of div.libComponent in symbolDB.scss).
+	.btn-primary,
+	.btn-outline-primary,
+	.btn-outline-danger {
+		--bs-btn-color: var(--text-main);
+		--bs-btn-bg: var(--bg-app);
+		--bs-btn-border-color: var(--border-color);
+		--bs-btn-hover-color: var(--primary);
+		--bs-btn-hover-bg: var(--primary-light);
+		--bs-btn-hover-border-color: var(--primary);
+		--bs-btn-active-color: var(--primary);
+		--bs-btn-active-bg: var(--primary-light);
+		--bs-btn-active-border-color: var(--primary);
+		--bs-btn-focus-shadow-rgb: 30, 112, 230;
+		--bs-btn-disabled-color: var(--text-light);
+		--bs-btn-disabled-bg: var(--bg-app);
+		--bs-btn-disabled-border-color: var(--border-color);
+	}
+
+	// The destructive action keeps its warning affordance, but only while hovered.
+	#clearCanvasViewButton {
+		--bs-btn-hover-color: var(--state-err);
+		--bs-btn-hover-bg: var(--state-err-bg);
+		--bs-btn-hover-border-color: var(--state-err);
+		--bs-btn-active-color: var(--state-err);
+		--bs-btn-active-bg: var(--state-err-bg);
+		--bs-btn-active-border-color: var(--state-err);
+	}
+
+	// "Current grid spacing" reads as a library card, not as an info callout.
+	.bg-info-subtle {
+		background-color: var(--bg-app) !important;
+	}
+
+	.border-info-subtle {
+		border-color: var(--border-color) !important;
+	}
+
+	.text-info-emphasis {
+		color: var(--text-main) !important;
+	}
+
+	#gridInfo {
+		font-family: var(--font-mono);
+		font-size: 11px;
+		font-weight: 700;
+		color: var(--primary);
+		background-color: var(--primary-light);
+		padding: 2px 6px;
+		border-radius: 4px;
+	}
+
+	// Render server availability: one colored dot, never a colored paragraph.
+	#latexServerStatus {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		line-height: 1.4;
+	}
+
+	.settings-status-dot {
+		flex: 0 0 8px;
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background-color: var(--text-light);
+
+		&.is-probing {
+			background-color: var(--primary);
+			animation: ctd-dot-pulse 1.1s ease-in-out infinite;
+		}
+
+		&.is-ok {
+			background-color: var(--state-ok);
+		}
+
+		&.is-error {
+			background-color: var(--state-err);
+		}
+	}
+
 	// Radio button options (Choice/Radio components) font override
 	.btn-outline-secondary.fs-5 {
 		font-size: 13px !important;
@@ -162,5 +244,11 @@
 		border-color: var(--primary) !important;
 		background-color: var(--primary-light);
 		box-shadow: var(--shadow-md);
+	}
+}
+
+@keyframes ctd-dot-pulse {
+	50% {
+		opacity: 0.35;
 	}
 }

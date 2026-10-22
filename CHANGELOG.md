@@ -35,6 +35,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   two-wire continuations and interior–interior crossings stay undotted, and component pins
   never gain a dot.
 
+### Changed
+
+- **General settings now use the Symbols library palette**: the action buttons are neutral cards
+  with a light-blue hover accent instead of solid blue/red fills, "Current grid spacing" reads as
+  a library card, and the render server status leads with a small colored dot. Saturated color is
+  reserved for results: new `--state-ok` / `--state-err` tokens (low saturation, dark-theme aware)
+  are used only for compile and availability states.
+- **Visible feedback while LaTeX compiles**: pressing the preview button shows a spinner plus an
+  elapsed-seconds counter (a sleeping render server takes ~1 minute), then an `ok · 1.2s` badge
+  that reverts after 4s, or an `error` badge that stays until the next successful compile.
+  Automatic re-compiles stay quiet and only tint the button border. Error text is no longer cut at
+  140 characters, remaining log lines are counted as `(+N)` with the full list in the button
+  tooltip, and web compiles now give up after 150s instead of hanging forever.
+
 ### Fixed
 
 - Document editor caret/selection/text now follow the app theme (invisible black caret on

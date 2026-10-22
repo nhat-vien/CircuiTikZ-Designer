@@ -1,7 +1,7 @@
 # Spec: Đồng nhất màu General Settings theo Symbols + tín hiệu khi compile LaTeX
 
 - Ngày: 2026-10-22
-- Trạng thái: Đã duyệt bằng hội thoại (chưa implement)
+- Trạng thái: Đã duyệt và đã implement
 - Phạm vi: giao diện (CSS + `LaTeXPreviewController`), không đổi pipeline compile
 
 ## 1. Mục tiêu
@@ -108,9 +108,9 @@ Controller giữ thêm `phase: "idle" | "compiling" | "ok" | "error"` và `manua
 - **Timeout client**: `AbortController` signal **150s** cho `POST /compile` (lớn hơn timeout
   90s của engine, đủ cho cold-start). `AbortError` → banner
   `render server did not respond in 150s (cold start? retry)`.
-- **Nội dung lỗi**: bỏ cắt 140 → cắt 300 ký tự; nếu `errors.length > 1` nối ` (+N)`; đặt
-  `errorBanner.title` = toàn bộ `errors.join("\n")` (hover để xem đầy đủ). Vẫn giữ preview tốt
-  gần nhất khi lỗi.
+- **Nội dung lỗi**: bỏ cắt 140 → cắt 300 ký tự; nếu `errors.length > 1` nối ` (+N)`. Toàn bộ
+  `errors.join("\n")` đặt trong `title` **của nút preview** (banner có `pointer-events: none`
+  nên tooltip gắn ở banner sẽ không hover được). Vẫn giữ preview tốt gần nhất khi lỗi.
 - **Busy/unreachable**: `"renderer busy"` và các message của `probeServer()` đi cùng nhánh
   error, không có state riêng.
 - Thứ tự DOM nút: giữ nguyên markup `index.html:362-365`, controller thêm/bớt child element
@@ -118,24 +118,33 @@ Controller giữ thêm `phase: "idle" | "compiling" | "ok" | "error"` và `manua
 
 ### 3.4 Đơn vị thuần để test
 
-Extract khỏi controller:
+Module mới `src/scripts/utils/latexCompileStatus.ts`, **không import gì** (controller kéo theo
+`../internal` nên không đưa vào test được):
 
 ```ts
+export type CompilePhase = "idle" | "compiling" | "ok" | "error"
 export interface CompileStatusInput {
-  phase: "idle" | "compiling" | "ok" | "error"
-  manual: boolean
+  phase: CompilePhase
+  manual: boolean      // compile khởi phát từ nút bấm
   elapsedMs: number
-  errors: string[]
+  errors: string[]     // message chính đứng đầu
 }
-export function describeCompileStatus(i: CompileStatusInput): {
+export interface CompileStatusView {
   spinner: boolean
   label: string            // "" | "3s" | "ok · 1.2s" | "error"
   buttonClasses: string[]  // [] | ["is-compiling"]
   badgeClasses: string[]   // ["latex-status-ok"] | ["latex-status-error"]
-  bannerText: string | null
+  bannerText: string | null // null = giữ nguyên banner
+  hideBanner: boolean
 }
+export function describeCompileStatus(i: CompileStatusInput): CompileStatusView
 export function formatElapsed(ms: number): string // <1000 → "820ms", ≥1000 → "1.2s"
+export function collectErrorLines(reply: { error?: string; errors?: string[] }): string[]
 ```
+
+`bannerText`/`hideBanner` tách nhau vì ba hành vi khác nhau: compiling = giữ banner lỗi cũ,
+ok = ẩn banner, error = ghi banner mới. Bộ đếm giây dùng `floor(elapsed/1000)` với tối thiểu
+`1s` để không hiện `0s` ngay lúc bấm.
 
 ## 4. Xử lý lỗi / edge case
 
@@ -149,12 +158,16 @@ export function formatElapsed(ms: number): string // <1000 → "820ms", ≥1000 
 
 ## 5. Test
 
-- Mới: `tests/latexPreviewStatus.test.ts` (vitest, dùng `tests/setup.ts` hiện có) — unit test
-  `describeCompileStatus` cho 6 case: compiling-manual, compiling-auto, ok-manual, ok-auto,
-  error-1, error-many; và `formatElapsed` (0.8s / 1.2s / 12s).
+- `tests/latexPreviewStatus.test.ts` (vitest, dùng `tests/setup.ts` hiện có) — 18 case cho
+  `describeCompileStatus` (compiling-manual/auto, ok-manual/auto, error-1, error-many, lỗi dài,
+  idle) và `formatElapsed`, `collectErrorLines`.
+- `tests/latexPreviewController.test.ts` — 5 case jsdom cho phần wiring DOM: spinner + bộ đếm
+  giây, chế độ auto chỉ đổi viền, badge lỗi + banner `(+N)` + tooltip log đầy đủ, reset khi tắt
+  preview, và deadline 150s của `postCompile`. Goi private methods trực tiếp vì import controller
+  trong harness này bị circular `../internal` (`DocumentController` undefined) — Parcel không bị.
 - Không thêm test DOM-heavy cho `project()` (giữ nguyên như hiện tại).
 - Verify thủ công: `npm start`, chuyển light ↔ dark, mở Symbols cạnh General Settings để so;
-  đặt `\usepackage{nosuchpkg}` vào preamble để xem badge `error` + banner + tooltip `title`;
+  đặt `\usepackage{nosuchpkg}` vào preamble để xem badge `error` + banner + tooltip;
   dùng render server thật để xem đếm giây lúc cold-start.
 
 ## 6. Ngoài phạm vi (YAGNI)
