@@ -178,6 +178,10 @@ export class LaTeXPreviewController {
 	/**
 	 * Projects the compiled SVG inner content onto the canvas layer using the
 	 * measured tikzpicture bounding box (pt) reported by the CTDBBOX probe.
+	 *
+	 * pdftocairo output: no global matrix, viewBox == MediaBox (standalone page =
+	 * picture content + border margins). pdf2svg output: a global
+	 * matrix(1 0 0 -1 tx ty) flip group and a cropped page.
 	 */
 	private project(svgText: string, bbox: CompiledBBox | null): void {
 		if (!this.layer) return
@@ -187,28 +191,59 @@ export class LaTeXPreviewController {
 			if (root.tagName.toLowerCase() !== "svg") return
 
 			// pdf2svg wraps content in <g transform="matrix(1 0 0 -1 tx ty)">; read tx/ty
-			let tx = 0
-			let ty = 0
+			let flipTx = 0
+			let flipTy = 0
+			let hasFlip = false
 			const firstGroup = root.querySelector("g")
-			const matrixMatch = firstGroup?.getAttribute("transform")?.match(/matrix\([^,)]*,[^,)]*,[^,)]*,[^,)]*,([^,)]*),([^)]*)\)/)
+			const matrixMatch = firstGroup?.getAttribute("transform")?.match(
+				/matrix\(\s*1\s*,?\s+0\s*,?\s+0\s*,?\s+-1\s*,?\s+([^,)]*)\s*,?\s+([^)]*)\)/
+			)
 			if (matrixMatch) {
-				tx = parseFloat(matrixMatch[1]) || 0
-				ty = parseFloat(matrixMatch[2]) || 0
+				hasFlip = true
+				flipTx = parseFloat(matrixMatch[1]) || 0
+				flipTy = parseFloat(matrixMatch[2]) || 0
 			}
 
-			// world origin (0,0) in displayed svg coordinates:
-			// u0 = tx - picMinX ; v0 = picMinY + ty (y already flipped inside the svg content)
-			const u0 = bbox ? tx - bbox.picMinX : 0
-			const v0 = bbox ? bbox.picMinY + ty : 0
-			const ox = -SCALE * u0
-			const oy = -SCALE * v0
+			// world origin (0,0) in displayed svg coordinates (y-down):
+			let u0 = 0
+			let v0 = 0
+			let scale = SCALE
+			if (hasFlip) {
+				u0 = flipTx - (bbox?.picMinX ?? 0)
+				v0 = (bbox?.picMinY ?? 0) + flipTy
+			} else if (bbox) {
+				// pdftocairo: displayed page size includes standalone margins; poppler
+				// additionally wraps every path in a per-path matrix (s, 0, 0, -s, ..., ...)
+				// which shrinks the display by 1/s — compensate by measuring s from the
+				// first transformed path.
+				let s0 = 1
+				const pathEl = root.querySelector("path[transform]")
+				const pathMat = pathEl?.getAttribute("transform")?.match(
+					/matrix\(\s*([\d.eE+-]+)\s*,\s*([\d.eE+-]+)\s*,\s*([\d.eE+-]+)\s*,\s*([\d.eE+-]+)\s*,\s*([^,]+)\s*,\s*([^)]+)\)/
+				)
+				if (pathMat) {
+					const a = parseFloat(pathMat[1])
+					const d = parseFloat(pathMat[4])
+					if (a > 0 && d < 0) s0 = a
+				}
+				scale = SCALE / s0
+
+				const parseLen = (v: string | null) => (v ? parseFloat(v) || 0 : 0)
+				const mediaW = parseLen(root.getAttribute("width"))
+				const marginX = (mediaW - (bbox.picMaxX - bbox.picMinX)) / 2
+				// vertical: content height derived from the picture extents
+				const mediaH = parseLen(root.getAttribute("height"))
+				const marginY = (mediaH - (bbox.picMaxY - bbox.picMinY)) / 2
+				u0 = marginX - bbox.picMinX
+				v0 = marginY + bbox.picMaxY
+			}
 
 			this.layer.innerHTML = ""
 			// canvas y already matches svg display direction (both flipped y-down),
-			// so this is a pure translation+scale of the pdf2svg display coordinates
+			// so this is a pure translation+scale of the display coordinates
 			this.layer.setAttribute(
 				"transform",
-				`matrix(${SCALE},0,0,${SCALE},${ox},${oy})`
+				`matrix(${scale},0,0,${scale},${-scale * u0},${-scale * v0})`
 			)
 			for (const child of Array.from(root.childNodes)) {
 				if (child.nodeType === Node.ELEMENT_NODE && (child as Element).tagName.toLowerCase() !== "title") {

@@ -200,3 +200,38 @@ Luồng **code → canvas**:
 3. `latex:render` hoạt động khi máy có (Tectonic hoặc pdflatex) + (pdftocairo hoặc pdf2svg); LaTeX mode hiển thị đúng chữ; thiếu engine → fallback SVG mode êm + badge hướng dẫn.
 4. Wire lệch hai trục sinh `-|`/`|-` gọn; split/merge hoạt động qua context menu và snap-extend; ký hiệu endpoint có name giữ dạng `(Name.anchor)`.
 5. `npm run build` xanh; unit test vitest xanh; bản Electron chạy được với contextIsolation bật + IPC latex:render.
+
+
+---
+
+## 6. Ghi chú triển khai (2026-10-22) — khác biệt thực tế so với thiết kế
+
+**Mô hình document:** triển khai theo **entry-based model** thay vì raw-line splice (§3):
+- DocumentController giữ entries: (CodeEntry | FreeEntry)[]; code entry re-emit statement
+  trực tiếp từ các component gắn vào nó (attachment map CircuitComponent → entryId, serialize
+  qua SaveFileFormat.documentState với compIndices); ree entry giữ văn bản user verbatim
+  (comment, \coordinate, statement không parse được) và sống sót qua mọi thao tác canvas.
+- Code → canvas (pplyFullSource): parse body, dựng lại canvas, statement không khớp
+  re-emission nào được chuyển thành free entry (match theo canonical text đã strip ;).
+- Lý do: splice theo dòng phức tạp và dễ hỏng khi component có nhiều statement; entry model
+  đạt cùng DoD với độ phức tạp thấp hơn hơn.
+
+**Pipeline compile (đã verify end-to-end trên máy có pdflatex + pdftocairo):**
+- pdflatex + \typeout{CTDBBOX|...} probe hoạt động; bbox trích được dạng ...pt.
+- pdftocairo SVG **không có** matrix(1 0 0 -1) toàn cục: viewBox = MediaBox (content +
+  standalone margins), mỗi path có per-path matrix (s, 0, 0, -s, cx, cy) với s≈0.9895.
+  Mapping đã verify bằng số liệu thật: world(0,0)→canvas(0.10,0.09)px, world(2cm,0)→
+  canvas(75.69px) so với target (0,0)/(75.59px) — sai < 0.15px.
+- Công thức căn: marginX=(mediaW−(picMaxX−picMinX))/2; u0=marginX−picMinX;
+  marginY=(mediaH−(picMaxY−picMinY))/2; v0=marginY+picMaxY;
+  scale = (4800/127)/28.3465 / s0 (s0 đo runtime từ path đầu tiên).
+
+**Đã có sẵn, chỉ nối dây:** auto routing -|/|- (WireDirection.HV/VH), Shift ép thẳng,
+symbolic endpoint (Q1.B) qua createAnchorResolver.
+
+**Hoãn / bỏ:** render-server web fallback (chỉ check client-side); merge/extend wire vào
+statement có sẵn (entry model không cần); parser cho standalone \node ... at (bug có sẵn,
+ngoài scope).
+
+**Parser bug đã sửa:** \ctikzset{...} không có ; làm statement phía sau bị dropped —
+tách prefix \ctikzset rồi dispatch phần còn lại (parseSingleStatement).
