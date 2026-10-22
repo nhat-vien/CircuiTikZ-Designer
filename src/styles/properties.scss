@@ -53,14 +53,17 @@
 		}
 	}
 
-	// Bootstrap input groups inside properties
+	// Bootstrap input groups inside properties: the field name is a caption, not a
+	// chip, so it carries neither background nor border.
 	.input-group-text {
-		font-size: 13px !important;
-		font-weight: 600;
+		font-size: 11px !important;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.6px;
 		color: var(--text-muted);
-		background-color: var(--bg-app);
-		border-color: var(--border-color);
-		padding: 6px 12px;
+		background-color: transparent;
+		border: none;
+		padding: 0 8px 0 0;
 	}
 
 	// Sliders values indicator
