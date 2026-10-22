@@ -42,8 +42,23 @@ docker run -d -p 8088:8088 \
   ctd-render-server
 ```
 
-The image ships TeX Live (pdflatex, `circuitikz`, `standalone` included) and
+The image ships TeX Live (pdflatex, `circuitikz`, `standalone`, `siunitx` included) and
 poppler-utils (pdftocairo) — fully offline after the build.
+
+`siunitx` comes from the Debian package `texlive-science`, which is a separate package
+from `texlive-latex-extra`. Without it every compile fails with
+`File `siunitx.sty' not found`, because the exported preamble uses
+`\usepackage[siunitx, RPvoltages]{circuitikz}`.
+
+### Missing .sty when running without Docker
+
+Install the package the same way on the host that runs `server/renderServer.js`:
+
+```bash
+apt-get install -y texlive-science       # Debian/Ubuntu: siunitx.sty
+# or, for a TeX Live from TUG:
+tlmgr install siunitx
+```
 
 ## Deploy
 

@@ -9,9 +9,12 @@
 # package downloads would need a persistent cache volume instead.
 FROM node:20-slim
 
+# siunitx.sty (loaded by circuitikz's `siunitx` option) lives in texlive-science,
+# not in texlive-latex-extra.
 RUN apt-get update && apt-get install -y --no-install-recommends \
 		texlive-latex-extra \
 		texlive-pictures \
+		texlive-science \
 		poppler-utils \
 	&& rm -rf /var/lib/apt/lists/*
 

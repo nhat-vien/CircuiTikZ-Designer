@@ -45,6 +45,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - TikZ parser dropped statements that were merged behind `\ctikzset{...}` lines lacking a
   terminating `;` (exporter output could not be fully re-imported)
+- Web render server failed every compile with `File 'siunitx.sty' not found`: the Dockerfile
+  now installs `texlive-science`, the Debian package that provides `siunitx` (required by the
+  `[siunitx]` option of circuitikz).
 
 ## [0.8.2]
 
