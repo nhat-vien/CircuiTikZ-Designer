@@ -48,6 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Automatic re-compiles stay quiet and only tint the button border. Error text is no longer cut at
   140 characters, remaining log lines are counted as `(+N)` with the full list in the button
   tooltip, and web compiles now give up after 150s instead of hanging forever.
+- Field names inside the properties column are plain captions now: `Design name`, `Voltage Style`,
+  `Voltage Convention`, `Label Orientation` and the rest no longer sit in a gray chip welded to
+  their control, so only the inputs themselves are boxed. The switch, the slider thumb and the
+  value chips are neutral too — the accent blue is reserved for hover, focus and results.
 
 ### Fixed
 

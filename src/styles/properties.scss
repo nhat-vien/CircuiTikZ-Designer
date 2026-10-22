@@ -67,17 +67,18 @@
 	}
 
 	// Sliders values indicator
-	#majorLabel, #minorLabel {
+	#majorLabel, #minorLabel, #gridInfo {
 		font-size: 11px;
 		font-weight: 700;
 		font-family: var(--font-mono);
-		color: var(--primary);
-		background-color: var(--primary-light);
+		color: var(--text-main);
+		background-color: var(--bg-app);
+		border: 1px solid var(--border-color);
 		padding: 2px 6px;
 		border-radius: 4px;
 	}
 
-	// Sliders styling
+	// Sliders styling: neutral at rest, the thumb darkens while dragging
 	.form-range {
 		&::-webkit-slider-runnable-track {
 			background-color: var(--border-color);
@@ -85,15 +86,37 @@
 			border-radius: 3px;
 		}
 
+		&::-moz-range-track {
+			background-color: var(--border-color);
+			height: 6px;
+			border-radius: 3px;
+		}
+
 		&::-webkit-slider-thumb {
-			background-color: var(--primary);
+			background-color: var(--text-muted);
 			border: 2px solid var(--bg-panel);
 			box-shadow: var(--shadow-sm);
-			transition: transform 0.1s ease;
+			transition: transform 0.1s ease, background-color 0.15s ease;
 			
 			&:hover {
 				transform: scale(1.2);
 			}
+		}
+
+		&::-moz-range-thumb {
+			background-color: var(--text-muted);
+			border: 2px solid var(--bg-panel);
+			box-shadow: var(--shadow-sm);
+		}
+
+		&:active::-webkit-slider-thumb,
+		&:active::-moz-range-thumb {
+			background-color: var(--text-main);
+		}
+
+		&:focus::-webkit-slider-thumb,
+		&:focus::-moz-range-thumb {
+			box-shadow: 0 0 0 3px var(--primary-light);
 		}
 	}
 
@@ -114,7 +137,22 @@
 			margin-top: 0;
 			width: 2.2em;
 			height: 1.1em;
+			background-color: var(--bg-app);
+			border-color: var(--border-color);
 			transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+
+			// neutral at rest: grey track when on, outlined track when off. Bootstrap
+			// bakes a white knob/check into the SVG, so the "on" fill must stay dark
+			// enough for it to read in each theme.
+			&:checked {
+				background-color: var(--text-muted);
+				border-color: var(--text-muted);
+			}
+
+			&:focus {
+				border-color: var(--text-muted);
+				box-shadow: 0 0 0 3px var(--primary-light);
+			}
 		}
 	}
 
@@ -173,16 +211,6 @@
 		color: var(--text-main) !important;
 	}
 
-	#gridInfo {
-		font-family: var(--font-mono);
-		font-size: 11px;
-		font-weight: 700;
-		color: var(--primary);
-		background-color: var(--primary-light);
-		padding: 2px 6px;
-		border-radius: 4px;
-	}
-
 	// Render server availability: one colored dot, never a colored paragraph.
 	#latexServerStatus {
 		display: flex;
@@ -234,6 +262,13 @@
 			gap: 16px !important;
 		}
 	}
+}
+
+// Dark mode needs a lighter "on" fill than --text-muted, because the knob and the check
+// mark are white in Bootstrap's inline SVGs.
+[data-bs-theme="dark"] #properties-content .form-check-input:checked {
+	background-color: var(--text-light);
+	border-color: var(--text-light);
 }
 
 // Modern Beautified Grid Spacing Card
