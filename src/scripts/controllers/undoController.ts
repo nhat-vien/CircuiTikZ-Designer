@@ -7,6 +7,7 @@ import {
 	currentSaveVersion,
 	GlobalTikzSettings,
 	EnvironmentVariableController,
+	DocumentController,
 } from "../internal"
 
 /**
@@ -20,6 +21,13 @@ export class Undo {
 
 	//TODO discuss if selections should be remembered or not???
 	public static addState() {
+		// reconcile the document layer first so its state is part of this snapshot
+		try {
+			DocumentController.instance?.syncFromCanvas()
+		} catch {
+			/* the document layer must never break undo */
+		}
+
 		// get json object
 		let components = []
 		for (const component of MainController.instance.circuitComponents) {
@@ -32,6 +40,14 @@ export class Undo {
 			version: currentSaveVersion,
 			tikzSettings: EnvironmentVariableController.instance.toJson(),
 			components: components,
+		}
+
+		try {
+			currentState.documentState = DocumentController.instance!.captureState(
+				MainController.instance.circuitComponents as never
+			)
+		} catch {
+			/* ignore */
 		}
 
 		let shouldAddState = true
@@ -86,16 +102,30 @@ export class Undo {
 
 		EnvironmentVariableController.instance.fromJson(Undo.states[Undo.currentIndex].tikzSettings)
 		let components = []
+		let selectedComponents = []
 
 		for (const component of state) {
 			let initalializedComponenent = SaveController.fromJson(component)
-			if (component.selected && initalializedComponenent) {
+			if (initalializedComponenent) {
+				if (component.selected && initalializedComponenent) {
+					selectedComponents.push(initalializedComponenent)
+				}
 				components.push(initalializedComponenent)
 			}
 		}
 
-		if (components.length > 0) {
-			SelectionController.instance.selectComponents(components, SelectionMode.RESET)
+		// restore the LaTeX document layer together with its attachments
+		try {
+			DocumentController.instance?.restoreState(
+				Undo.states[Undo.currentIndex].documentState,
+				components
+			)
+		} catch {
+			/* document layer must never break undo */
+		}
+
+		if (selectedComponents.length > 0) {
+			SelectionController.instance.selectComponents(selectedComponents, SelectionMode.RESET)
 		}
 
 		MainController.instance?.updateLiveCode()

@@ -269,27 +269,23 @@ export class TikzParser {
 				if (!trimmed) continue
 
 				try {
-					if (trimmed.startsWith("\\coordinate")) {
-						this.parseCoordinateStatement(trimmed, namedCoords, globalScale)
-					} else if (trimmed.startsWith("\\draw") || trimmed.startsWith("\\path")) {
-						const objs = this.parsePathStatement(trimmed, namedCoords, result, globalScale)
-						result.components.push(...objs)
-					} else if (trimmed.startsWith("\\node")) {
-						// Convert \node ... to \path node ...
-						const asPath = "\\path " + trimmed.substring(1)
-						const objs = this.parsePathStatement(asPath, namedCoords, result, globalScale)
-						result.components.push(...objs)
-					} else if (trimmed.startsWith("\\fill") || trimmed.startsWith("\\filldraw")) {
-						// Junction dots like \fill (0,0) circle (2pt);
-						const dotObj = this.parseFillCircleStatement(trimmed, namedCoords, globalScale)
-						if (dotObj) {
-							result.components.push(dotObj)
-							result.stats.nodes++
+					if (trimmed.startsWith("\\ctikzset")) {
+						// \ctikzset lines frequently have no terminating ';' and get merged with
+						// the following statement by splitStatements. Peel off every leading
+						// \ctikzset{...} group and dispatch the remainder of the statement.
+						let rest = trimmed
+						while (true) {
+							const m = rest.match(/^\s*\\ctikzset\s*\{([^{}]*)\}/)
+							if (!m) break
+							// note: settings are currently the domain of EnvironmentVariableController;
+							// parsed \ctikzset lines are intentionally not applied here
+							rest = rest.slice(m[0].length)
 						}
-					} else if (trimmed.startsWith("\\ctikzset")) {
-						// Handled or logged
+						const remainder = rest.trim()
+						if (!remainder) continue
+						this.parseSingleStatement(remainder, namedCoords, result, globalScale)
 					} else {
-						// Unhandled statement
+						this.parseSingleStatement(trimmed, namedCoords, result, globalScale)
 					}
 				} catch (stmtErr: any) {
 					result.warnings.push(`Warning while parsing "${trimmed.substring(0, 40)}...": ${stmtErr.message}`)
@@ -320,6 +316,36 @@ export class TikzParser {
 		}
 
 		return result
+	}
+
+	/**
+	 * Dispatches one already-comment-stripped statement to its dedicated parser.
+	 */
+	private static parseSingleStatement(
+		trimmed: string,
+		namedCoords: Map<string, { x: number; y: number }>,
+		result: TikzParseResult,
+		globalScale: number
+	): void {
+		if (trimmed.startsWith("\\coordinate")) {
+			this.parseCoordinateStatement(trimmed, namedCoords, globalScale)
+		} else if (trimmed.startsWith("\\draw") || trimmed.startsWith("\\path")) {
+			const objs = this.parsePathStatement(trimmed, namedCoords, result, globalScale)
+			result.components.push(...objs)
+		} else if (trimmed.startsWith("\\node")) {
+			// Convert \node ... to \path node ...
+			const asPath = "\\path " + trimmed.substring(1)
+			const objs = this.parsePathStatement(asPath, namedCoords, result, globalScale)
+			result.components.push(...objs)
+		} else if (trimmed.startsWith("\\fill") || trimmed.startsWith("\\filldraw")) {
+			// Junction dots like \fill (0,0) circle (2pt);
+			const dotObj = this.parseFillCircleStatement(trimmed, namedCoords, globalScale)
+			if (dotObj) {
+				result.components.push(dotObj)
+				result.stats.nodes++
+			}
+		}
+		// all other statement kinds are ignored
 	}
 
 	/**

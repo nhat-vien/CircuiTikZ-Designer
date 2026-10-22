@@ -168,7 +168,7 @@ body {
       color: var(--text-main);
     }
 
-    #liveCodeBadge {
+    #liveCodeDocBadge {
       font-size: 10px;
       font-weight: 500;
       padding: 2px 6px;
@@ -186,12 +186,24 @@ body {
   }
 
   .live-code-body {
-    padding: 8px 12px;
-    overflow-y: auto;
-    max-height: 200px;
+    padding: 4px 8px 8px;
+    overflow: hidden;
+    max-height: 240px;
     background-color: var(--bg-editor);
     border-bottom-left-radius: 7px;
     border-bottom-right-radius: 7px;
+
+    #liveCodeEditorHost {
+      height: 170px;
+      min-height: 80px;
+      max-height: 100%;
+      resize: vertical;
+      overflow: auto;
+    }
+
+    .cm-editor {
+      font-size: 11px;
+    }
 
     pre {
       margin: 0;

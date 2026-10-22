@@ -9,6 +9,7 @@ import {
 	MainController,
 	GlobalTikzSettings,
 	EnvironmentVariableController,
+	DocumentController,
 } from "../internal"
 import { version } from "../../../package.json"
 
@@ -19,6 +20,18 @@ export type SaveFileFormat = {
 	version: string
 	tikzSettings: GlobalTikzSettings
 	components: ComponentSaveObject[]
+	/** Optional editable LaTeX document layer state (see DocumentController). */
+	documentState?: DocumentState
+}
+
+/** Serialized state of the editable LaTeX document layer. */
+export type DocumentState = {
+	version: number
+	preamble: string
+	entries: Array<
+		| { id: string; kind: "free"; lines: string[] }
+		| { id: string; kind: "code"; compIndices: number[] }
+	>
 }
 
 export let emtpySaveState: SaveFileFormat = {
@@ -82,6 +95,13 @@ export class SaveController {
 			version: currentSaveVersion,
 			tikzSettings: settingsData,
 			components: componentArray,
+		}
+		try {
+			data.documentState = DocumentController.instance!.captureState(
+				MainController.instance.circuitComponents as never
+			)
+		} catch {
+			/* document layer is optional in save files */
 		}
 
 		ExportController.instance.exportJSON(JSON.stringify(data, null, 4))
@@ -177,6 +197,13 @@ export class SaveController {
 					components.push(c)
 				}
 			}
+		}
+		try {
+			if (saveFile.documentState) {
+				DocumentController.instance!.restoreState(saveFile.documentState, components as never)
+			}
+		} catch {
+			/* the document layer is optional in save files */
 		}
 
 		if (selectComponents) {

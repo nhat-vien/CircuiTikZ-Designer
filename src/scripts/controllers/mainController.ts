@@ -39,6 +39,7 @@ import {
 	ImportController,
 	createFlowchartComponent,
 	FlowchartComponentKind,
+	DocumentController,
 } from "../internal"
 
 type TabState = {
@@ -2023,24 +2024,10 @@ export class MainController {
 	private liveCodeTimeout: any = null
 	/**
 	 * Update the live code panel content with latest CircuiTikZ code.
+	 * Now a thin delegate of the editable LaTeX document layer (CodeMirror).
 	 */
 	public updateLiveCode(): void {
-		const panel = document.getElementById("liveCodePanel")
-		if (!panel || panel.classList.contains("d-none")) return
-
-		if (this.liveCodeTimeout) clearTimeout(this.liveCodeTimeout)
-		this.liveCodeTimeout = setTimeout(() => {
-			const codeElement = document.getElementById("liveCodeContent")
-			const badgeElement = document.getElementById("liveCodeBadge")
-			if (!codeElement) return
-
-			const code = ExportController.instance.getCircuiTikzString()
-			codeElement.textContent = code
-			const lineCount = code.split("\n").length
-			if (badgeElement) {
-				badgeElement.textContent = `${lineCount} lines`
-			}
-		}, 80)
+		DocumentController.instance?.scheduleCanvasSync?.()
 	}
 
 	private initMangelFeatures(): void {
@@ -2082,10 +2069,10 @@ export class MainController {
 		document.getElementById("navbarLiveCodeButton")?.addEventListener("click", () => this.toggleLiveCodePanel())
 		document.getElementById("liveCodeCloseBtn")?.addEventListener("click", () => this.toggleLiveCodePanel(false))
 
-		// Copy Live Code
+		// Copy Live Code — copies the full editable LaTeX document source
 		const liveCodeCopyBtn = document.getElementById("liveCodeCopyBtn")
 		liveCodeCopyBtn?.addEventListener("click", () => {
-			const code = ExportController.instance.getCircuiTikzString()
+			const code = DocumentController.instance?.getFullSource() ?? ExportController.instance.getCircuiTikzString()
 			navigator.clipboard.writeText(code).then(() => {
 				const originalText = liveCodeCopyBtn.innerHTML
 				liveCodeCopyBtn.innerHTML =

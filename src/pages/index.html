@@ -356,8 +356,8 @@
 						<div class="live-code-header">
 							<div class="d-flex align-items-center gap-2">
 								<span class="material-symbols-outlined fs-6 text-primary">terminal</span>
-								<span class="live-code-title">CircuiTi<i>k</i>Z Live Code</span>
-								<span class="badge text-bg-secondary" id="liveCodeBadge">0 lines</span>
+								<span class="live-code-title">CircuiTi<i>k</i>Z Document</span>
+								<span class="badge text-bg-secondary" id="liveCodeDocBadge">synced</span>
 								<div class="btn-group btn-group-sm ms-2" role="group" aria-label="Live code environment">
 									<input type="radio" class="btn-check" name="liveCodeEnvRadio" id="liveEnvCircuitikz" autocomplete="off" checked>
 									<label class="btn btn-outline-secondary py-0 px-2" for="liveEnvCircuitikz" style="font-size: 11px;" title="Switch live preview to \begin{circuitikz}">circuitikz</label>
@@ -374,7 +374,7 @@
 							</div>
 						</div>
 						<div class="live-code-body">
-							<pre><code id="liveCodeContent">% CircuiTikZ code will appear here live as you build</code></pre>
+							<div id="liveCodeEditorHost"></div>
 						</div>
 					</div>
 					<div class="d-block position-absolute top-50 start-50" id="loadingSpinner">

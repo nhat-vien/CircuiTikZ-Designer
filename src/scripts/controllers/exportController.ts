@@ -222,6 +222,63 @@ export class ExportController {
 	}
 
 	/**
+	 * Builds the environment header lines: \usetikzlibrary + \begin{env}[opts] + \ctikzset lines.
+	 * Reused by the full LaTeX document layer.
+	 */
+	public buildEnvHeader(env?: "circuitikz" | "tikzpicture"): string[] {
+		const targetEnv = env || this.exportEnvironment || "circuitikz"
+		const withTransform = this.exportTransformShape
+
+		this.usedIDs.clear()
+
+		let requiredTikzLibraries: Set<string> = new Set<string>()
+		for (const circuitElement of MainController.instance.circuitComponents) {
+			circuitElement.requiredTikzLibraries().forEach((item) => requiredTikzLibraries.add(item))
+		}
+		let libraryStr =
+			requiredTikzLibraries.size > 0
+				? "\\usetikzlibrary{" + Array.from(requiredTikzLibraries.values()).join(", ") + "}"
+				: ""
+
+		const tikzSettings = EnvironmentVariableController.instance.getTikzSettings()
+		const envOptions: string[] = []
+		if (withTransform) {
+			envOptions.push("transform shape")
+		}
+		if (this.exportLineWidth) {
+			if (this.exportLineWidth === "semithick" || this.exportLineWidth === "thick") {
+				envOptions.push(this.exportLineWidth)
+			} else {
+				envOptions.push(`line width=${this.exportLineWidth}`)
+			}
+		}
+		if (tikzSettings.environment.length > 0) {
+			envOptions.push(...tikzSettings.environment)
+		}
+
+		const optString = envOptions.length > 0 ? "[" + envOptions.join(", ") + "]" : ""
+
+		const lines: string[] = []
+		if (libraryStr) lines.push(libraryStr)
+		lines.push(`\\begin{${targetEnv}}${optString}`)
+		for (const setting of tikzSettings.ctikzset) {
+			lines.push("\t\\ctikzset{" + setting + "}")
+		}
+		if (this.exportBipolesLength && this.exportBipolesLength !== "none") {
+			// insert right after the \begin{env} line, before other \ctikzset lines
+			lines.splice(2, 0, `\t\\ctikzset{bipoles/length=${this.exportBipolesLength}}`)
+		}
+		if (this.exportBipolesThickness) {
+			lines.push(`\t\\ctikzset{bipoles/thickness=${this.exportBipolesThickness}}`)
+		}
+		return lines
+	}
+
+	public buildEnvFooter(env?: "circuitikz" | "tikzpicture"): string {
+		return `\\end{${env || this.exportEnvironment || "circuitikz"}}`
+	}
+
+	/**
 	 * Returns the formatted CircuiTikZ or TikZ code for the current circuit.
 	 */
 	public getCircuiTikzString(env?: "circuitikz" | "tikzpicture", transformShape?: boolean): string {

@@ -10,6 +10,7 @@ export * from "./controllers/copyController"
 export * from "./controllers/propertiesController"
 export * from "./controllers/environmentVariableController"
 export * from "./controllers/importController"
+export * from "./controllers/documentController"
 // properties
 export * from "./properties/editableProperty"
 export * from "./properties/booleanProperty"
