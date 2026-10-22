@@ -3,14 +3,16 @@
 
 .dropdown-item {
 	@extend .user-select-none;
-	height: 48px;
+	min-height: 36px;
+	height: auto;
 	display: inline-flex;
 	flex-flow: row nowrap;
 	align-items: center;
-	gap: 12px;
+	gap: 10px;
+	cursor: pointer;
 }
 
 .dropdown-item-icon {
-	width: 24px;
-	height: 24px;
+	width: 20px;
+	height: 20px;
 }

@@ -1577,7 +1577,10 @@ export class MainController {
 	 */
 	private async initAddComponentOffcanvas() {
 		const leftOffcanvas: HTMLDivElement = document.getElementById("leftOffcanvas") as HTMLDivElement
-		const leftOffcanvasOC = new Offcanvas(leftOffcanvas)
+		const leftOffcanvasOC = new Offcanvas(leftOffcanvas, {
+			backdrop: false,
+			scroll: true,
+		})
 		document.getElementById("componentFilterInput").addEventListener("input", this.filterComponents)
 		document.getElementById("filterRegexButton").addEventListener("click", this.filterComponents)
 

@@ -106,3 +106,4 @@
 *.7z
 *.zip
 /out
+/error/

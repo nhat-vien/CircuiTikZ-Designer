@@ -91,15 +91,228 @@ body {
 
 .brand-header {
   background-color: var(--bg-panel);
-  border-color: var(--border-color) !important;
-  min-height: 48px;
+  border-bottom: 1px solid var(--border-color) !important;
+  min-height: 50px;
+  height: 50px;
+  padding: 0 16px !important;
+  z-index: 1020;
 }
 
+.brand-logo {
+  width: 26px;
+  height: 26px;
+  transition: transform 0.2s ease;
+  &:hover {
+    transform: scale(1.08) rotate(5deg);
+  }
+}
+
+.brand-title {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  letter-spacing: -0.3px;
+  color: var(--text-main);
+  i {
+    color: var(--primary);
+  }
+}
+
+.brand-subtitle {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.badge-version {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 12px;
+  background-color: var(--primary-light) !important;
+  color: var(--primary) !important;
+  border: 1px solid rgba(30, 112, 230, 0.2);
+}
+
+/* Nav Action Buttons & Dropdowns */
+.nav-dropdown-btn,
+.nav-export-btn,
+.nav-pill-btn,
+.nav-icon-btn {
+  height: 32px;
+  font-size: 12.5px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.nav-dropdown-btn {
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 0 10px;
+
+  .nav-btn-icon {
+    font-size: 17px !important;
+    color: var(--text-muted);
+  }
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background-color: var(--primary-light);
+    border-color: var(--primary);
+    color: var(--primary);
+
+    .nav-btn-icon {
+      color: var(--primary);
+    }
+  }
+}
+
+.nav-export-btn {
+  background-color: var(--primary);
+  border: 1px solid var(--primary);
+  color: #ffffff !important;
+  padding: 0 12px;
+  box-shadow: 0 1px 3px rgba(30, 112, 230, 0.25);
+
+  .nav-btn-icon {
+    font-size: 17px !important;
+    color: #ffffff;
+  }
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+    box-shadow: 0 2px 6px rgba(30, 112, 230, 0.4);
+  }
+}
+
+.nav-pill-btn {
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 0 10px;
+
+  .toolbarButton {
+    width: auto !important;
+    height: auto !important;
+    font-size: 17px !important;
+    color: var(--text-muted);
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .nav-btn-text {
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  &:hover {
+    background-color: var(--primary-light);
+    border-color: var(--primary);
+    color: var(--primary);
+
+    .toolbarButton {
+      color: var(--primary);
+    }
+  }
+
+  &.active,
+  &:has(.toolbarButton.selected) {
+    background-color: var(--primary-light);
+    border-color: var(--primary);
+    color: var(--primary);
+
+    .toolbarButton {
+      color: var(--primary);
+    }
+  }
+}
+
+.nav-icon-btn {
+  width: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+
+  .toolbarButton {
+    width: auto !important;
+    height: auto !important;
+    font-size: 18px !important;
+    color: var(--text-main);
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background-color: var(--primary-light);
+    border-color: var(--primary);
+    color: var(--primary);
+
+    .toolbarButton {
+      color: var(--primary);
+    }
+  }
+}
+
+.hide-arrow::after {
+  display: none !important;
+}
+
+/* Glass Menus */
+.nav-glass-menu {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color) !important;
+  border-radius: 10px;
+  box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.08);
+  min-width: 250px;
+  padding: 6px;
+  margin-top: 6px !important;
+  z-index: 1050;
+
+  .dropdown-item {
+    border-radius: 6px;
+    padding: 8px 12px;
+    height: auto !important;
+    width: 100% !important;
+    color: var(--text-main);
+    transition: all 0.12s ease;
+
+    &:hover {
+      background-color: var(--primary-light);
+      color: var(--primary);
+    }
+  }
+
+  .dropdown-item-desc {
+    font-size: 11px;
+    line-height: 1.2;
+  }
+
+  .shortcut-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 5px;
+    border-radius: 4px;
+    background-color: var(--bg-app) !important;
+    color: var(--text-muted) !important;
+    border: 1px solid var(--border-color);
+  }
+}
+
+/* CAD Center Controls Container */
 #controlsContainer {
   position: relative;
-  background-color: var(--bg-app) !important;
+  background-color: var(--bg-panel) !important;
   border: 1px solid var(--border-color) !important;
-  border-radius: 8px !important;
+  border-radius: 9px !important;
   padding: 2px 4px !important;
   gap: 2px !important;
   height: 36px;
@@ -110,21 +323,31 @@ body {
   transition: all 0.2s ease;
   flex-shrink: 0;
   max-width: 100%;
-  overflow-x: auto;
 
   .toolbarButton {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     border-radius: 6px;
-    font-size: 19px !important;
+    font-size: 18px !important;
     flex-shrink: 0;
   }
 
+  .addComponentBtn {
+    background-color: var(--primary-light);
+    color: var(--primary);
+    font-weight: 600;
+
+    &:hover {
+      background-color: var(--primary);
+      color: #ffffff !important;
+    }
+  }
+
   .vr {
-    height: 18px;
+    height: 16px;
     align-self: center;
     margin: 0 2px;
-    opacity: 0.3;
+    opacity: 0.25;
     flex-shrink: 0;
   }
 }
@@ -132,20 +355,24 @@ body {
 // Real-time canvas coordinates badge (mangel21 inspired)
 .canvas-coords-badge {
   position: absolute;
-  bottom: 12px;
-  left: 14px;
+  bottom: 14px;
+  left: 16px;
   background-color: var(--bg-panel);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
-  box-shadow: var(--shadow-sm);
-  padding: 3px 8px;
+  border-radius: 20px;
+  box-shadow: var(--shadow-md);
+  padding: 4px 12px;
   font-family: var(--font-mono);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-muted);
-  z-index: 5;
+  z-index: 10;
   pointer-events: none;
   user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.2px;
 }
 
 /* LaTeX compile error banner */
@@ -213,7 +440,7 @@ body {
   height: 100%;
   min-height: 0;
   background-color: var(--bg-panel);
-  border-right: 1px solid var(--border-color);
+  border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -365,13 +592,16 @@ body {
 	flex: none;
 	height: 65%;
 	margin: 0;
-	padding: 0 0 0.5em 0;
+	padding: 0;
 	transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+	overflow: hidden;
 }
 
-#propertiesContainer {
+#propertiesContainer,
+#documentContainer {
 	flex: 1 1;
 	transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+	border-top: 1px solid var(--border-color);
 }
 
 @include media-breakpoint-up(md) {
@@ -381,54 +611,35 @@ body {
 	#canvasContainer {
 		height: 100% !important;
 		flex: 1 0;
-		padding-bottom: 0;
-		padding-right: 0.5em;
+		padding: 0;
 	}
-	#propertiesContainer {
+	#propertiesContainer,
+	#documentContainer {
 		height: 100% !important;
 		flex: none;
+		border-top: none;
+		border-left: 1px solid var(--border-color);
 	}
+}
 
-	#ctNavbar {
-		.navbar-nav {
-			align-items: center;
-			gap: 4px !important;
+// Mobile offcanvas drawer
+#ctNavbar {
+	background-color: var(--bg-panel);
+	color: var(--text-main);
+	border-left: 1px solid var(--border-color);
 
-			.nav-item {
-				display: flex;
-				align-items: center;
-			}
+	.list-group-item {
+		background-color: var(--bg-panel);
+		color: var(--text-main);
+		border-color: var(--border-color);
+		font-size: 13.5px;
+		font-weight: 500;
+		padding: 10px 14px;
+		transition: background-color 0.15s ease;
 
-			.dropdown-item {
-				height: 32px;
-				width: 32px;
-				padding: 0;
-				margin: 0;
-				display: inline-flex;
-				align-items: center;
-				justify-content: center;
-				border: none;
-				border-radius: 6px;
-				background: transparent;
-				color: var(--text-main);
-				transition: background-color 0.15s ease, color 0.15s ease;
-
-				&:hover {
-					background-color: var(--primary-light);
-					color: var(--primary);
-				}
-
-				.toolbarButton {
-					margin: 0;
-				}
-			}
-
-			.vr {
-				height: 20px;
-				align-self: center;
-				margin: 0 4px;
-				opacity: 0.3;
-			}
+		&:hover {
+			background-color: var(--primary-light);
+			color: var(--primary);
 		}
 	}
 }

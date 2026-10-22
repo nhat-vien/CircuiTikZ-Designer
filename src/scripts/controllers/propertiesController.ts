@@ -97,9 +97,15 @@ export class PropertyController {
 			this.showGeneralSettings = !this.showGeneralSettings
 			if (this.showGeneralSettings) {
 				SelectionController.instance.selectComponents([], SelectionMode.RESET)
-			} else {
-				this.update()
 			}
+			this.update()
+		})
+
+		const closeBtn = document.getElementById("propertiesCloseButton") as HTMLButtonElement | null
+		closeBtn?.addEventListener("click", () => {
+			this.showGeneralSettings = false
+			SelectionController.instance.selectComponents([], SelectionMode.RESET)
+			this.update()
 		})
 	}
 
@@ -115,6 +121,12 @@ export class PropertyController {
 			components.length === 1 ||
 			components.length > 1 ||
 			(components.length === 0 && this.showGeneralSettings)
+
+		const settingsBtn = document.getElementById("navbarSettingsButton")
+		if (settingsBtn) {
+			settingsBtn.classList.toggle("active", this.showGeneralSettings)
+			settingsBtn.querySelector(".toolbarButton")?.classList.toggle("selected", this.showGeneralSettings)
+		}
 
 		if (this.propertiesContainer) {
 			const wasVisible = !this.propertiesContainer.classList.contains("d-none")
