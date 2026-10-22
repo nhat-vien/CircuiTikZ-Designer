@@ -209,12 +209,22 @@ Luồng **code → canvas**:
 **Mô hình document:** triển khai theo **entry-based model** thay vì raw-line splice (§3):
 - DocumentController giữ entries: (CodeEntry | FreeEntry)[]; code entry re-emit statement
   trực tiếp từ các component gắn vào nó (attachment map CircuitComponent → entryId, serialize
-  qua SaveFileFormat.documentState với compIndices); ree entry giữ văn bản user verbatim
-  (comment, \coordinate, statement không parse được) và sống sót qua mọi thao tác canvas.
-- Code → canvas (pplyFullSource): parse body, dựng lại canvas, statement không khớp
-  re-emission nào được chuyển thành free entry (match theo canonical text đã strip ;).
+  qua SaveFileFormat.documentState với compIndices); free entry giữ văn bản user verbatim
+  (comment, \\coordinate, statement không parse được) và sống sót qua mọi thao tác canvas.
+- Code → canvas (pplyFullSource): parse body, dựng lại canvas; span↔component match
+  KHÔNG dựa vào so khớp text re-emission mà dựa vào **statement ownership**: TikzParser
+  trả về thêm ownerGroups (save objects nhóm theo statement, đúng thứ tự statement —
+  nhóm rỗng = parser nhận ra nhưng không biểu diễn được, ví dụ \\coordinate);
+  classifySpans() (pure, trong tikzDocument.ts) ghép span↔group 1:1 theo canonical key
+  với cursor khóa theo key. Cách này giữ trật tự document qua các lần parse và không nhân
+  đôi nội dung khi statement compound (nhiều bipole trong một \\draw) re-emit thành nhiều
+  statement riêng.
+- Comment / dòng trắng ngay phía trên một statement được giữ làm prefixLines của span →
+  CodeEntry.prefix, re-emit trước statement (comment gắn vào component sống sót qua rebuild).
+  Giới hạn: comment đứng CUỐI body (không có statement theo sau) sẽ rơi; prefix
+  \\ctikzset{...} gộp chung statement sẽ mất phần tiền tố khi re-emit (deferred).
 - Lý do: splice theo dòng phức tạp và dễ hỏng khi component có nhiều statement; entry model
-  đạt cùng DoD với độ phức tạp thấp hơn hơn.
+  đạt cùng DoD với độ phức tạp thấp hơn.
 
 **Pipeline compile (đã verify end-to-end trên máy có pdflatex + pdftocairo):**
 - pdflatex + \typeout{CTDBBOX|...} probe hoạt động; bbox trích được dạng ...pt.
