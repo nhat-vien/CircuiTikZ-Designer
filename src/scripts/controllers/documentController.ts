@@ -17,9 +17,9 @@ import {
 import {
 	CodeEntry,
 	assembleBody,
+	classifySpans,
 	defaultPreamble,
 	newEntryId,
-	normalizeStatement,
 	splitFullSource,
 	splitStatementSpans,
 } from "../utils/tikzDocument"
@@ -91,6 +91,7 @@ export class DocumentController {
 					: {
 							id: entry.id,
 							kind: "code",
+							prefix: entry.prefix ? [...entry.prefix] : undefined,
 							compIndices: componentOrder
 								.map((c, i) => (this.attachments.get(c) === entry.id ? i : -1))
 								.filter((i) => i >= 0),
@@ -111,6 +112,9 @@ export class DocumentController {
 			} else {
 				const entry: CodeEntry = { id: serialized.id ?? newEntryId(), kind: "code" }
 				this.entries.push(entry)
+				if (Array.isArray(serialized.prefix) && serialized.prefix.length > 0) {
+					entry.prefix = [...serialized.prefix]
+				}
 				for (const idx of serialized.compIndices ?? []) {
 					const comp = componentOrder[idx]
 					if (comp) this.attachments.set(comp, entry.id)
@@ -144,7 +148,7 @@ export class DocumentController {
 		const comps = this.componentsOf(entry.id)
 		if (comps.length === 0) return []
 		const resolver = ExportController.instance.createAnchorResolver()
-		const out: string[] = []
+		const out: string[] = entry.prefix ? [...entry.prefix] : []
 		for (const comp of comps) {
 			const stmt = comp.toTikzString?.(resolver)
 			if (stmt && stmt.trim()) out.push(stmt.trim())
@@ -217,44 +221,53 @@ export class DocumentController {
 		this.entries = []
 		this.attachments.clear()
 
+		// Attach loaded components each to a fresh code entry. Every save object the
+		// parser produced carries the text of its owning statement (see TikzParser),
+		// so spans and components are paired by canonical statement text. Spans whose
+		// statement parsed to nothing (comments, \coordinate, unknown statements)
+		// become verbatim free entries (user code conservation).
 		const loaded: CircuitComponent[] = []
-		for (const saveObj of parseResult.components) {
+		const loadedIndexBySaveIndex = new Map<number, number>()
+		parseResult.components.forEach((saveObj, saveIdx) => {
 			try {
 				const comp = SaveController.fromJson(saveObj)
-				if (comp) loaded.push(comp)
+				if (comp) {
+					loadedIndexBySaveIndex.set(saveIdx, loaded.length)
+					loaded.push(comp)
+				}
 			} catch {
 				/* instantiation failures drop the corresponding statement */
 			}
-		}
+		})
+		// groups reference save-object indices; remap them onto the loaded comps
+		const ownerGroups = (parseResult.ownerGroups ?? []).map((group) => ({
+			key: group.key,
+			indices: group.indices.map((saveIdx) => loadedIndexBySaveIndex.get(saveIdx)).filter((v) => v !== undefined),
+		}))
 
-		// Attach loaded components each to a fresh code entry, but reuse statement
-		// spans that map 1:1 to re-emissions. Spans without a matching re-emission
-		// become verbatim free entries (user code conservation).
 		const spans = splitStatementSpans(parseBody)
-		const resolver = ExportController.instance.createAnchorResolver()
-		// strips trailing semicolons so our statements match TikzParser.splitStatements text
-		const canon = (s: string) => normalizeStatement(s).replace(/;+\s*$/, "").trim()
-		const normReEmissions: string[] = loaded.map((c) => canon(c.toTikzString?.(resolver) ?? ""))
-		const normSet = new Set(normReEmissions)
-		let matchCursor = 0
+		const spanOwners = classifySpans(spans, ownerGroups)
 
-		for (const span of spans) {
-			const normalizedSpan = canon(span.stripped)
-			if (!normalizedSpan) continue
-
-			let consumed = false
-			while (matchCursor < normReEmissions.length && normReEmissions[matchCursor] === normalizedSpan) {
-				consumed = true
-				matchCursor++
+		for (let s = 0; s < spans.length; s++) {
+			const span = spans[s]
+			const attached = spanOwners[s]
+			if (attached.length > 0) {
+				// code entry positioned exactly at the statement, keeping document order
+				const entry = this.createCodeEntry()
+				for (const compIdx of attached) {
+					this.attachments.set(loaded[compIdx], entry.id)
+				}
+				if (span.prefixLines.length > 0) entry.prefix = span.prefixLines
+				continue
 			}
-			if (consumed) continue
-			if (normSet.has(normalizedSpan)) continue // re-emission exists elsewhere in order
-
 			this.entries.push({ id: newEntryId(), kind: "free", lines: span.raw.split("\n") })
 		}
 
+		// safety net: components with no owning statement never lose their re-emission
 		for (const comp of loaded) {
-			this.attachments.set(comp, this.createCodeEntry().id)
+			if (!this.attachments.has(comp)) {
+				this.attachments.set(comp, this.createCodeEntry().id)
+			}
 		}
 
 		SelectionController.instance.activateSelection()

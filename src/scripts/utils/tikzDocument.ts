@@ -16,6 +16,12 @@ export interface CodeEntry {
 	kind: "code"
 	/** Optional label, not part of the emitted code. */
 	label?: string
+	/**
+	 * Verbatim lines kept before each re-emission (comments / blank lines that sat
+	 * directly above the statement when the document was built). Preserved so a
+	 * comment attached to a parsed statement survives document rebuilds.
+	 */
+	prefix?: string[]
 }
 
 export interface FreeEntry {
@@ -93,6 +99,11 @@ export interface StatementSpan {
 	startLine: number
 	/** Number of lines the statement spans. */
 	lineCount: number
+	/**
+	 * Verbatim lines that sat directly above the statement and carry no statement
+	 * text (comments, blank lines). Kept so user annotations survive rebuilds.
+	 */
+	prefixLines: string[]
 	/** Raw text of the statement lines (comments included). */
 	raw: string
 	/** Text with line comments stripped and whitespace collapsed — for matching/parsing. */
@@ -147,13 +158,36 @@ export function splitStatementSpans(body: string): StatementSpan[] {
 	let lastLine = -1
 	let buffer = ""
 
+	/** A line whose comment-stripped content is empty carries no statement text. */
+	const isStatementFreeLine = (idx: number): boolean => {
+		const line = lines[idx]
+		const cut = line.indexOf("%") === -1 ? line : line.slice(0, line.indexOf("%"))
+		return !cut.trim()
+	}
+
+	/**
+	 * Walks backwards from the statement start collecting contiguous statement-free
+	 * lines (comments / blanks) as verbatim prefix lines.
+	 */
+	const collectPrefix = (from: number): { prefix: string[]; start: number } => {
+		const prefix: string[] = []
+		let start = from
+		while (start > 0 && isStatementFreeLine(start - 1)) {
+			start--
+			prefix.unshift(lines[start])
+		}
+		return { prefix, start }
+	}
+
 	const flush = (endCharLine: number) => {
 		const stripped = buffer.replace(/\s+/g, " ").trim()
 		if (stripped.length > 0) {
-			const raw = lines.slice(startLine, endCharLine + 1).join("\n")
+			const { prefix, start } = collectPrefix(startLine)
+			const raw = lines.slice(start, endCharLine + 1).join("\n")
 			spans.push({
-				startLine,
-				lineCount: endCharLine - startLine + 1,
+				startLine: start,
+				lineCount: endCharLine - start + 1,
+				prefixLines: prefix,
 				raw,
 				stripped,
 			})
@@ -261,4 +295,46 @@ export function normalizeStatement(stmt: string): string {
 		.replace(/__ESCAPED_PERCENT__/g, "\\%")
 		.replace(/\s+/g, " ")
 		.trim()
+}
+
+/* ------------------------------------------------------------------ */
+/* Span ↔ statement-group matching (pure)                               */
+/* ------------------------------------------------------------------ */
+
+/** Save objects grouped by the statement that produced them (parse order). */
+export interface StatementOwnerGroup {
+	/** Raw statement text as the parser saw it (`;`-terminated). */
+	key: string
+	/** Indices of the save objects parsed from that statement. */
+	indices: number[]
+}
+
+/**
+ * Matches each statement span to the save objects parsed from that exact
+ * statement. Spans and parser statements are produced by two scanners with
+ * identical semantics (comments and environment wrappers skipped), so they
+ * align 1:1 in order; a span pairs with the next group when their canonical
+ * text agrees, otherwise the span carries no representable component and must
+ * become a verbatim free entry. Groups with empty `indices` (e.g. \coordinate
+ * statements parsed into named coordinates only) consume their position so the
+ * alignment never drifts.
+ *
+ * @returns for every span the indices into the save-object list parsed from it
+ *          (empty array = no owner → free entry), in span order.
+ */
+export function classifySpans(spans: StatementSpan[], ownerGroups: StatementOwnerGroup[]): number[][] {
+	const canon = (s: string) => normalizeStatement(s).replace(/;+\s*$/, "").trim()
+	const result: number[][] = []
+	let cursor = 0
+	for (const span of spans) {
+		const key = canon(span.stripped)
+		const group = cursor < ownerGroups.length ? ownerGroups[cursor] : undefined
+		if (group && canon(group.key) === key && key) {
+			result.push(group.indices)
+			cursor++
+		} else {
+			result.push([])
+		}
+	}
+	return result
 }

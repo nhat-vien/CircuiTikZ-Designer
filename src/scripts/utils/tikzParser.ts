@@ -8,6 +8,13 @@ import {
 
 export interface TikzParseResult {
 	components: ComponentSaveObject[]
+	/**
+	 * Save objects grouped by the statement that produced them (statement order,
+	 * aligned 1:1 with the statement spans of the document layer). Groups with no
+	 * components mark statements the parser recognized but could not represent
+	 * (e.g. \coordinate). See tikzDocument.classifySpans.
+	 */
+	ownerGroups?: Array<{ key: string; indices: number[] }>
 	tikzSettings?: GlobalTikzSettings
 	stats: {
 		bipoles: number
@@ -263,11 +270,14 @@ export class TikzParser {
 
 			const statements = this.splitStatements(code)
 			const namedCoords = new Map<string, { x: number; y: number }>()
+			const ownerGroups: Array<{ key: string; indices: number[] }> = []
+			result.ownerGroups = ownerGroups
 
 			for (const stmt of statements) {
 				const trimmed = stmt.trim()
 				if (!trimmed) continue
 
+				const beforeCount = result.components.length
 				try {
 					if (trimmed.startsWith("\\ctikzset")) {
 						// \ctikzset lines frequently have no terminating ';' and get merged with
@@ -282,7 +292,10 @@ export class TikzParser {
 							rest = rest.slice(m[0].length)
 						}
 						const remainder = rest.trim()
-						if (!remainder) continue
+						if (!remainder) {
+							ownerGroups.push({ key: trimmed, indices: [] })
+							continue
+						}
 						this.parseSingleStatement(remainder, namedCoords, result, globalScale)
 					} else {
 						this.parseSingleStatement(trimmed, namedCoords, result, globalScale)
@@ -290,6 +303,12 @@ export class TikzParser {
 				} catch (stmtErr: any) {
 					result.warnings.push(`Warning while parsing "${trimmed.substring(0, 40)}...": ${stmtErr.message}`)
 				}
+				// Remember which save objects this statement produced (empty group =
+				// recognized but not representable, e.g. \coordinate or \ctikzset-only)
+				// so the document layer can attach a code entry at the statement's span.
+				const indices: number[] = []
+				for (let i = beforeCount; i < result.components.length; i++) indices.push(i)
+				ownerGroups.push({ key: trimmed, indices })
 			}
 
 			// Update stats
