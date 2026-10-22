@@ -32,6 +32,8 @@ Stop wrestling with code syntax — focus on your circuit design, and let Circui
 - **Wide Component Library:** Includes most circuit elements plus some tikz components like rectangles, ellipses and arrows
 - **Export Ready:** Generate clean LaTeX/TikZ code and compatible SVG exports for seamless document integration
 - **Advanced Editing:** Rotate, scale, align, distribute, and snap components with clear visuals and flexible editing capabilities
+- **Editable LaTeX Document:** The live code panel is a full LaTeX editor — canvas edits update the document, document edits update the canvas, and your comments/`\coordinate` code are preserved
+- **Compiled LaTeX Preview:** In the desktop app, compile your circuit with Tectonic/pdflatex and overlay the true rendered output on the canvas
 - **Component Variants:** Easily switch between different versions of components and adjust their properties via the properties window
 - **Cross-Platform Friendly:** Dark mode and mobile support for comfortable online editing anywhere
 - **MathJax Support:** Write MathJax math expressions directly inside text components with real-time rendering

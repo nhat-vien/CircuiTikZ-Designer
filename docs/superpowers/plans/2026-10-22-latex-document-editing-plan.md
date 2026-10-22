@@ -29,3 +29,27 @@ Mốc triển khai — mỗi giai đoạn 1–3 commit, giữ `npm run build` xa
 
 ## Phase 5 — Hoàn thiện
 - Checklist thủ công theo DoD §5 của spec, CHANGELOG, README feature list.
+
+---
+
+## Ghi chú triển khai (deviation notes — 2026-10-22)
+
+**Mô hình document: entry-based thay vì raw-line splice.** Thay vì splice theo dòng
+(spec §3), DocumentController giữ một danh sách entry:
+- `code` entry: statement được re-emit **trực tiếp** từ các component gắn vào entry
+  (attachment `Map<CircuitComponent, entryId>`); không cần splice chuỗi.
+- `free` entry: text thô của user (comment, `\coordinate`, statement không parse được),
+  giữ nguyên verbatim qua mọi thao tác canvas.
+State serialize qua `SaveFileFormat.documentState` (compIndices → undo/file save/tab).
+
+**Danh sách thay đổi so với plan ban đầu:**
+- `@codemirror/lang-tex` không tồn tại trên npm → dùng `@codemirror/legacy-modes/mode/stex`.
+- LaTeX alignment: dùng `\typeout{CTDBBOX|\the\pgf@picminx|...}` probe thay tx/ty skeleton.
+- Compile chạy trong Electron main (`src/scripts/latex/latexRenderer.js`), không dùng render server.
+- Auto routing `-|`/`|-` + Shift ép thẳng + symbolic endpoint `(Q1.B)`: **đã có sẵn**
+  trong codebase (WireDirection + createAnchorResolver) — chỉ wire lại DocumentController.
+- Route render-server web fallback: **hoãn** (chỉ client-side availability check).
+- Merge/extend wire qua statement: bỏ (entry model tách statement riêng nên không cần).
+- Pre-existing parser bug đã sửa: `\ctikzset{...}` không có `;` khiến statement sau nó bị dropped.
+
+**Trạng thái:** Phase 1–4 đã commit; Phase 5 = docs + checklist thủ công.

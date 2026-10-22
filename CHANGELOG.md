@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Editable LaTeX document layer** ("CircuiTikZ Document" panel): the code panel is now a
+  full CodeMirror 6 LaTeX editor. Everything you place on the canvas is re-emitted live into
+  the document; edits in the document are parsed back onto the canvas (idle 500 ms or on blur).
+- User-owned code conservation: comments, `\coordinate` declarations and unparsed statements
+  are kept verbatim ("free entries") and survive every canvas operation.
+- **True LaTeX compilation preview** (desktop app): compiles the document with Tectonic
+  (or pdflatex) and projects the resulting SVG, pixel-aligned with the interactive graphics
+  via a measured tikzpicture bounding box (`LaTeX` button in the code panel header).
+  Detection of engines/converter happens automatically; the button is disabled in web mode
+  or when no engine/converter is installed.
+- **Wire split via right-click**: right-click a selected wire (3+ points) and split it at the
+  vertex nearest the cursor; stroke, arrows and labels are carried over to the halves.
+
+### Fixed
+
+- TikZ parser dropped statements that were merged behind `\ctikzset{...}` lines lacking a
+  terminating `;` (exporter output could not be fully re-imported)
+
 ## [0.8.2]
 
 ### Changed
