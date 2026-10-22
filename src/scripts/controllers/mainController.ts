@@ -41,6 +41,7 @@ import {
 	FlowchartComponentKind,
 	DocumentController,
 } from "../internal"
+import { ContextMenu } from "./contextMenu"
 
 type TabState = {
 	id: number
@@ -220,12 +221,15 @@ export class MainController {
 			this.initAddComponentOffcanvas()
 			this.initShortcuts()
 
-			// Prevent "normal" browser menu
+			// Prevent "normal" browser menu; offer wire context actions instead
 			document
 				.getElementById("canvas")
-				.addEventListener("contextmenu", (evt) => evt.preventDefault(), { passive: false })
+				.addEventListener("contextmenu", (evt: MouseEvent) => {
+					evt.preventDefault()
+					void this.handleCanvasContextMenu(evt)
+				}, { passive: false })
 
-			this.addSaveStateManagement()
+		this.addSaveStateManagement()
 
 			// prepare symbolDB for colorTheme
 			for (const g of this.symbolsSVG.defs().node.querySelectorAll("symbol>g")) {
@@ -2028,6 +2032,44 @@ export class MainController {
 	 */
 	public updateLiveCode(): void {
 		DocumentController.instance?.scheduleCanvasSync?.()
+	}
+
+	/**
+	 * Right-click on the canvas: with exactly one selected wire, offer the wire
+	 * context actions (split at the nearest inner vertex).
+	 */
+	private async handleCanvasContextMenu(evt: MouseEvent): Promise<void> {
+		const selected = SelectionController.instance.currentlySelectedComponents
+		if (selected.length !== 1) return
+		const wire = selected[0] as WireComponent
+		if (!(wire instanceof WireComponent) || wire.referencePoints.length < 3) return
+
+		const menu = new ContextMenu([
+			{
+				result: "split",
+				iconText: "call_split",
+				text: "Split wire at nearest vertex",
+			},
+		])
+		try {
+			const result = await menu.openForResult(evt.clientX, evt.clientY)
+			if (result === "split") {
+				this.splitSelectedWire(wire, wire.getNearestVertexIndex(evt.clientX, evt.clientY))
+			}
+		} catch {
+			/* context menu cancelled */
+		}
+	}
+
+	private splitSelectedWire(wire: WireComponent, vertexIndex: number): void {
+		if (vertexIndex < 1) return
+		const halves = wire.splitAtVertex(vertexIndex)
+		if (!halves) return
+
+		SelectionController.instance.deactivateSelection()
+		MainController.instance.removeComponent(wire)
+		SelectionController.instance.selectComponents([...halves], SelectionMode.RESET)
+		Undo.addState()
 	}
 
 	private initMangelFeatures(): void {

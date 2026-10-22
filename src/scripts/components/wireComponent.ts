@@ -857,4 +857,74 @@ export class WireComponent extends Currentable(Strokable(PathComponent)) {
 
 		this.finishedPlacing = true
 	}
+
+	/**
+	 * Splits this wire into two wires at the reference point with the given index
+	 * (1..points.length-2). Both halves keep stroke/arrows/labels where meaningful:
+	 * the first half keeps the start arrow, the second half keeps the end arrow.
+	 * @param index index of the shared reference point inside referencePoints
+	 * @returns the two halves (not yet added to the canvas), or null when impossible
+	 */
+	public splitAtVertex(index: number): [WireComponent, WireComponent] | null {
+		if (index < 1 || index > this.referencePoints.length - 2) {
+			return null
+		}
+
+		const buildHalf = (points, directions, extras: Partial<WireSaveObject>) => {
+			// clone via JSON round-trip of this wire's save object, then overwrite the geometry
+			const json: any = JSON.parse(JSON.stringify(this.toJson()))
+			json.points = points.map((p) => p.simplifyForJson())
+			json.directions = directions
+			delete json.endArrow
+			delete json.startArrow
+			Object.assign(json, extras)
+			// current annotations belong to a wire end; drop them from the halves
+			delete json.currentLabel
+			delete json.currentShow
+			delete json.currentPosition
+			delete json.currentDirection
+			return SaveController.fromJson(json) as WireComponent
+		}
+
+		const first = buildHalf(
+			this.referencePoints.slice(0, index + 1),
+			this.wireDirections.slice(0, index),
+			this.arrowStartChoice.value.key === defaultArrowTip.key ? {} : { startArrow: this.arrowStartChoice.value.key }
+		)
+		const second = buildHalf(
+			this.referencePoints.slice(index),
+			this.wireDirections.slice(index),
+			this.arrowEndChoice.value.key === defaultArrowTip.key ? {} : { endArrow: this.arrowEndChoice.value.key }
+		)
+		if (!first || !second) {
+			return null
+		}
+		return [first, second]
+	}
+
+	/**
+	 * Index of the reference point nearest to the given screen (client) position,
+	 * excluding the two end points (those have their own snapping behavior).
+	 */
+	public getNearestVertexIndex(clientX: number, clientY: number): number {
+		const ctm = this.visualization.node.getScreenCTM()
+		let bestIndex = -1
+		let bestDist = Infinity
+		for (let i = 1; i < this.referencePoints.length - 1; i++) {
+			const p = this.referencePoints[i]
+			let sx = p.x
+			let sy = p.y
+			if (ctm) {
+				const screen = new DOMPoint(p.x, p.y).matrixTransform(ctm)
+				sx = screen.x
+				sy = screen.y
+			}
+			const dist = (sx - clientX) ** 2 + (sy - clientY) ** 2
+			if (dist < bestDist) {
+				bestDist = dist
+				bestIndex = i
+			}
+		}
+		return bestIndex
+	}
 }
