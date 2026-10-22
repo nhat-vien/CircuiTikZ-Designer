@@ -12,6 +12,7 @@ import {
 	SelectionController,
 	SelectionMode,
 	Undo,
+	LaTeXPreviewController,
 } from "../internal"
 
 export type FormEntry = {
@@ -358,6 +359,10 @@ export class PropertyController {
 
 		if (!document.getElementById("envVarView")) {
 			document.getElementById("view-properties").appendChild(EnvironmentVariableController.instance.getHTML())
+		}
+		// web build: render-server configuration for the LaTeX preview
+		if (!(window as any).latexRenderer && !document.getElementById("latexServerConfig")) {
+			document.getElementById("view-properties").appendChild(LaTeXPreviewController.instance.getSettingsSectionHTML())
 		}
 	}
 

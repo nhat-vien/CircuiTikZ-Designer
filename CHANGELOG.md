@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   via a measured tikzpicture bounding box (`LaTeX` button in the code panel header).
   Detection of engines/converter happens automatically; the button is disabled in web mode
   or when no engine/converter is installed.
+- **LaTeX preview on the web via a render server**: the compile pipeline was factored out
+  of the Electron IPC bridge into a shared module and is now also served by a
+  zero-dependency standalone HTTP server (`server/renderServer.js`:
+  `GET /health`, `POST /compile { latex }`). In the web build, configure the server URL in
+  *General settings → LaTeX render server (web)*; the LaTeX button then uses the server
+  (`fetch`) instead of the IPC bridge. Ships with a Dockerfile (TeX Live + poppler) and
+  deployment docs (`docs/latex-render-server.md`).
 - **Wire split via right-click**: right-click a selected wire (3+ points) and split it at the
   vertex nearest the cursor; stroke, arrows and labels are carried over to the halves.
 - **Automatic junction dots**: wherever wires meet so that 3+ wire segments connect at one

@@ -40,6 +40,32 @@ export class LaTeXPreviewController {
 	private active = false
 	private unavailable = false
 
+	/** Web render server base URL (localStorage config, empty = not configured). */
+	private static readonly SERVER_KEY = "ctd-latex-server"
+
+	private getServerUrl(): string {
+		return (localStorage.getItem(LaTeXPreviewController.SERVER_KEY) || "").trim().replace(/\/+$/, "")
+	}
+
+	public setServerUrl(url: string): void {
+		localStorage.setItem(LaTeXPreviewController.SERVER_KEY, url.trim())
+	}
+
+	private async probeServer(): Promise<{ ok: boolean; message: string }> {
+		const url = this.getServerUrl()
+		if (!url) return { ok: false, message: "not configured" }
+		try {
+			const res = await fetch(`${url}/health`, { method: "GET" })
+			const status = await res.json()
+			if (!status?.ok) return { ok: false, message: "server reports no pipeline" }
+			if (!status.tectonic && !status.pdflatex) return { ok: false, message: "server has no LaTeX engine" }
+			if (!status.converter) return { ok: false, message: "server has no PDF→SVG converter" }
+			return { ok: true, message: "available" }
+		} catch (err) {
+			return { ok: false, message: `unreachable (${String(err?.message ?? err).slice(0, 80)})` }
+		}
+	}
+
 	private renderTimer: any = null
 	private inFlight = false
 	private pending = false
@@ -57,14 +83,27 @@ export class LaTeXPreviewController {
 		void this.refreshAvailability()
 	}
 
-	/** Probes the Electron main process for available LaTeX engines. */
+	/**
+	 * Probes the Electron main process (desktop) or the configured web render server.
+	 */
 	public async refreshAvailability(): Promise<boolean> {
 		const bridge = (window as any).latexRenderer
 		if (!bridge?.availability) {
-			// web build without render server: feature unavailable
-			this.setUnavailable("No LaTeX engine (web mode)")
-			this.unavailable = true
-			return false
+			// web build: feature available only when a render server is configured
+			const probe = await this.probeServer()
+			if (!probe.ok) {
+				this.setUnavailable(
+					this.getServerUrl()
+						? `Render server ${probe.message} — check General settings`
+						: "No LaTeX engine (web mode) — configure a render server in General settings"
+				)
+				this.unavailable = true
+				return false
+			}
+			this.unavailable = false
+			this.button?.classList.remove("disabled")
+			this.button?.setAttribute("title", `Compiled LaTeX preview via render server ${this.getServerUrl()}`)
+			return true
 		}
 		try {
 			const availability = await bridge.availability(false)
@@ -150,11 +189,22 @@ export class LaTeXPreviewController {
 		this.inFlight = true
 		try {
 			const bridge = (window as any).latexRenderer
-			if (!bridge?.render) {
-				this.showBanner("No LaTeX render bridge (start the desktop app)")
-				return
+			let reply: RenderReply
+			if (bridge?.render) {
+				reply = await bridge.render(source)
+			} else {
+				const url = this.getServerUrl()
+				if (!url) {
+					this.showBanner("No render server configured (General settings)")
+					return
+				}
+				const res = await fetch(`${url}/compile`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ latex: source }),
+				})
+				reply = (await res.json()) as RenderReply
 			}
-			const reply: RenderReply = await bridge.render(source)
 			if (reply.ok && reply.svg) {
 				this.lastGoodSvg = reply.svg
 				this.lastGoodBBox = reply.bbox ?? null
@@ -263,5 +313,62 @@ export class LaTeXPreviewController {
 
 	private hideBanner(): void {
 		this.errorBanner?.classList.add("d-none")
+	}
+
+	/**
+	 * Builds the "LaTeX render server" configuration block for the General
+	 * settings view (web mode only — desktop uses the Electron bridge).
+	 */
+	public getSettingsSectionHTML(): HTMLElement {
+		const section = document.createElement("div")
+		section.id = "latexServerConfig"
+		section.className = "pt-2"
+
+		const title = document.createElement("div")
+		title.className = "fw-semibold small mb-1"
+		title.innerText = "LaTeX render server (web)"
+		section.appendChild(title)
+
+		const row = document.createElement("div")
+		row.className = "d-flex gap-1"
+		const input = document.createElement("input")
+		input.type = "text"
+		input.className = "form-control form-control-sm"
+		input.id = "latexServerUrlInput"
+		input.placeholder = "https://my-render-server:8088"
+		input.value = this.getServerUrl()
+		row.appendChild(input)
+
+		const saveBtn = document.createElement("button")
+		saveBtn.type = "button"
+		saveBtn.className = "btn btn-sm btn-outline-primary flex-shrink-0"
+		saveBtn.innerText = "Save"
+		row.appendChild(saveBtn)
+		section.appendChild(row)
+
+		const status = document.createElement("div")
+		status.id = "latexServerStatus"
+		status.className = "form-text mb-0"
+		section.appendChild(status)
+
+		const updateStatus = async () => {
+			const url = this.getServerUrl()
+			if (!url) {
+				status.innerText = "Empty = LaTeX preview off in web mode"
+				return
+			}
+			status.innerText = "Probing…"
+			const probe = await this.probeServer()
+			status.innerHTML = ""
+			status.appendChild(document.createTextNode(`Server ${url} — ${probe.message}`))
+		}
+
+		saveBtn.addEventListener("click", () => {
+			this.setServerUrl(input.value)
+			void updateStatus()
+			void Promise.resolve(this.refreshAvailability())
+		})
+		void updateStatus()
+		return section
 	}
 }
