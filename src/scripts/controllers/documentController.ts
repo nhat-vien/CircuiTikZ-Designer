@@ -1,5 +1,5 @@
 import { EditorState } from "@codemirror/state"
-import { EditorView, lineNumbers, keymap } from "@codemirror/view"
+import { EditorView, lineNumbers, keymap, drawSelection } from "@codemirror/view"
 import { history, historyKeymap } from "@codemirror/commands"
 import { StreamLanguage } from "@codemirror/language"
 import { stex } from "@codemirror/legacy-modes/mode/stex"
@@ -287,6 +287,7 @@ export class DocumentController {
 
 		const extensions = [
 			lineNumbers(),
+			drawSelection(),
 			history(),
 			keymap.of(historyKeymap),
 			StreamLanguage.define(stex as any),
@@ -298,6 +299,19 @@ export class DocumentController {
 					fontFamily: "var(--bs-font-monospace, monospace)",
 				},
 				"&.cm-focused": { outline: "none" },
+				// follow the app theme (dark mode would hide a black caret/text)
+				".cm-content": { caretColor: "var(--text-main)" },
+				".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--text-main)" },
+				"&.cm-focused .cm-selectionBackground, .cm-content ::selection": {
+					backgroundColor: "rgba(88,140,240,0.40)",
+				},
+				".cm-gutters": {
+					backgroundColor: "var(--bg-editor)",
+					color: "var(--text-muted)",
+					border: "none",
+				},
+				".cm-activeLine": { backgroundColor: "rgba(140,160,255,0.07)" },
+				".cm-activeLineGutter": { backgroundColor: "rgba(140,160,255,0.10)" },
 			}),
 			EditorView.updateListener.of((update) => {
 				if (update.docChanged) {

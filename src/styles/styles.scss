@@ -225,6 +225,16 @@ body {
 
     .cm-editor {
       font-size: 11px;
+
+      .cm-content {
+        // never inherit the designer canvas user-select: none
+        user-select: text;
+        color: var(--text-main);
+      }
+
+      .cm-lineNumbers .cm-gutterElement {
+        color: var(--text-muted);
+      }
     }
 
     pre {
