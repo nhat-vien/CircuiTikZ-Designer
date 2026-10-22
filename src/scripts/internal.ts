@@ -11,6 +11,7 @@ export * from "./controllers/propertiesController"
 export * from "./controllers/environmentVariableController"
 export * from "./controllers/importController"
 export * from "./controllers/documentController"
+export * from "./controllers/latexPreviewController"
 // properties
 export * from "./properties/editableProperty"
 export * from "./properties/booleanProperty"

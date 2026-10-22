@@ -365,4 +365,25 @@ export class DocumentController {
 		this.suppressEditorUpdate = false
 		this.dirtyFromEdit = false
 	}
+
+	/**
+	 * Builds a complete compilable standalone .tex source (adds \\begin{document} and
+	 * injects a \\typeout probe that reports the tikzpicture bounding box in pt, which
+	 * is used by LaTeXPreviewController to align the compiled SVG onto the canvas).
+	 */
+	public buildCompilableSource(): string {
+		const source = this.getFullSource()
+		if (/\\begin\s*\{document\}/.test(source)) return source
+
+		// split at the first environment opening so the probe hook can be placed
+		// just before the environment closing tag
+		const envMatch = source.match(/([\s\S]*)(\\begin\s*\{(?:circuitikz|tikzpicture)\}[\s\S]*)(\\end\s*\{(?:circuitikz|tikzpicture)\})\s*$/i)
+		if (!envMatch) {
+			return source
+		}
+		const [, head, envBody, envEnd] = envMatch
+		const hook =
+			"\t\\makeatletter\\typeout{CTDBBOX|\\the\\pgf@picminx|\\the\\pgf@picmaxx|\\the\\pgf@picminy|\\the\\pgf@picmaxy}\\makeatother\n"
+		return head.trimEnd() + "\n\\begin{document}\n\n" + envBody.trimEnd() + "\n" + hook + envEnd + "\n\\end{document}\n"
+	}
 }

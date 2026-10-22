@@ -136,6 +136,28 @@ body {
   user-select: none;
 }
 
+/* LaTeX compile error banner */
+.latex-preview-error {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 70%;
+  padding: 6px 14px;
+  font-size: 11.5px;
+  background-color: var(--bs-danger-bg-subtle, #dc3545);
+  color: var(--bs-danger-emphasis, #fff);
+  border-radius: 6px;
+  z-index: 40;
+  pointer-events: none;
+  white-space: pre-wrap;
+}
+
+// LaTeX preview layer
+#latexPreviewLayer {
+  opacity: 0.95;
+}
+
 // Live TikZ Code Panel (mangel21 inspired)
 .live-code-panel {
   position: absolute;

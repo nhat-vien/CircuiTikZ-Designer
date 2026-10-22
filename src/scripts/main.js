@@ -8,6 +8,7 @@ const path = require("path")
 const url = require("url")
 const pkg = require("../../package.json")
 const started = require("electron-squirrel-startup")
+const latexRenderer = require("./latex/latexRenderer")
 let win
 
 if (started) app.quit()
@@ -24,6 +25,7 @@ function createWindow() {
 			defaultEncoding: "UTF-8",
 			worldSafeExecuteJavaScript: true,
 			enableRemoteModule: true,
+			preload: path.join(__dirname, "preload.js"),
 		},
 	})
 	if (pkg.devMode) win.loadURL("http://localhost:1234/")
@@ -48,6 +50,15 @@ function createWindow() {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on("ready", createWindow)
+
+// register the LaTeX render IPC handlers (Tectonic / pdflatex + pdf2svg pipeline)
+app.whenReady().then(() => {
+	try {
+		latexRenderer.register()
+	} catch (err) {
+		console.error("failed to register latex renderer", err)
+	}
+})
 
 app.on("window-all-closed", () => {
 	// On macOS it is common for applications and their menu bar
