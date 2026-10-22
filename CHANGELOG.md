@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-10-22
+
 ### Added
 
+- **Professional CAD UI Redesign**: Modernized top navigation bar into three clear zones:
+  - Left: Brand identity with dropdown menus (`File`, `Export`).
+  - Center: Circuit manipulation and CAD tool group.
+  - Right: Quick action buttons (`Live TikZ`, `Grid & View`, Theme toggle, Help).
+- **Balanced 3-Column Layout**: Moved the **CircuiTikZ Document** panel to the right side of the canvas alongside Properties/Settings. The **Symbols Database** drawer remains on the left and docks neatly beneath the navbar, eliminating panel overlap and clutter.
 - **Editable LaTeX document layer** ("CircuiTikZ Document" panel): the code panel is now a
   full CodeMirror 6 LaTeX editor. Everything you place on the canvas is re-emitted live into
   the document; edits in the document are parsed back onto the canvas (idle 500 ms or on blur).

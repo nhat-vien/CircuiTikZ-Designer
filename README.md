@@ -1,67 +1,171 @@
 # CircuiTi*k*Z-Designer
 
-[![License](https://img.shields.io/github/license/circuit2tikz/circuitikz-designer)](LICENSE)
-![GitHub last commit (dev)](https://img.shields.io/github/last-commit/circuit2tikz/circuitikz-designer/dev)
-![GitHub commit activity (dev)](https://img.shields.io/github/commit-activity/m/circuit2tikz/circuitikz-designer/dev)
-![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/circuit2tikz/circuitikz-designer)
+<p align="center">
+  <img src="./src/icons/favicon.svg" alt="CircuiTikZ-Designer Logo" width="80" height="80" />
+</p>
 
-An interactive, visual, online editor for creating electrical circuit diagrams for LaTeX/CircuiTi*k*Z with ease. Try it out [online](https://circuit2tikz.tf.fau.de/designer/)!
+<p align="center">
+  <strong>An interactive, visual CAD studio for designing electrical circuits and generating production-ready LaTeX / CircuiTi<i>k</i>Z code.</strong>
+</p>
 
-## Overview
+<p align="center">
+  <a href="https://github.com/nhat-vien/CircuiTikZ-Designer/releases/tag/v0.9.1"><img src="https://img.shields.io/badge/version-v0.9.1-blue.svg?style=flat-square" alt="Version 0.9.1" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-green.svg?style=flat-square" alt="License GPL-3.0" /></a>
+  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/node-%3E%3D18.0.0-orange.svg?style=flat-square" alt="Node.js version" /></a>
+  <img src="https://img.shields.io/badge/tests-59%20passed-success.svg?style=flat-square" alt="Tests 59 passed" />
+  <a href="https://circuit2tikz.tf.fau.de/designer/"><img src="https://img.shields.io/badge/try-Live%20Demo-informational.svg?style=flat-square" alt="Try Live Demo" /></a>
+</p>
 
-CircuiTi*k*Z-Designer bridges the gap between visual circuit design and precise LaTeX code, letting you design, customize, and export diagrams without manually writing TikZ commands.
-Whether you’re preparing academic papers, teaching materials, or engineering documentation, CircuiTi*k*Z-Designer provides:
+---
 
-- A clean, intuitive interface for fast diagram creation
-- An extensive component library for all your circuit needs
-- Real-time previews and instant export to high-quality LaTeX code
+## ⚡ Overview
 
-Stop wrestling with code syntax — focus on your circuit design, and let CircuiTikZ-Designer handle the Ti*k*Z.
+**CircuiTi*k*Z-Designer** bridges the gap between visual schematic capture and publication-quality LaTeX documents. Instead of painstakingly calculating coordinates and typing verbose TikZ commands by hand, you can visually assemble, customize, and export circuits with complete precision.
 
-|         Edit in CircuiTi*k*Z-Designer         |            Export to compilable Ti*k*Z code            |
-| :-------------------------------------------: | :----------------------------------------------------: |
+Whether you are writing academic papers, preparing university lecture slides, or publishing engineering documentation, CircuiTi*k*Z-Designer delivers clean, idiomatic LaTeX output ready for Overleaf, TeX Live, or Tectonic.
+
+| Edit in CircuiTi*k*Z-Designer | Export to Compilable Ti*k*Z Code |
+| :---: | :---: |
 | ![sallen-key edit](./examples/sallen-key.png) | ![sallen-key export](./examples/sallen-key_export.png) |
 
-|               Use it in your LaTeX project!                |
-| :--------------------------------------------------------: |
+| Use directly in your LaTeX project! |
+| :---: |
 | ![sallen-key overleaf](./examples/sallen-key_overleaf.png) |
 
-## Key Features
+---
 
-- **Visual Circuit Design:** Intuitive interface with multi-tab support and component grouping
-- **Wide Component Library:** Includes most circuit elements plus some tikz components like rectangles, ellipses and arrows
-- **Export Ready:** Generate clean LaTeX/TikZ code and compatible SVG exports for seamless document integration
-- **Advanced Editing:** Rotate, scale, align, distribute, and snap components with clear visuals and flexible editing capabilities
-- **Editable LaTeX Document:** The live code panel is a full LaTeX editor — canvas edits update the document, document edits update the canvas, and your comments/`\coordinate` code are preserved
-- **Compiled LaTeX Preview:** In the desktop app, compile your circuit with Tectonic/pdflatex and overlay the true rendered output on the canvas
-- **Component Variants:** Easily switch between different versions of components and adjust their properties via the properties window
-- **Cross-Platform Friendly:** Dark mode and mobile support for comfortable online editing anywhere
-- **MathJax Support:** Write MathJax math expressions directly inside text components with real-time rendering
+## ✨ Key Features (v0.9.1)
 
-## Use locally
+### 🎨 Modern CAD Workspace & Clean Layout
+- **Redesigned 3-Zone Navigation Header**: Organized with `File` and `Export` menus on the left, intuitive CAD drawing tools in the center, and quick-toggle actions (`Live TikZ`, `Grid & View`, Theme, Help) on the right.
+- **Conflict-Free 3-Column Layout**: 
+  - **Left**: Collapsible **Symbols Library** drawer docked neatly beneath the navbar.
+  - **Center**: Infinite pan-and-zoom interactive circuit **Canvas**.
+  - **Right**: **CircuiTikZ Document** panel and **Properties & Settings Inspector** positioned side-by-side without overlapping or cluttering the component drawer.
 
-1. Have [Node.js](https://nodejs.org/) installed
-2. Clone the repository
-3. Run "npm install" in terminal in project directory
-4. Run "npm start" in terminal in project directory
-5. Open website at URL provided in command line output
+### 🔄 Bi-Directional LaTeX Document Synchronization
+- **CodeMirror 6 Live Editor**: The code drawer is a full LaTeX editor with syntax highlighting and dark-mode support.
+- **Two-Way Binding**: Moving or adding components immediately generates clean CircuiTikZ markup; editing the LaTeX source syncs changes straight back onto the canvas.
+- **Code Preservation**: Custom `\coordinate` declarations, comments (`%`), and manual annotations are preserved verbatim ("free entries") across canvas operations.
 
-## How to use
+### 📐 Comprehensive Component Library
+- **Passive & Active Elements**: Resistors (American/European), capacitors, inductors, diodes, Zener diodes, BJTs, FETs, and vacuum tubes.
+- **Integrated Circuits & Logic**: Op-amps, comparators, 555 timers, logic gates (AND, OR, NOT, NAND, NOR, XOR), flip-flops (D, JK, SR, T).
+- **Wiring & Power**: Ground symbols, supply rails, voltage/current arrows, switches, and push buttons.
+- **Geometric & Flowchart Shapes**: Blocks, flowchart decisions, inputs/outputs, annotations, lines, and curved arrows.
 
-All controls of the application are explained in the help menu in the top right corner via the circled questionmark in the application itself.
+### ⚡ Smart Wiring & CAD Operations
+- **Automatic Junction Dots**: Generates `node[circ]` junction dots automatically whenever 3 or more wire segments connect at a node.
+- **Interactive Wire Splitting**: Right-click on existing wires to split at the closest vertex while retaining line styles, arrows, and labels.
+- **Snap-to-Grid & Orthogonal Routing**: Precision positioning with configurable grid sizes and subdivision levels.
+- **Batch Editing**: Rotate, flip, align, distribute, scale, and group components with ease.
 
-If you need help, please use the [general discussions](https://github.com/Circuit2TikZ/CircuiTikZ-Designer/discussions/categories/general) page.
+### 🖨️ True LaTeX Compilation Preview
+- **Desktop (Electron)**: Render circuits on-the-fly using local Tectonic or `pdflatex` installations.
+- **Web (Standalone Server)**: Optional zero-dependency render server (`server/renderServer.js` or Docker image) with auto-recompile and status indicators.
 
-## Contributing
+### 🏷️ MathJax & Typography
+- Render real-time mathematical formulas using MathJax syntax inside labels and text annotations.
 
-### Bug reporting
+---
 
-Please use the [issues page](https://github.com/Circuit2TikZ/CircuiTikZ-Designer/issues) of the project to report bugs. Please always provide steps on how to reproduce the bug.
+## 🚀 Getting Started
 
-### Feature requests
+### Prerequisites
+- [Node.js](https://nodejs.org/) (version 18 or newer recommended)
+- `npm` or `yarn`
 
-You can post feature requests and discuss them on the [discussions](https://github.com/Circuit2TikZ/CircuiTikZ-Designer/discussions/categories/ideas) page.
+### Installation & Local Run
 
-### Contribute code/component implementations
+```bash
+# 1. Clone the repository
+git clone https://github.com/nhat-vien/CircuiTikZ-Designer.git
+cd CircuiTikZ-Designer
 
-Fork the repo, and create a pull request. Please always test your code thoroughly!
+# 2. Install dependencies
+npm install
+
+# 3. Start development server
+npm start
+```
+
+Visit the local development URL displayed in your terminal (typically `http://localhost:1234`).
+
+### Running Tests
+
+```bash
+# Run unit tests via Vitest
+npm test
+```
+
+### Production Build
+
+```bash
+# Compile and bundle static files for deployment
+npm run build
+```
+
+The production assets will be generated in the `dist/` directory.
+
+---
+
+## ⌨️ Useful Keyboard Shortcuts
+
+| Shortcut | Action |
+| :--- | :--- |
+| `Ctrl + Z` / `Cmd + Z` | Undo |
+| `Ctrl + Y` / `Cmd + Shift + Z` | Redo |
+| `Delete` / `Backspace` | Delete selected components or wires |
+| `R` | Rotate selected component 90° clockwise |
+| `Shift + R` | Rotate selected component 90° counter-clockwise |
+| `Space + Drag` / Middle Click | Pan canvas |
+| `Scroll Wheel` | Zoom in / out |
+| `Ctrl + A` | Select all elements |
+| `Escape` | Deselect / Return to select tool |
+
+---
+
+## 🐳 Optional: LaTeX Render Server (Web Mode)
+
+To enable live rendered PDF/SVG previews when running in a web browser without a local TeX distribution:
+
+```bash
+# Navigate to server directory
+cd server
+
+# Run directly (requires tectonic or pdflatex installed)
+node renderServer.js --port 3000
+
+# Or build and run via Docker
+docker build -t circuitikz-render-server .
+docker run -p 3000:3000 circuitikz-render-server
+```
+
+In the app under **Grid & View / Settings**, set the render server URL to `http://localhost:3000`.
+
+---
+
+## 🤝 Contributing
+
+Contributions, bug reports, and suggestions are welcome!
+
+- **Bug Reports**: Open an issue on GitHub with steps to reproduce and circuit state if applicable.
+- **Feature Requests**: Start a discussion in the [Discussions](https://github.com/Circuit2TikZ/CircuiTikZ-Designer/discussions) tab.
+- **Pull Requests**:
+  1. Fork the repository.
+  2. Create a feature branch (`git checkout -b feature/amazing-feature`).
+  3. Ensure all tests pass (`npm test`).
+  4. Commit your changes (`git commit -m 'feat: add amazing feature'`).
+  5. Push to the branch and submit a PR.
+
+---
+
+## 📜 License
+
+This project is licensed under the **GNU General Public License v3.0** (`GPL-3.0-only`). See the [LICENSE](LICENSE) file for full details.
+
+---
+
+<p align="center">
+  Built with ❤️ for the LaTeX & Electronics Engineering community.
+</p>
