@@ -158,31 +158,26 @@ body {
   opacity: 0.95;
 }
 
-// Live TikZ Code Panel (mangel21 inspired)
+// Live TikZ Code Panel (left document column, mangel21 inspired)
 .live-code-panel {
-  position: absolute;
-  bottom: 12px;
-  left: 14px;
-  right: 14px;
-  max-height: 250px;
+  height: 100%;
+  min-height: 0;
   background-color: var(--bg-panel);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: var(--shadow-lg);
+  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  z-index: 15;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
 
   .live-code-header {
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 12px;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px 10px;
     background-color: var(--bg-app);
     border-bottom: 1px solid var(--border-color);
-    border-top-left-radius: 7px;
-    border-top-right-radius: 7px;
 
     .live-code-title {
       font-size: 12.5px;
@@ -208,18 +203,16 @@ body {
   }
 
   .live-code-body {
+    flex: 1 1 auto;
+    min-height: 0;
     padding: 4px 8px 8px;
     overflow: hidden;
-    max-height: 240px;
     background-color: var(--bg-editor);
-    border-bottom-left-radius: 7px;
-    border-bottom-right-radius: 7px;
 
     #liveCodeEditorHost {
-      height: 170px;
-      min-height: 80px;
+      height: 100%;
+      min-height: 0;
       max-height: 100%;
-      resize: vertical;
       overflow: auto;
     }
 

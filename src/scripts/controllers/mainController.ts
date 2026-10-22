@@ -2006,21 +2006,21 @@ export class MainController {
 	}
 
 	/**
-	 * Toggle or set visibility of the live CircuiTikZ code drawer (inspired by mangel21).
+	 * Toggle or set visibility of the live CircuiTikZ code drawer as a left document column.
 	 */
 	public toggleLiveCodePanel(forceState?: boolean): void {
-		const panel = document.getElementById("liveCodePanel")
-		if (!panel) return
-		const isCurrentlyOpen = !panel.classList.contains("d-none")
+		const container = document.getElementById("documentContainer")
+		if (!container) return
+		const isCurrentlyOpen = !container.classList.contains("d-none")
 		const shouldOpen = forceState !== undefined ? forceState : !isCurrentlyOpen
 
 		const navbarLiveBtn = document.getElementById("navbarLiveCodeButton")?.querySelector(".toolbarButton")
 		if (shouldOpen) {
-			panel.classList.remove("d-none")
+			container.classList.remove("d-none")
 			this.updateLiveCode()
 			navbarLiveBtn?.classList.add("selected")
 		} else {
-			panel.classList.add("d-none")
+			container.classList.add("d-none")
 			navbarLiveBtn?.classList.remove("selected")
 		}
 	}

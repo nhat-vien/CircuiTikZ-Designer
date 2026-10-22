@@ -103,9 +103,9 @@
 // Grid layout for component cards (matching mangel21 style)
 .iconLibAccordionBody {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-	gap: 6px;
-	padding: 8px !important;
+	grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+	gap: 5px;
+	padding: 6px !important;
 	background-color: var(--bg-panel);
 }
 
@@ -115,11 +115,11 @@ div.libComponent {
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	padding: 6px 3px 4px;
+	padding: 4px 2px 3px;
 	background-color: var(--bg-app);
 	border: 1px solid var(--border-color);
 	border-radius: 6px;
-	min-height: 58px;
+	min-height: 48px;
 	cursor: pointer;
 	user-select: none;
 	transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
@@ -145,9 +145,9 @@ div.libComponent {
 
 	> svg {
 		width: 100% !important;
-		max-width: 46px !important;
-		height: 30px !important;
-		min-height: 24px;
+		max-width: 36px !important;
+		height: 22px !important;
+		min-height: 18px;
 		flex-shrink: 0;
 		pointer-events: none;
 	}
@@ -158,13 +158,13 @@ div.libComponent {
 		-webkit-box-orient: vertical;
 		overflow: hidden;
 		text-overflow: ellipsis;
-		font-size: 10px;
+		font-size: 9px;
 		font-weight: 500;
 		line-height: 1.15;
 		color: var(--text-muted);
 		text-align: center;
 		width: 100%;
-		margin-top: 3px;
+		margin-top: 2px;
 		pointer-events: none;
 		word-break: break-word;
 	}

@@ -343,16 +343,9 @@
 		<!-- Site content -->
 		<div class="container-fluid flex-grow-1 w-100 position-relative overflow-hidden p-2">
 			<div class="row w-100 h-100 p-0 m-0" id="siteContent">
-				<div class="col-12 col-md position-relative" id="canvasContainer">
-					<!-- The actual canvas -->
-					<include src="pages/canvas.svg"></include>
-					<!-- Real-time cursor coordinates badge (inspired by mangel21) -->
-					<div id="canvasCoordinates" class="canvas-coords-badge unselectable" title="Cursor coordinates in CircuiTikZ units (cm)">
-						X: 0.00 cm, Y: 0.00 cm
-					</div>
-
-					<!-- Live TikZ Code Panel (inspired by mangel21) -->
-					<div id="liveCodePanel" class="live-code-panel d-none">
+				<div class="col-12 col-md-4 col-lg-3 col-xxl-2 m-0 p-0 overflow-hidden d-none" id="documentContainer">
+					<!-- Live TikZ Code Panel (left document column) -->
+					<div id="liveCodePanel" class="live-code-panel">
 						<div class="live-code-header">
 							<div class="d-flex align-items-center gap-2">
 								<span class="material-symbols-outlined fs-6 text-primary">terminal</span>
@@ -381,6 +374,16 @@
 							<div id="liveCodeEditorHost"></div>
 						</div>
 					</div>
+				</div>
+
+				<div class="col-12 col-md position-relative" id="canvasContainer">
+					<!-- The actual canvas -->
+					<include src="pages/canvas.svg"></include>
+					<!-- Real-time cursor coordinates badge (inspired by mangel21) -->
+					<div id="canvasCoordinates" class="canvas-coords-badge unselectable" title="Cursor coordinates in CircuiTikZ units (cm)">
+						X: 0.00 cm, Y: 0.00 cm
+					</div>
+
 					<!-- LaTeX compile error banner -->
 					<div id="latexPreviewError" class="latex-preview-error d-none" role="alert"></div>
 					<div class="d-block position-absolute top-50 start-50" id="loadingSpinner">
@@ -389,7 +392,7 @@
 						</div>
 					</div>
 				</div>
-				<div class="col-12 col-md-4 col-lg-3 col-xxl-2 m-0 p-0 overflow-y-auto d-none" id="propertiesContainer">
+				<div class="col-12 col-md-4 col-lg-3 col-xxl-3 m-0 p-0 overflow-y-auto d-none" id="propertiesContainer">
 					<div
 						class="w-100 h-100 border-start d-flex flex-column"
 						id="properties"
