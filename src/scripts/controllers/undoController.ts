@@ -8,6 +8,7 @@ import {
 	GlobalTikzSettings,
 	EnvironmentVariableController,
 	DocumentController,
+	JunctionController,
 } from "../internal"
 
 /**
@@ -21,6 +22,13 @@ export class Undo {
 
 	//TODO discuss if selections should be remembered or not???
 	public static addState() {
+		// keep junction dots consistent with the wiring before any snapshot
+		try {
+			JunctionController.reconcile()
+		} catch {
+			/* junction automation must never break undo */
+		}
+
 		// reconcile the document layer first so its state is part of this snapshot
 		try {
 			DocumentController.instance?.syncFromCanvas()

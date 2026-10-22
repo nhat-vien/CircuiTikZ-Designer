@@ -12,6 +12,7 @@ export * from "./controllers/environmentVariableController"
 export * from "./controllers/importController"
 export * from "./controllers/documentController"
 export * from "./controllers/latexPreviewController"
+export * from "./controllers/junctionController"
 // properties
 export * from "./properties/editableProperty"
 export * from "./properties/booleanProperty"

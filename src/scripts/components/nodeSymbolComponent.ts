@@ -31,6 +31,8 @@ import { selectedBoxWidth } from "../utils/selectionHelper"
 export type NodeSymbolSaveObject = NodeSaveObject & {
 	id: string
 	options?: string[]
+	/** set for junction dots created automatically by JunctionController */
+	autoJunction?: boolean
 }
 
 /**
@@ -46,6 +48,9 @@ export class NodeSymbolComponent extends NodeComponent {
 	 * All the possible symbol variants for this node component.
 	 */
 	public referenceSymbol: ComponentSymbol
+
+	/** true for junction dots created automatically by JunctionController */
+	public autoJunction: boolean = false
 
 	protected optionProperties: Map<BooleanProperty, SymbolOption>
 	protected optionEnumProperties: Map<ChoiceProperty<ChoiceEntry>, EnumOption>
@@ -255,6 +260,9 @@ export class NodeSymbolComponent extends NodeComponent {
 		if (this.name.value) {
 			data.name = this.name.value
 		}
+		if (this.autoJunction) {
+			data.autoJunction = true
+		}
 
 		return data
 	}
@@ -275,6 +283,7 @@ export class NodeSymbolComponent extends NodeComponent {
 
 	protected applyJson(saveObject: NodeSymbolSaveObject): void {
 		super.applyJson(saveObject)
+		this.autoJunction = saveObject.autoJunction === true
 		let options = saveObject.options ?? []
 		this.setPropertiesFromOptions(this.referenceSymbol.getOptionsFromOptionNames(options))
 		this.scaleProperty.value = new SVG.Number(Math.abs(this.scaleState.x))

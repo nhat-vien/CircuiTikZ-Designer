@@ -611,6 +611,11 @@ export class WireComponent extends Currentable(Strokable(PathComponent)) {
 		this.resizable(this.isSelected && show && SelectionController.instance.currentlySelectedComponents.length == 1)
 	}
 
+	/** World-coordinate polyline vertices (for the junction controller). */
+	public getWireVertices(): SVG.Point[] {
+		return this.referencePoints.map((p) => p.clone())
+	}
+
 	public toJson(): WireSaveObject {
 		let data = super.toJson() as WireSaveObject
 		data.type = WireComponent.jsonID

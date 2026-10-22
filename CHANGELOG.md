@@ -21,8 +21,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or when no engine/converter is installed.
 - **Wire split via right-click**: right-click a selected wire (3+ points) and split it at the
   vertex nearest the cursor; stroke, arrows and labels are carried over to the halves.
+- **Automatic junction dots**: wherever wires meet so that 3+ wire segments connect at one
+  point (including T-connections onto another wire's interior), a `node[circ]` junction dot
+  is inserted automatically and kept consistent while the wiring changes (it disappears
+  again when the junction is dissolved). Manually placed dots are never touched; simple
+  two-wire continuations and interior–interior crossings stay undotted, and component pins
+  never gain a dot.
 
 ### Fixed
+
+- Document editor caret/selection/text now follow the app theme (invisible black caret on
+  the dark editor background).
+- Statement–component pairing in the document layer now uses parser statement ownership
+  (`ownerGroups`): document order survives re-parsing and compound statements (multiple
+  bipoles in one `\draw`) no longer duplicate their text.
 
 - TikZ parser dropped statements that were merged behind `\ctikzset{...}` lines lacking a
   terminating `;` (exporter output could not be fully re-imported)
