@@ -47,13 +47,25 @@ poppler-utils (pdftocairo) — fully offline after the build.
 
 ## Deploy
 
-The server needs real binaries, so it must run on a platform that executes
-arbitrary containers (not Vercel static/edge):
+- **Render.com (free plan, no credit card)** — one-click blueprint:
+  1. Push this repo to GitHub
+  2. render.com → **New → Blueprint** → select the repo (reads `render.yaml`)
+  3. Copy the service URL (`https://ctd-render-server.onrender.com`) into the app's
+     *General settings → LaTeX render server (web)*
+  
+  The free plan sleeps after 15 minutes without traffic; the first request after a
+  wake-up takes ~1 minute (the in-app Save probe is a handy way to wait for it).
 
-- **Fly.io**: `fly launch` using the Dockerfile, then `fly deploy`
-- **Render**: new *Web Service* → Docker runtime → build from the repo
-- **Railway**: deploy the Dockerfile
-- **Any VPS**: `node server/renderServer.js` behind nginx/caddy TLS
+Other options:
+
+- **Google Cloud Run** (always-free tier needs a card): deploy the Dockerfile,
+  scale-to-zero, effectively $0 for personal usage
+- **Fly.io / Railway / Koyeb / a VPS**: paid plans, deploy the Dockerfile
+- **Local machine + Cloudflare Tunnel (free)**: `node server/renderServer.js` on your
+  own PC exposed as a public URL — no sleeping, full control
+
+The server needs real binaries, so it must NOT run on static hosts
+(GitHub Pages / Vercel static / Netlify).
 
 Environment:
 

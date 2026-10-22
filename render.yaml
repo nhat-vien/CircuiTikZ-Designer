@@ -1,0 +1,30 @@
+# Render.com Blueprint — one-click deployment of the CircuiTikZ-Designer web
+# render server on the Render FREE plan.
+#
+# Usage:
+#   1. Push this repo to GitHub.
+#   2. render.com -> "New" -> "Blueprint" -> select the repo.
+#   3. Render builds the Dockerfile (TeX Live + poppler) and gives you a URL
+#      like https://ctd-render-server.onrender.com
+#   4. In the web app: General settings -> "LaTeX render server (web)" -> paste
+#      the URL -> Save (the probe lets you verify it works).
+#
+# Notes:
+#   - FREE plan sleeps the service after 15 minutes without traffic; the first
+#     request after a wake-up takes about a minute (the in-app probe retries are
+#     a good way to wait for it).
+#   - Render injects the PORT environment variable; the server listens on it.
+services:
+  - type: web
+    name: ctd-render-server
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    region: singapore
+    envVars:
+      # Restrict to your deployment origin in production, e.g.
+      # https://<user>.github.io or https://<app>.vercel.app
+      - key: ALLOW_ORIGIN
+        value: "*"
