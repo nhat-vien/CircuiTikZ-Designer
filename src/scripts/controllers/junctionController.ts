@@ -47,7 +47,8 @@ export class JunctionController {
 				} as never
 				const node = SaveController.fromJson(json) as NodeSymbolComponent | null
 				if (node) node.autoJunction = true
-			} catch {
+			} catch (err) {
+				console.error("[CTD-J] node creation failed:", err)
 				/* junction automation must never break a placement/undo step */
 			}
 		}
